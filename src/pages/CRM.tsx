@@ -100,7 +100,7 @@ export function CRM() {
     await supabase.from('leads').insert({
       whatsapp_lead: newLeadForm.whatsapp,
       nome_lead: newLeadForm.nome,
-      servico_interesse: newLeadForm.procedimento,
+      procedimento_interesse: newLeadForm.procedimento,
       historico_conversa: newLeadForm.motivo,
       status: 'iniciou_atendimento'
     });
@@ -168,9 +168,9 @@ export function CRM() {
                                   <div className="font-semibold text-sm line-clamp-1 mb-1">{card.nome_lead || 'Lead sem nome'}</div>
                                   <div className="text-xs text-[var(--color-text-muted)] mb-3">{card.whatsapp_lead}</div>
                                   
-                                  {card.servico_interesse && (
+                                  {card.procedimento_interesse && (
                                     <div className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded mb-3 truncate border">
-                                      {card.servico_interesse}
+                                      {card.procedimento_interesse}
                                     </div>
                                   )}
 
@@ -247,7 +247,7 @@ export function CRM() {
             <div className="space-y-3">
               <h3 className="font-semibold text-sm border-b pb-1">Informações de Negócio</h3>
               <div className="flex flex-col gap-2">
-                <div className="flex flex-col p-2 border rounded bg-white gap-1"><span className="text-xs text-gray-500">Procedimento de interesse</span><span className="text-sm font-medium">{selectedLead.servico_interesse || '-'}</span></div>
+                <div className="flex flex-col p-2 border rounded bg-white gap-1"><span className="text-xs text-gray-500">Procedimento de interesse</span><span className="text-sm font-medium">{selectedLead.procedimento_interesse || '-'}</span></div>
                 <div className="flex flex-col p-2 border rounded bg-white gap-1"><span className="text-xs text-gray-500">Motivo do contato</span><span className="text-sm font-medium">{selectedLead.historico_conversa || '-'}</span></div>
                 {selectedLead.data_agendamento && <div className="flex flex-col p-2 border rounded bg-white gap-1"><span className="text-xs text-gray-500">Data Agendada Inicial</span><span className="text-sm font-medium">{format(parseISO(selectedLead.data_agendamento), 'dd/MM/yyyy HH:mm')}</span></div>}
               </div>

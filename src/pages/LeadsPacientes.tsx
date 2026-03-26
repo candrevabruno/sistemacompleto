@@ -200,7 +200,7 @@ export function LeadsPacientes() {
                 <tr key={lead.id} onClick={() => { setSelectedLead(lead); setOpenLeadDetails(true); }} className="border-b border-[var(--color-border-card)] last:border-0 hover:bg-[var(--color-bg-base)] transition-colors cursor-pointer group">
                   <td className="px-6 py-4 font-medium group-hover:text-[var(--color-primary)]">{lead.nome_lead || 'Sem Nome'}</td>
                   <td className="px-6 py-4 text-[var(--color-text-muted)] font-mono text-xs">{lead.whatsapp_lead}</td>
-                  <td className="px-6 py-4">{lead.servico_interesse || '-'}</td>
+                  <td className="px-6 py-4">{lead.procedimento_interesse || '-'}</td>
                   <td className="px-6 py-4"><Badge variant={lead.status}>{lead.status}</Badge></td>
                   <td className="px-6 py-4 text-[var(--color-text-muted)] text-xs">{lead.ultima_mensagem ? formatDistanceToNow(parseISO(lead.ultima_mensagem), { locale: ptBR, addSuffix: true }) : '-'}</td>
                   <td className="px-6 py-4">{lead.data_agendamento ? format(parseISO(lead.data_agendamento), 'dd/MM/yyyy HH:mm') : '-'}</td>
@@ -238,7 +238,7 @@ export function LeadsPacientes() {
             <div className="text-sm border p-4 rounded bg-gray-50">
                <p><strong>WhatsApp:</strong> {selectedLead.whatsapp_lead}</p>
                <p className="mt-2"><strong>Status Atual:</strong> <Badge variant={selectedLead.status}>{selectedLead.status}</Badge></p>
-               <p className="mt-2"><strong>Serviço de interesse:</strong> {selectedLead.servico_interesse || '-'}</p>
+               <p className="mt-2"><strong>Procedimento de interesse:</strong> {selectedLead.procedimento_interesse || '-'}</p>
                <p className="mt-2"><strong>Motivo:</strong> {selectedLead.historico_conversa || '-'}</p>
                <p className="mt-2"><strong>Início:</strong> {selectedLead.inicio_atendimento ? format(parseISO(selectedLead.inicio_atendimento), 'dd/MM/yyyy HH:mm') : '-'}</p>
             </div>
