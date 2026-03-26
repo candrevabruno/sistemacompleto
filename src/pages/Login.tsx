@@ -1,0 +1,112 @@
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
+import { useClinic } from '../contexts/ClinicContext';
+import { Input } from '../components/ui/Input';
+import { Button } from '../components/ui/Button';
+import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
+
+export function Login() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const navigate = useNavigate();
+  const { config } = useClinic();
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    
+    if (!email || !password) {
+      setError('Preencha os campos obrigatórios.');
+      setLoading(false);
+      return;
+    }
+
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (signInError) {
+      setError('Email ou senha incorretos.');
+      setLoading(false);
+    } else {
+      navigate('/dashboard');
+    }
+  };
+
+  return (
+    <div className="flex h-screen w-full bg-[var(--color-bg-base)]">
+      {/* Left Panel */}
+      <div className="hidden md:flex flex-col items-center justify-center w-[40%] bg-[var(--color-primary)] text-white p-10">
+        <h1 className="font-cormorant text-5xl font-semibold mb-4 text-center">
+          {config?.nome || "Minha Clínica"}
+        </h1>
+        <p className="font-dm text-lg opacity-90 text-center">
+          Gestão inteligente para o seu espaço de saúde.
+        </p>
+      </div>
+
+      {/* Right Panel */}
+      <div className="flex flex-col items-center justify-center w-full md:w-[60%] p-6">
+        <div className="w-full max-w-md">
+          <div className="mb-10 text-center md:text-left">
+            <h2 className="font-cormorant text-4xl font-semibold text-[var(--color-text-main)] mb-2">
+              Bem-vindo
+            </h2>
+            <p className="text-[var(--color-text-muted)]">
+              Faça login para acessar o sistema.
+            </p>
+          </div>
+
+          <form onSubmit={handleLogin} className="space-y-6">
+            <Input
+              label="E-mail"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="seu@email.com"
+              icon={<Mail className="w-5 h-5" />}
+            />
+
+            <div className="relative">
+              <Input
+                label="Senha"
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                icon={<Lock className="w-5 h-5" />}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-9 text-[var(--color-text-muted)] hover:text-[var(--color-text-main)]"
+              >
+                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
+            </div>
+
+            {error && (
+              <div className="p-3 rounded-[8px] bg-[#FCEEEE] text-[var(--color-error)] text-sm font-medium">
+                {error}
+              </div>
+            )}
+
+            <Button
+              type="submit"
+              className="w-full"
+              loading={loading}
+            >
+              Entrar
+            </Button>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}

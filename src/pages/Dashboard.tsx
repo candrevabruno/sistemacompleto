@@ -1,0 +1,383 @@
+import React, { useState, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
+import { Badge } from '../components/ui/Badge';
+import { Input } from '../components/ui/Input';
+import { Calendar as CalendarIcon, Users, UserCheck, Bot, Activity, Clock } from 'lucide-react';
+import { 
+  startOfToday, endOfToday, startOfYesterday, endOfYesterday, subDays, startOfMonth, 
+  endOfMonth, startOfYear, endOfYear, isWithinInterval, parseISO, format, getDay, setHours, setMinutes
+} from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { 
+  LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, 
+  CartesianGrid, Tooltip, ResponsiveContainer, Legend 
+} from 'recharts';
+
+type DateFilter = 'hoje' | 'ontem' | '7dias' | '14semanas' | 'mes' | 'ano' | 'custom';
+
+export function Dashboard() {
+  const [filter, setFilter] = useState<DateFilter>('hoje');
+  const [dateRange, setDateRange] = useState({ start: startOfToday(), end: endOfToday() });
+  const [customStart, setCustomStart] = useState(format(startOfToday(), 'yyyy-MM-dd'));
+  const [customEnd, setCustomEnd] = useState(format(endOfToday(), 'yyyy-MM-dd'));
+  
+  const [loading, setLoading] = useState(true);
+  const [metrics, setMetrics] = useState({ agendamentos: 0, comparecimentos: 0, leads: 0, clientes: 0 });
+  const [clinicHours, setClinicHours] = useState<any[]>([]);
+  const [leadsData, setLeadsData] = useState<any[]>([]);
+  const [agendamentosData, setAgendamentosData] = useState<any[]>([]);
+  const [upcoming, setUpcoming] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetchClinicHours();
+  }, []);
+
+  useEffect(() => {
+    applyFilter(filter);
+  }, [filter]);
+
+  useEffect(() => {
+    fetchData();
+  }, [dateRange]);
+
+  const fetchClinicHours = async () => {
+    const { data } = await supabase.from('clinic_hours').select('*');
+    if (data) setClinicHours(data);
+  };
+
+  const applyFilter = (f: DateFilter) => {
+    const today = new Date();
+    switch (f) {
+      case 'hoje': setDateRange({ start: startOfToday(), end: endOfToday() }); break;
+      case 'ontem': setDateRange({ start: startOfYesterday(), end: endOfYesterday() }); break;
+      case '7dias': setDateRange({ start: subDays(today, 7), end: endOfToday() }); break;
+      case '14semanas': setDateRange({ start: subDays(today, 14 * 7), end: endOfToday() }); break;
+      case 'mes': setDateRange({ start: startOfMonth(today), end: endOfMonth(today) }); break;
+      case 'ano': setDateRange({ start: startOfYear(today), end: endOfYear(today) }); break;
+      case 'custom':
+        if (customStart && customEnd) {
+          setDateRange({ start: new Date(customStart + 'T00:00:00'), end: new Date(customEnd + 'T23:59:59') });
+        }
+        break;
+    }
+  };
+
+  const fetchData = async () => {
+    setLoading(true);
+    const startIso = dateRange.start.toISOString();
+    const endIso = dateRange.end.toISOString();
+
+    const [agendamentosReq, leadsReq, clientesReq, upcomingReq] = await Promise.all([
+      supabase.from('agendamentos_estetica').select('*').gte('data_hora_inicio', startIso).lte('data_hora_inicio', endIso),
+      supabase.from('leads_estetica').select('*').gte('inicio_atendimento', startIso).lte('inicio_atendimento', endIso),
+      supabase.from('clientes_estetica').select('*').gte('created_at', startIso).lte('created_at', endIso),
+      supabase.from('agendamentos_estetica')
+        .select('*, leads_estetica(nome_lead, whatsapp_lead), clientes_estetica(leads_estetica(nome_lead, whatsapp_lead)), agendas(nome, cor)')
+        .gte('data_hora_inicio', new Date().toISOString())
+        .order('data_hora_inicio', { ascending: true })
+        .limit(5)
+    ]);
+
+    const agendamentos = agendamentosReq.data || [];
+    const leads = leadsReq.data || [];
+    const clientes = clientesReq.data || [];
+
+    setAgendamentosData(agendamentos);
+    setLeadsData(leads);
+    setUpcoming(upcomingReq.data || []);
+
+    setMetrics({
+      agendamentos: agendamentos.length,
+      comparecimentos: agendamentos.filter(a => a.status === 'compareceu').length,
+      leads: leads.length,
+      clientes: clientes.length
+    });
+
+    setLoading(false);
+  };
+
+  // Process data for charts
+  const dayNameMapping = ['domingo', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado'];
+  const dayLabelMapping = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+
+  // 1. Linha - Atendimentos por dia
+  const leadsByDayMap: Record<string, number> = {};
+  leadsData.forEach(l => {
+    if (!l.inicio_atendimento) return;
+    const key = format(parseISO(l.inicio_atendimento), 'dd/MM');
+    leadsByDayMap[key] = (leadsByDayMap[key] || 0) + 1;
+  });
+  const chart1Data = Object.keys(leadsByDayMap).map(k => ({ dia: k, leads: leadsByDayMap[k] })).sort((a,b) => a.dia.localeCompare(b.dia)); // simplified sorting
+
+  // 2. Barras - Dias mais movimento
+  const leadsByDayOfWeek = new Array(7).fill(0);
+  leadsData.forEach(l => {
+    if (!l.inicio_atendimento) return;
+    leadsByDayOfWeek[getDay(parseISO(l.inicio_atendimento))]++;
+  });
+  // Shift to start on Monday for display
+  const chart2Data = [1,2,3,4,5,6,0].map(d => ({
+    name: dayLabelMapping[d],
+    valor: leadsByDayOfWeek[d]
+  }));
+
+  // 3. Pizza - Horário contatos
+  let leadsDentro = 0;
+  let leadsFora = 0;
+  leadsData.forEach(l => {
+    if (!l.inicio_atendimento) return;
+    const date = parseISO(l.inicio_atendimento);
+    const dayName = dayNameMapping[getDay(date)];
+    const ch = clinicHours.find(h => h.dia === dayName);
+    
+    if (ch && ch.aberto && ch.hora_inicio && ch.hora_fim) {
+      const [hIni, mIni] = ch.hora_inicio.split(':').map(Number);
+      const [hFim, mFim] = ch.hora_fim.split(':').map(Number);
+      const startLimit = setMinutes(setHours(date, hIni), mIni);
+      const endLimit = setMinutes(setHours(date, hFim), mFim);
+      if (isWithinInterval(date, { start: startLimit, end: endLimit })) {
+        leadsDentro++;
+      } else {
+        leadsFora++;
+      }
+    } else {
+      leadsFora++; // Fechado no dia
+    }
+  });
+  const chart3Data = [
+    { name: 'No Horário', value: leadsDentro },
+    { name: 'Fora do Horário', value: leadsFora }
+  ];
+  const COLORS = ['var(--color-success)', 'var(--color-warning)'];
+
+  // 4. Barras Horiz - Procedimentos procurados
+  const procMap: Record<string, number> = {};
+  agendamentosData.forEach(a => {
+    if (!a.procedimento_nome) return;
+    const proc = a.procedimento_nome.trim();
+    if (!proc) return;
+    procMap[proc] = (procMap[proc] || 0) + 1;
+  });
+  const sortedProcs = Object.keys(procMap).map(k => ({ proc: k, count: procMap[k] })).sort((a,b) => b.count - a.count).slice(0, 8);
+  const maxProcCount = sortedProcs[0]?.count || 1;
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col md:flex-rowjustify-between gap-4 p-4 bg-[var(--color-bg-card)] rounded-[12px] border border-[var(--color-border-card)] shadow-[var(--shadow-card)]">
+        <div className="flex flex-wrap gap-2 items-center">
+          {(['hoje', 'ontem', '7dias', '14semanas', 'mes', 'ano'] as DateFilter[]).map(f => (
+            <button
+              key={f}
+              onClick={() => setFilter(f)}
+              className={`px-3 py-1.5 text-sm font-medium rounded-[8px] transition-colors ${filter === f ? 'bg-[var(--color-primary)] text-white' : 'bg-[var(--color-bg-base)] text-[var(--color-text-main)] hover:bg-[var(--color-primary-light)]'}`}
+            >
+              {f === 'hoje' ? 'Hoje' : f === 'ontem' ? 'Ontem' : f === '7dias' ? '7 dias' : f === '14semanas' ? '14 semanas' : f === 'mes' ? 'Mês' : 'Ano'}
+            </button>
+          ))}
+          <div className="flex items-center gap-2 ml-4">
+            <Input 
+              type="date" 
+              value={customStart} 
+              max={format(new Date(), 'yyyy-MM-dd')}
+              onChange={e => { setCustomStart(e.target.value); setFilter('custom'); }} 
+            />
+            <span className="text-[var(--color-text-muted)]">até</span>
+            <Input 
+              type="date" 
+              value={customEnd} 
+              max={format(new Date(), 'yyyy-MM-dd')}
+              onChange={e => { setCustomEnd(e.target.value); setFilter('custom'); }} 
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        {[
+          { label: 'Agendamentos do período', value: metrics.agendamentos, icon: CalendarIcon },
+          { label: 'Comparecimentos', value: metrics.comparecimentos, icon: UserCheck },
+          { label: 'Novos leads', value: metrics.leads, icon: Users },
+          { label: 'Novos clientes', value: metrics.clientes, icon: Activity }
+        ].map((m, i) => (
+          <Card key={i}>
+            <CardContent className="p-6 flex items-center gap-4">
+              <div className="p-3 bg-[var(--color-primary-light)] rounded-[8px] text-[var(--color-primary)]">
+                <m.icon className="w-6 h-6" />
+              </div>
+              <div>
+                <div className="font-cormorant text-3xl font-bold text-[var(--color-text-main)] leading-none">{m.value}</div>
+                <div className="text-sm text-[var(--color-text-muted)] mt-1">{m.label}</div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {leadsFora > 0 && (
+        <div className="bg-[var(--color-primary-light)] border-l-4 border-[var(--color-primary)] p-4 rounded-r-[12px] flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+          <div className="p-2 bg-white rounded-full text-[var(--color-primary)] shadow-sm shrink-0">
+            <Bot className="w-6 h-6" />
+          </div>
+          <div className="text-[var(--color-text-main)] text-sm font-medium">
+            <strong className="text-[var(--color-primary)] text-lg mr-1">{leadsFora}</strong> 
+            pessoas tentaram falar com sua clínica fora do horário de atendimento neste período. Sem o agente de IA no WhatsApp, esses contatos teriam ido embora sem resposta — e provavelmente procurado a concorrência.
+          </div>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Atendimentos no WhatsApp</CardTitle>
+            <p className="text-sm text-[var(--color-text-muted)]">Total de leads atendidos pelo agente de IA por dia no período selecionado</p>
+          </CardHeader>
+          <CardContent className="h-[300px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={chart1Data}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border-card)" />
+                <XAxis dataKey="dia" axisLine={false} tickLine={false} />
+                <YAxis axisLine={false} tickLine={false} />
+                <Tooltip 
+                  contentStyle={{ borderRadius: '8px', border: '1px solid var(--color-border-card)', boxShadow: 'var(--shadow-dropdown)' }} 
+                />
+                <Line type="monotone" dataKey="leads" stroke="var(--color-primary)" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+        <Card className="col-span-3">
+          <CardHeader>
+            <CardTitle>Dias com mais movimento</CardTitle>
+            <p className="text-sm text-[var(--color-text-muted)]">Veja em quais dias da semana sua clínica recebe mais contatos</p>
+          </CardHeader>
+          <CardContent className="h-[250px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chart2Data}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border-card)" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} />
+                <YAxis axisLine={false} tickLine={false} />
+                <Tooltip cursor={{ fill: 'var(--color-primary-light)', opacity: 0.4 }} />
+                <Bar dataKey="valor" fill="var(--color-primary-light)" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        <Card className="col-span-2">
+          <CardHeader>
+            <CardTitle>Horário dos contatos</CardTitle>
+            <p className="text-sm text-[var(--color-text-muted)]">Contatos dentro e fora do horário de funcionamento</p>
+          </CardHeader>
+          <CardContent className="h-[250px] flex flex-col">
+            <div className="flex-1">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={chart3Data} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
+                    {chart3Data.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index]} />)}
+                  </Pie>
+                  <Tooltip />
+                  <Legend verticalAlign="bottom" height={36}/>
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="mt-2 text-xs text-[var(--color-text-muted)] text-center bg-[var(--color-bg-base)] p-2 rounded-[8px]">
+              ⚙️ Horário atual reflete as configurações administrativas ativas da clínica.
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+        <Card className="col-span-3">
+          <CardHeader>
+            <CardTitle>Procedimentos mais procurados</CardTitle>
+            <p className="text-sm text-[var(--color-text-muted)]">Os serviços mais solicitados pelos seus leads no período</p>
+          </CardHeader>
+          <CardContent className="h-[300px]">
+             <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={sortedProcs} layout="vertical" margin={{ left: 80 }}>
+                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--color-border-card)" />
+                <XAxis type="number" hide />
+                <YAxis dataKey="proc" type="category" axisLine={false} tickLine={false} width={100} style={{ fontSize: '12px' }}/>
+                <Tooltip cursor={{ fill: 'var(--color-border-card)', opacity: 0.4 }} />
+                <Bar dataKey="count" fill="var(--color-primary)" radius={[0, 4, 4, 0]} barSize={20} />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        <Card className="col-span-2">
+          <CardHeader>
+            <CardTitle>Procedimentos em destaque</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {sortedProcs.map((proc, idx) => (
+              <div key={idx} className="flex items-center gap-3">
+                <div className="font-cormorant text-xl font-bold text-[var(--color-primary)] w-6 text-center">{idx + 1}º</div>
+                <div className="flex-1">
+                  <div className="flex justify-between text-sm font-medium mb-1">
+                    <span className="truncate max-w-[150px]">{proc.proc}</span>
+                    <span>{proc.count}</span>
+                  </div>
+                  <div className="h-2 w-full bg-[var(--color-border-card)] rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-[var(--color-primary)] rounded-full" 
+                      style={{ width: `${(proc.count / maxProcCount) * 100}%`, opacity: Math.max(0.3, 1 - (idx * 0.1)) }}
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+            {sortedProcs.length === 0 && <div className="text-sm text-center text-[var(--color-text-muted)] py-10">Nenhum dado na data selecionada.</div>}
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Próximos Agendamentos</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-0">
+            {upcoming.map((u, i) => {
+              const nome = u.leads_estetica?.nome_lead || u.clientes_estetica?.leads_estetica?.nome_lead || 'Sem nome';
+              return (
+                <div key={u.id} className={`flex items-center justify-between py-4 ${i !== upcoming.length - 1 ? 'border-b border-[var(--color-border-card)]' : ''}`}>
+                  <div className="flex items-center gap-4">
+                    <div className="bg-[var(--color-bg-base)] rounded-[8px] p-2 text-center min-w-[60px] border border-[var(--color-border-card)]">
+                      <div className="text-xs text-[var(--color-text-muted)] uppercase">{format(parseISO(u.data_hora_inicio), 'MMM', { locale: ptBR })}</div>
+                      <div className="text-lg font-bold text-[var(--color-primary)] leading-none">{format(parseISO(u.data_hora_inicio), 'dd')}</div>
+                    </div>
+                    <div>
+                      <div className="font-medium text-[var(--color-text-main)] flex items-center gap-2">
+                        {nome} <Badge variant={u.status}>{u.status}</Badge>
+                      </div>
+                      <div className="text-sm text-[var(--color-text-muted)] flex items-center gap-3 mt-1">
+                        <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5"/> {format(parseISO(u.data_hora_inicio), 'HH:mm')}</span>
+                        {u.procedimento_nome && <span>• {u.procedimento_nome}</span>}
+                      </div>
+                    </div>
+                  </div>
+                  {u.agendas && (
+                    <div className="text-sm border rounded-full px-3 py-1 flex items-center gap-2" style={{ borderColor: u.agendas.cor }}>
+                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: u.agendas.cor }}></div>
+                      {u.agendas.nome}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+            {upcoming.length === 0 && (
+              <div className="text-center py-8 text-[var(--color-text-muted)]">Nenhum agendamento futuro encontrado.</div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+    </div>
+  );
+}
