@@ -44,14 +44,14 @@ export function Configuracoes() {
 
 function AbaGeral() {
   const { config, refreshConfig } = useClinic();
-  const [nome, setNome] = useState(config?.nome || '');
+  const [nome, setNome] = useState(config?.nome || 'Heroic Leap Health');
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [hours, setHours] = useState<any[]>([]);
   const [loadingHours, setLoadingHours] = useState(false);
 
   useEffect(() => {
-    setNome(config?.nome || '');
+    setNome(config?.nome || 'Heroic Leap Health');
   }, [config]);
 
   useEffect(() => {

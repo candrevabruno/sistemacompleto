@@ -41,11 +41,11 @@ export function Sidebar() {
           />
         ) : (
           <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-[var(--color-primary)] text-3xl font-bold text-white uppercase">
-            {config?.nome?.charAt(0) || 'C'}
+            {config?.nome?.substring(0, 2).toUpperCase() || 'HL'}
           </div>
         )}
         <h2 className="font-cormorant text-center text-[18px] font-semibold">
-          {config?.nome || 'Minha Clínica'}
+          {config?.nome || 'Heroic Leap Health'}
         </h2>
       </div>
 
