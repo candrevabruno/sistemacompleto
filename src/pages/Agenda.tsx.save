@@ -5,7 +5,6 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Modal } from '../components/ui/Modal';
 import { Badge } from '../components/ui/Badge';
-import { Avatar } from '../components/ui/Avatar';
 import { ChevronLeft, ChevronRight, Plus, Edit2, Trash2, Calendar as CalendarIcon, Clock, User as UserIcon } from 'lucide-react';
 import FullCalendar from '@fullcalendar/react';
 import timeGridPlugin from '@fullcalendar/timegrid';
@@ -42,7 +41,7 @@ export function Agenda() {
       setAgendas(reqAgendas.data);
       reqAgendas.data.forEach(a => {
         if (!calendarRefs.current[a.id]) {
-          calendarRefs.current[a.id] = React.createRef<FullCalendar>() as React.RefObject<FullCalendar>;
+          calendarRefs.current[a.id] = React.createRef<FullCalendar>();
         }
       });
     }
