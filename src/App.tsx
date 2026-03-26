@@ -7,7 +7,7 @@ import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
 import { CRM } from './pages/CRM';
 import { Agenda } from './pages/Agenda';
-import { LeadsClientes } from './pages/LeadsClientes';
+import { LeadsPacientes } from './pages/LeadsPacientes';
 import { DocumentacaoAPI } from './pages/DocumentacaoAPI';
 import { Configuracoes } from './pages/Configuracoes';
 
@@ -30,7 +30,7 @@ export function App() {
               <Route element={<PrivateRoute><Layout /></PrivateRoute>}>
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/crm" element={<CRM />} />
-                <Route path="/leads-clientes" element={<LeadsClientes />} />
+                <Route path="/leads-pacientes" element={<LeadsPacientes />} />
                 <Route path="/agenda" element={<Agenda />} />
                 <Route path="/documentacao-api" element={<DocumentacaoAPI />} />
                 <Route 

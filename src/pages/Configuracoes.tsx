@@ -344,7 +344,7 @@ function AbaKanban() {
         </table>
         <div className="bg-blue-50 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 p-3 mt-4 rounded text-sm flex items-start gap-2">
           <span className="font-bold text-lg mt-0.5">•</span>
-          <p>Para atualizar o status de um lead via N8N, envie uma requisição ao Supabase atualizando o campo <code>status</code> da tabela <code>leads_estetica</code> com um dos valores acima.</p>
+          <p>Para atualizar o status de um lead via N8N, envie uma requisição ao Supabase atualizando o campo <code>status</code> da tabela <code>leads</code> com um dos valores acima.</p>
         </div>
       </CardContent>
     </Card>

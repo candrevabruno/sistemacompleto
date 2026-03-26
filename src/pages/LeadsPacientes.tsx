@@ -11,8 +11,8 @@ import { ptBR } from 'date-fns/locale';
 
 type DateFilter = 'hoje' | 'ontem' | '7dias' | '14semanas' | 'mes' | 'ano' | 'custom';
 
-export function LeadsClientes() {
-  const [activeTab, setActiveTab] = useState<'leads' | 'clientes'>('leads');
+export function LeadsPacientes() {
+  const [activeTab, setActiveTab] = useState<'leads' | 'pacientes'>('leads');
   const [searchTerm, setSearchTerm] = useState('');
   
   // Date filter state
@@ -24,13 +24,13 @@ export function LeadsClientes() {
   // Data state
   const [loading, setLoading] = useState(false);
   const [leads, setLeads] = useState<any[]>([]);
-  const [clientes, setClientes] = useState<any[]>([]);
+  const [pacientes, setPacientes] = useState<any[]>([]);
   
   // Drawer/Modal state
   const [selectedLead, setSelectedLead] = useState<any>(null);
   const [openLeadDetails, setOpenLeadDetails] = useState(false);
-  const [selectedCliente, setSelectedCliente] = useState<any>(null);
-  const [openClienteDetails, setOpenClienteDetails] = useState(false);
+  const [selectedPaciente, setSelectedPaciente] = useState<any>(null);
+  const [openPacienteDetails, setOpenPacienteDetails] = useState(false);
 
   useEffect(() => {
     applyFilter(dateFilter);
@@ -61,36 +61,30 @@ export function LeadsClientes() {
     const endIso = dateRange.end.toISOString();
 
     if (activeTab === 'leads') {
-      // Leads que não estão em clientes
-      const { data } = await supabase.rpc('get_leads_not_in_clientes', { start_date: startIso, end_date: endIso });
-      
-      // Como não criamos RPC manual no diff anterior, vamos simular via Join normal do JS 
-      // Em produção: `await supabase.from('leads_estetica').select('*').not('id', 'in', `(${clientLeadIds})`)`
-      const reqAllLeads = await supabase.from('leads_estetica').select('*').gte('inicio_atendimento', startIso).lte('inicio_atendimento', endIso);
-      const reqClientLeadIds = await supabase.from('clientes_estetica').select('lead_id');
-      const clientIds = new Set(reqClientLeadIds.data?.map(c => c.lead_id) || []);
-      const pendingLeads = (reqAllLeads.data || []).filter(l => !clientIds.has(l.id));
+      // Leads que não estão em pacientes
+      const reqAllLeads = await supabase.from('leads').select('*').gte('inicio_atendimento', startIso).lte('inicio_atendimento', endIso);
+      const reqPatientLeadIds = await supabase.from('pacientes').select('lead_id');
+      const patientIds = new Set(reqPatientLeadIds.data?.map(c => c.lead_id) || []);
+      const pendingLeads = (reqAllLeads.data || []).filter(l => !patientIds.has(l.id));
       setLeads(pendingLeads);
     } else {
-      // Clientes + Leads
-      const { data } = await supabase.from('clientes_estetica')
-        .select('*, leads_estetica(*)')
+      // Pacientes + Leads
+      const { data } = await supabase.from('pacientes')
+        .select('*, leads(*)')
         .gte('created_at', startIso).lte('created_at', endIso)
         .order('created_at', { ascending: false });
       
-      // Precisamos contar os agendamentos compareceu
-      // Em uma aplicação real seria com aggregate, faremos loop simples pro MVP
-      const resolvedClients = [];
-      for (const c of (data || [])) {
-        const reqCompareceu = await supabase.from('agendamentos_estetica').select('id', { count: 'exact' }).eq('cliente_id', c.id).eq('status', 'compareceu');
-        const reqProx = await supabase.from('agendamentos_estetica').select('data_hora_inicio').eq('cliente_id', c.id).gte('data_hora_inicio', new Date().toISOString()).order('data_hora_inicio', { ascending: true }).limit(1);
-        resolvedClients.push({
-           ...c,
+      const resolvedPatients = [];
+      for (const p of (data || [])) {
+        const reqCompareceu = await supabase.from('agendamentos').select('id', { count: 'exact' }).eq('paciente_id', p.id).eq('status', 'compareceu');
+        const reqProx = await supabase.from('agendamentos').select('data_hora_inicio').eq('paciente_id', p.id).gte('data_hora_inicio', new Date().toISOString()).order('data_hora_inicio', { ascending: true }).limit(1);
+        resolvedPatients.push({
+           ...p,
            countCompareceu: reqCompareceu.count || 0,
            proxAgendamento: reqProx.data?.[0]?.data_hora_inicio || null
         });
       }
-      setClientes(resolvedClients);
+      setPacientes(resolvedPatients);
     }
     setLoading(false);
   };
@@ -100,9 +94,9 @@ export function LeadsClientes() {
     return (l.nome_lead?.toLowerCase().includes(term) || l.whatsapp_lead?.includes(term));
   });
 
-  const filteredClientes = clientes.filter(c => {
+  const filteredPacientes = pacientes.filter(p => {
     const term = searchTerm.toLowerCase();
-    return (c.leads_estetica?.nome_lead?.toLowerCase().includes(term) || c.leads_estetica?.whatsapp_lead?.includes(term));
+    return (p.leads?.nome_lead?.toLowerCase().includes(term) || p.leads?.whatsapp_lead?.includes(term));
   });
 
   return (
@@ -122,7 +116,7 @@ export function LeadsClientes() {
            <CardContent className="flex items-center gap-4 p-4">
              <div className="p-3 bg-green-100 text-[var(--color-success)] rounded-full shrink-0"><UserCheck className="w-5 h-5"/></div>
              <div>
-               <h3 className="font-semibold text-lg">Cliente</h3>
+               <h3 className="font-semibold text-lg">Paciente</h3>
                <p className="text-sm text-[var(--color-text-muted)]">Pessoa que agendou e compareceu à clínica pelo menos uma vez.</p>
              </div>
            </CardContent>
@@ -159,8 +153,8 @@ export function LeadsClientes() {
            <button onClick={() => setActiveTab('leads')} className={`pb-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'leads' ? 'border-[var(--color-primary)] text-[var(--color-primary)]' : 'border-transparent text-[var(--color-text-muted)] hover:text-[var(--color-text-main)]'}`}>
              Base de Leads ({activeTab === 'leads' ? filteredLeads.length : '...'})
            </button>
-           <button onClick={() => setActiveTab('clientes')} className={`pb-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'clientes' ? 'border-[var(--color-primary)] text-[var(--color-primary)]' : 'border-transparent text-[var(--color-text-muted)] hover:text-[var(--color-text-main)]'}`}>
-             Base de Clientes ({activeTab === 'clientes' ? filteredClientes.length : '...'})
+           <button onClick={() => setActiveTab('pacientes')} className={`pb-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'pacientes' ? 'border-[var(--color-primary)] text-[var(--color-primary)]' : 'border-transparent text-[var(--color-text-muted)] hover:text-[var(--color-text-main)]'}`}>
+             Base de Pacientes ({activeTab === 'pacientes' ? filteredPacientes.length : '...'})
            </button>
          </div>
          <div className="pb-2 w-64">
@@ -193,7 +187,7 @@ export function LeadsClientes() {
                 <>
                   <th className="px-6 py-4 font-semibold text-center">Procedimentos Realizados (Qtd)</th>
                   <th className="px-6 py-4 font-semibold">Próximo Agendamento</th>
-                  <th className="px-6 py-4 font-semibold">Cliente Desde</th>
+                  <th className="px-6 py-4 font-semibold">Paciente Desde</th>
                 </>
               )}
             </tr>
@@ -214,20 +208,20 @@ export function LeadsClientes() {
                 </tr>
               ))
             ) : (
-              filteredClientes.map(cliente => (
-                <tr key={cliente.id} onClick={() => { setSelectedCliente(cliente); setOpenClienteDetails(true); }} className="border-b border-[var(--color-border-card)] last:border-0 hover:bg-[var(--color-bg-base)] transition-colors cursor-pointer group">
-                  <td className="px-6 py-4 font-medium group-hover:text-[var(--color-primary)]">{cliente.leads_estetica?.nome_lead || 'Sem Nome'}</td>
-                  <td className="px-6 py-4 text-[var(--color-text-muted)] font-mono text-xs">{cliente.leads_estetica?.whatsapp_lead}</td>
+              filteredPacientes.map(paciente => (
+                <tr key={paciente.id} onClick={() => { setSelectedPaciente(paciente); setOpenPacienteDetails(true); }} className="border-b border-[var(--color-border-card)] last:border-0 hover:bg-[var(--color-bg-base)] transition-colors cursor-pointer group">
+                  <td className="px-6 py-4 font-medium group-hover:text-[var(--color-primary)]">{paciente.leads?.nome_lead || 'Sem Nome'}</td>
+                  <td className="px-6 py-4 text-[var(--color-text-muted)] font-mono text-xs">{paciente.leads?.whatsapp_lead}</td>
                   <td className="px-6 py-4 text-center">
-                    <span className="bg-[var(--color-primary-light)] text-[var(--color-primary)] px-3 py-1 rounded-full font-bold">{cliente.countCompareceu}</span>
+                    <span className="bg-[var(--color-primary-light)] text-[var(--color-primary)] px-3 py-1 rounded-full font-bold">{paciente.countCompareceu}</span>
                   </td>
-                  <td className="px-6 py-4 text-[var(--color-text-muted)]">{cliente.proxAgendamento ? format(parseISO(cliente.proxAgendamento), 'dd/MM/yyyy HH:mm') : <span className="text-gray-400 italic">Sem agendamentos futuros</span>}</td>
-                  <td className="px-6 py-4 text-[var(--color-text-muted)]">{format(parseISO(cliente.data_primeira_visita), 'dd/MM/yyyy')}</td>
+                  <td className="px-6 py-4 text-[var(--color-text-muted)]">{paciente.proxAgendamento ? format(parseISO(paciente.proxAgendamento), 'dd/MM/yyyy HH:mm') : <span className="text-gray-400 italic">Sem agendamentos futuros</span>}</td>
+                  <td className="px-6 py-4 text-[var(--color-text-muted)]">{format(parseISO(paciente.data_primeira_visita), 'dd/MM/yyyy')}</td>
                 </tr>
               ))
             )}
             
-            {!loading && (activeTab === 'leads' ? filteredLeads.length === 0 : filteredClientes.length === 0) && (
+            {!loading && (activeTab === 'leads' ? filteredLeads.length === 0 : filteredPacientes.length === 0) && (
               <tr><td colSpan={activeTab === 'leads' ? 7 : 5} className="py-20 text-center text-[var(--color-text-muted)]">
                 Nenhum registro encontrado para este filtro.
               </td></tr>
@@ -236,7 +230,7 @@ export function LeadsClientes() {
         </table>
       </div>
 
-      {/* DRAWER LAYER FOR LEADS/CLIENTS (Modal reuse) */}
+      {/* DRAWER LAYER FOR LEADS/PATIENTS (Modal reuse) */}
       <Modal isOpen={openLeadDetails} onClose={() => setOpenLeadDetails(false)} title="Detalhes do Lead">
         {selectedLead && (
           <div className="space-y-6 max-h-[70vh] overflow-y-auto">
@@ -252,41 +246,41 @@ export function LeadsClientes() {
         )}
       </Modal>
 
-      <Modal isOpen={openClienteDetails} onClose={() => setOpenClienteDetails(false)} title="Detalhes Ficha Clínica do Cliente">
-        {selectedCliente && (
+      <Modal isOpen={openPacienteDetails} onClose={() => setOpenPacienteDetails(false)} title="Detalhes Ficha Clínica do Paciente">
+        {selectedPaciente && (
           <div className="space-y-6 max-h-[70vh] overflow-y-auto">
             <div className="flex justify-between items-center bg-[var(--color-primary-light)] p-5 border border-[var(--color-border-card)] rounded-[12px]">
               <div>
-                <h2 className="font-cormorant text-2xl font-bold">{selectedCliente.leads_estetica?.nome_lead || 'Cliente sem nome'}</h2>
-                <p className="text-sm font-medium opacity-80 mt-1">{selectedCliente.leads_estetica?.whatsapp_lead}</p>
+                <h2 className="font-cormorant text-2xl font-bold">{selectedPaciente.leads?.nome_lead || 'Paciente sem nome'}</h2>
+                <p className="text-sm font-medium opacity-80 mt-1">{selectedPaciente.leads?.whatsapp_lead}</p>
               </div>
               <Button size="sm" variant="secondary"><ExternalLink className="w-4 h-4 mr-2"/> Ver no CRM</Button>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="p-4 border bg-gray-50 rounded-[8px]">
-                <span className="text-xs text-gray-500 block mb-1">Cliente desde</span>
-                <span className="font-medium text-sm">{format(parseISO(selectedCliente.data_primeira_visita), 'dd/MM/yyyy')}</span>
+                <span className="text-xs text-gray-500 block mb-1">Paciente desde</span>
+                <span className="font-medium text-sm">{format(parseISO(selectedPaciente.data_primeira_visita), 'dd/MM/yyyy')}</span>
               </div>
               <div className="p-4 border bg-gray-50 rounded-[8px]">
                 <span className="text-xs text-gray-500 block mb-1">LTV (Lifetime Value)</span>
                 <span className="font-medium text-[var(--color-primary)] text-lg">
-                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(selectedCliente.valor_pago || 0)}
+                   {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(selectedPaciente.valor_pago || 0)}
                 </span>
               </div>
             </div>
 
             <div className="space-y-3">
-              <h3 className="font-semibold text-sm border-b pb-1">Procedimentos Realizados ({selectedCliente.countCompareceu})</h3>
+              <h3 className="font-semibold text-sm border-b pb-1">Procedimentos Realizados ({selectedPaciente.countCompareceu})</h3>
               <p className="text-sm text-[var(--color-text-muted)] italic">Consultar painel de Agendamentos para os detalhes estritos de cada comparecimento.</p>
             </div>
 
             <div className="space-y-3">
               <h3 className="font-semibold text-sm border-b pb-1">Campos Extras do Perfil</h3>
               <div className="grid grid-cols-2 gap-4 text-sm">
-                <div><span className="text-gray-500 block text-xs">Data de nascimento:</span> {selectedCliente.data_nascimento || '-'}</div>
-                <div><span className="text-gray-500 block text-xs">Gênero:</span> {selectedCliente.genero || '-'}</div>
-                <div className="col-span-2"><span className="text-gray-500 block text-xs">Observações Médicas:</span> {selectedCliente.observacoes || 'Nenhuma observação cadastrada.'}</div>
+                <div><span className="text-gray-500 block text-xs">Data de nascimento:</span> {selectedPaciente.data_nascimento || '-'}</div>
+                <div><span className="text-gray-500 block text-xs">Gênero:</span> {selectedPaciente.genero || '-'}</div>
+                <div className="col-span-2"><span className="text-gray-500 block text-xs">Observações Médicas:</span> {selectedPaciente.observacoes || 'Nenhuma observação cadastrada.'}</div>
               </div>
             </div>
           </div>

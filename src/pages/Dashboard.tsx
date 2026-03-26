@@ -23,7 +23,7 @@ export function Dashboard() {
   const [customEnd, setCustomEnd] = useState(format(endOfToday(), 'yyyy-MM-dd'));
   
   const [loading, setLoading] = useState(true);
-  const [metrics, setMetrics] = useState({ agendamentos: 0, comparecimentos: 0, leads: 0, clientes: 0 });
+  const [metrics, setMetrics] = useState({ agendamentos: 0, comparecimentos: 0, leads: 0, pacientes: 0 });
   const [clinicHours, setClinicHours] = useState<any[]>([]);
   const [leadsData, setLeadsData] = useState<any[]>([]);
   const [agendamentosData, setAgendamentosData] = useState<any[]>([]);
@@ -68,12 +68,12 @@ export function Dashboard() {
     const startIso = dateRange.start.toISOString();
     const endIso = dateRange.end.toISOString();
 
-    const [agendamentosReq, leadsReq, clientesReq, upcomingReq] = await Promise.all([
-      supabase.from('agendamentos_estetica').select('*').gte('data_hora_inicio', startIso).lte('data_hora_inicio', endIso),
-      supabase.from('leads_estetica').select('*').gte('inicio_atendimento', startIso).lte('inicio_atendimento', endIso),
-      supabase.from('clientes_estetica').select('*').gte('created_at', startIso).lte('created_at', endIso),
-      supabase.from('agendamentos_estetica')
-        .select('*, leads_estetica(nome_lead, whatsapp_lead), clientes_estetica(leads_estetica(nome_lead, whatsapp_lead)), agendas(nome, cor)')
+    const [agendamentosReq, leadsReq, pacientesReq, upcomingReq] = await Promise.all([
+      supabase.from('agendamentos').select('*').gte('data_hora_inicio', startIso).lte('data_hora_inicio', endIso),
+      supabase.from('leads').select('*').gte('inicio_atendimento', startIso).lte('inicio_atendimento', endIso),
+      supabase.from('pacientes').select('*').gte('created_at', startIso).lte('created_at', endIso),
+      supabase.from('agendamentos')
+        .select('*, leads(nome_lead, whatsapp_lead), pacientes(leads(nome_lead, whatsapp_lead)), agendas(nome, cor)')
         .gte('data_hora_inicio', new Date().toISOString())
         .order('data_hora_inicio', { ascending: true })
         .limit(5)
@@ -81,7 +81,7 @@ export function Dashboard() {
 
     const agendamentos = agendamentosReq.data || [];
     const leads = leadsReq.data || [];
-    const clientes = clientesReq.data || [];
+    const pacientes = pacientesReq.data || [];
 
     setAgendamentosData(agendamentos);
     setLeadsData(leads);
@@ -91,7 +91,7 @@ export function Dashboard() {
       agendamentos: agendamentos.length,
       comparecimentos: agendamentos.filter(a => a.status === 'compareceu').length,
       leads: leads.length,
-      clientes: clientes.length
+      pacientes: pacientes.length
     });
 
     setLoading(false);
@@ -198,7 +198,7 @@ export function Dashboard() {
           { label: 'Agendamentos do período', value: metrics.agendamentos, icon: CalendarIcon },
           { label: 'Comparecimentos', value: metrics.comparecimentos, icon: UserCheck },
           { label: 'Novos leads', value: metrics.leads, icon: Users },
-          { label: 'Novos clientes', value: metrics.clientes, icon: Activity }
+          { label: 'Novos pacientes', value: metrics.pacientes, icon: Activity }
         ].map((m, i) => (
           <Card key={i}>
             <CardContent className="p-6 flex items-center gap-4">
@@ -344,7 +344,7 @@ export function Dashboard() {
         <CardContent>
           <div className="space-y-0">
             {upcoming.map((u, i) => {
-              const nome = u.leads_estetica?.nome_lead || u.clientes_estetica?.leads_estetica?.nome_lead || 'Sem nome';
+              const nome = u.leads?.nome_lead || u.pacientes?.leads?.nome_lead || 'Sem nome';
               return (
                 <div key={u.id} className={`flex items-center justify-between py-4 ${i !== upcoming.length - 1 ? 'border-b border-[var(--color-border-card)]' : ''}`}>
                   <div className="flex items-center gap-4">

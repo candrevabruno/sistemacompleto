@@ -27,7 +27,7 @@ export function Agenda() {
   // Forms state
   const [novaAgendaForm, setNovaAgendaForm] = useState({ nome: '', cor: '#C47E7E' });
   const [agendamentoForm, setAgendamentoForm] = useState({ 
-    id: '', lead_id: '', cliente_id: '', nome_livre: '', procedimento_nome: '', 
+    id: '', lead_id: '', paciente_id: '', nome_livre: '', procedimento_nome: '', 
     data: '', hora: '', agenda_id: '', observacoes: '' 
   });
   const [selectedEventInfo, setSelectedEventInfo] = useState<any>(null);
@@ -49,8 +49,8 @@ export function Agenda() {
 
     // Carrega agendamentos (buscando mais campos como nome do lead p/ exibir no cal)
     const reqAgendamentos = await supabase
-      .from('agendamentos_estetica')
-      .select('*, leads_estetica(nome_lead), clientes_estetica(leads_estetica(nome_lead))')
+      .from('agendamentos')
+      .select('*, leads(nome_lead), pacientes(leads(nome_lead))')
       .neq('status', 'cancelado');
       
     if (reqAgendamentos.data) setAgendamentos(reqAgendamentos.data);
@@ -96,7 +96,7 @@ export function Agenda() {
     const dataStr = format(info.date, 'yyyy-MM-dd');
     const horaStr = format(info.date, 'HH:mm');
     setAgendamentoForm({
-      id: '', lead_id: '', cliente_id: '', nome_livre: '', procedimento_nome: '', 
+      id: '', lead_id: '', paciente_id: '', nome_livre: '', procedimento_nome: '', 
       data: dataStr, hora: horaStr, agenda_id: agendaId, observacoes: ''
     });
     setOpenAgendamento(true);
@@ -108,7 +108,7 @@ export function Agenda() {
     const dataHoraInicio = `${agendamentoForm.data}T${agendamentoForm.hora}:00`;
     const dataHoraFim = format(addMinutes(new Date(dataHoraInicio), 60), "yyyy-MM-dd'T'HH:mm:00");
 
-    await supabase.from('agendamentos_estetica').insert({
+    await supabase.from('agendamentos').insert({
       // Se não houver lead ou cliente, precisaria tratar na modelagem. Mas via Supabase exige referências em FKs se for usado,
       // Como o DB exige cliente_id ou lead_id, no MVP vamos ignorar restrição complexa e tentar o insert nulo p/ testar,
       // Se a constraint bloquear, o certo é buscar um lead_id default ou forçar criação do lead antes.
@@ -134,7 +134,7 @@ export function Agenda() {
   };
 
   const handleUpdateStatus = async (status: string) => {
-    await supabase.from('agendamentos_estetica').update({ status }).eq('id', selectedEventInfo.id);
+    await supabase.from('agendamentos').update({ status }).eq('id', selectedEventInfo.id);
     setOpenEvento(false);
     loadData();
   };
@@ -173,7 +173,7 @@ export function Agenda() {
           const events = agendamentos
             .filter(a => a.agenda_id === agenda.id)
             .map(a => {
-              const nome = a.leads_estetica?.nome_lead || a.clientes_estetica?.leads_estetica?.nome_lead || 'Cliente';
+              const nome = a.leads?.nome_lead || a.pacientes?.leads?.nome_lead || 'Paciente';
               return {
                 id: a.id,
                 title: `${nome} - ${a.procedimento_nome || 's/ proc'}`,
@@ -284,9 +284,9 @@ export function Agenda() {
         {selectedEventInfo && (
           <div className="space-y-6">
             <div className="flex flex-col gap-1 items-center bg-[var(--color-primary-light)] p-6 rounded-[12px] text-center border border-[var(--color-border-card)]">
-               <Avatar size="lg" fallback={(selectedEventInfo.leads_estetica?.nome_lead || selectedEventInfo.clientes_estetica?.leads_estetica?.nome_lead || '?')[0]} className="mb-2" />
+               <Avatar size="lg" fallback={(selectedEventInfo.leads?.nome_lead || selectedEventInfo.pacientes?.leads?.nome_lead || '?')[0]} className="mb-2" />
                <h3 className="font-cormorant text-2xl font-bold text-[var(--color-text-main)]">
-                 {selectedEventInfo.leads_estetica?.nome_lead || selectedEventInfo.clientes_estetica?.leads_estetica?.nome_lead || 'Cliente sem nome'}
+                 {selectedEventInfo.leads?.nome_lead || selectedEventInfo.pacientes?.leads?.nome_lead || 'Paciente sem nome'}
                </h3>
                <p className="font-medium text-[var(--color-primary)]">{selectedEventInfo.procedimento_nome || 'Nenhum procedimento informado'}</p>
             </div>

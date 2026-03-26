@@ -38,7 +38,7 @@ export function CRM() {
 
   const fetchLeads = async () => {
     setLoading(true);
-    const { data } = await supabase.from('leads_estetica').select('*').order('ultima_mensagem', { ascending: false });
+    const { data } = await supabase.from('leads').select('*').order('ultima_mensagem', { ascending: false });
     if (data) setLeads(data);
     setLoading(false);
   };
@@ -63,7 +63,7 @@ export function CRM() {
     updateLeadState(leadId, newStatus);
     
     // DB update
-    const { error } = await supabase.from('leads_estetica').update({ status: newStatus }).eq('id', leadId);
+    const { error } = await supabase.from('leads').update({ status: newStatus }).eq('id', leadId);
     if (error) {
        updateLeadState(leadId, oldStatus); // revert
        alert('Erro ao mover lead.');
@@ -81,12 +81,12 @@ export function CRM() {
     updateLeadState(leadId, 'compareceu');
     setConfirmCompareceu(null);
 
-    const { error } = await supabase.from('leads_estetica').update({ status: 'compareceu' }).eq('id', leadId);
+    const { error } = await supabase.from('leads').update({ status: 'compareceu' }).eq('id', leadId);
     if (error) {
        updateLeadState(leadId, sourceCol);
        alert('Erro ao marcar comparecimento.');
     } else {
-       // O DB trigger converte para Cliente. O card ficará no kanban com status 'compareceu' pois mantemos o lead visível
+       // O DB trigger converte para Paciente. O card ficará no kanban com status 'compareceu' pois mantemos o lead visível
        // de acordo as regras ("o registro em leads é mantido").
     }
   };
@@ -97,7 +97,7 @@ export function CRM() {
 
   const handleSaveNewLead = async () => {
     if (!newLeadForm.whatsapp) return;
-    await supabase.from('leads_estetica').insert({
+    await supabase.from('leads').insert({
       whatsapp_lead: newLeadForm.whatsapp,
       nome_lead: newLeadForm.nome,
       servico_interesse: newLeadForm.procedimento,
@@ -213,7 +213,7 @@ export function CRM() {
           <div className="p-4 bg-[var(--color-success)]/10 border border-[var(--color-success)] rounded-[8px] text-[var(--color-success)] font-medium">
             Confirmar que este lead compareceu à clínica?
           </div>
-          <p className="text-sm text-[var(--color-text-muted)]">Ao confirmar, o sistema promoverá este lead automaticamente para a base de <strong>Clientes</strong> (tabela de Clientes da clínica).</p>
+          <p className="text-sm text-[var(--color-text-muted)]">Ao confirmar, o sistema promoverá este lead automaticamente para a base de <strong>Pacientes</strong> (tabela de Pacientes da clínica).</p>
           <div className="flex gap-3 justify-end mt-4">
             <Button variant="secondary" onClick={cancelCompareceuAction}>Cancelar</Button>
             <Button className="bg-[var(--color-success)] text-white hover:bg-green-700 border-none" onClick={confirmCompareceuAction}>Confirmar Comparecimento</Button>

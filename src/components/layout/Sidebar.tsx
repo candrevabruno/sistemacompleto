@@ -24,7 +24,7 @@ export function Sidebar() {
   const links = [
     { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { to: '/crm', label: 'CRM', icon: Kanban },
-    { to: '/leads-clientes', label: 'Leads / Clientes', icon: Users },
+    { to: '/leads-pacientes', label: 'Leads / Pacientes', icon: Users },
     { to: '/agenda', label: 'Agenda', icon: Calendar },
     ...(user?.role === 'admin' ? [{ to: '/configuracoes', label: 'Configurações', icon: Settings }] : []),
     { to: '/documentacao-api', label: 'Doc. API', icon: Code },
