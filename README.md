@@ -25,8 +25,8 @@ Sistema completo para gestão de clínicas, focado em alta performance, seguran�
 
 1.  **Clonar o repositório:**
     ```bash
-    git clone [url-do-seu-repositorio]
-    cd [nome-da-pasta]
+    git clone https://github.com/heroicleaphealth/heroicleaphealth.git
+    cd heroicleaphealth
     ```
 
 2.  **Instalar dependências:**
