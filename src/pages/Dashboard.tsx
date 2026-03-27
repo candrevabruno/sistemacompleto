@@ -282,7 +282,7 @@ export function Dashboard() {
             <CardTitle>Dias com mais movimento</CardTitle>
             <p className="text-sm text-[var(--color-text-muted)]">Veja em quais dias da semana sua clínica recebe mais contatos</p>
           </CardHeader>
-          <CardContent className="h-[250px]">
+          <CardContent className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chart2Data}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border-card)" />
@@ -300,11 +300,11 @@ export function Dashboard() {
             <CardTitle>Horário dos contatos</CardTitle>
             <p className="text-sm text-[var(--color-text-muted)]">Contatos dentro e fora do horário de funcionamento</p>
           </CardHeader>
-          <CardContent className="h-[250px] flex flex-col">
+          <CardContent className="h-[300px] flex flex-col">
             <div className="flex-1">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie data={chart3Data} cx="50%" cy="45%" innerRadius={50} outerRadius={70} paddingAngle={5} dataKey="value">
+                  <Pie data={chart3Data} cx="50%" cy="40%" innerRadius={55} outerRadius={75} paddingAngle={5} dataKey="value">
                     {chart3Data.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index]} />)}
                   </Pie>
                   <Tooltip />
