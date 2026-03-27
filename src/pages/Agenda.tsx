@@ -6,7 +6,7 @@ import { Input } from '../components/ui/Input';
 import { Modal } from '../components/ui/Modal';
 import { Badge } from '../components/ui/Badge';
 import { Avatar } from '../components/ui/Avatar';
-import { ChevronLeft, ChevronRight, Plus, Edit2, Trash2, Calendar as CalendarIcon, Clock, User as UserIcon, Copy } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Plus, Edit2, Trash2, Calendar as CalendarIcon, Clock, User as UserIcon, Copy } from 'lucide-react';
 import FullCalendar from '@fullcalendar/react';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
@@ -18,6 +18,9 @@ export function Agenda() {
   const [agendas, setAgendas] = useState<any[]>([]);
   const [agendamentos, setAgendamentos] = useState<any[]>([]);
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [clinicHours, setClinicHours] = useState<any>({});
+  const [collapsedAgendas, setCollapsedAgendas] = useState<string[]>([]);
+  const [editAgendaId, setEditAgendaId] = useState<string | null>(null);
 
   // Modals state
   const [openNovaAgenda, setOpenNovaAgenda] = useState(false);
@@ -45,6 +48,15 @@ export function Agenda() {
   const calendarRefs = useRef<Record<string, React.RefObject<FullCalendar>>>({});
 
   const loadData = async () => {
+    const reqHours = await supabase.from('clinic_hours').select('*');
+    const hoursMap: any = {};
+    if (reqHours.data) {
+      reqHours.data.forEach(h => {
+        hoursMap[h.dia] = { aberto: h.aberto, hora_inicio: h.hora_inicio, hora_fim: h.hora_fim };
+      });
+      setClinicHours(hoursMap);
+    }
+
     // Carrega agendas
     const reqAgendas = await supabase.from('agendas').select('*').eq('ativo', true).order('created_at', { ascending: true });
     if (reqAgendas.data) {
@@ -87,17 +99,43 @@ export function Agenda() {
   const currentWeekStart = startOfWeek(currentDate, { weekStartsOn: 0 });
   const currentWeekEnd = endOfWeek(currentDate, { weekStartsOn: 0 });
 
-  // Criar Nova Agenda
+  // Criar ou Editar Agenda
   const handleCreateAgenda = async () => {
     if (!novaAgendaForm.nome) return;
-    await supabase.from('agendas').insert({ 
-      nome: novaAgendaForm.nome, 
-      cor: novaAgendaForm.cor,
-      horarios: novaAgendaForm.horarios
-    });
+    
+    if (editAgendaId) {
+      await supabase.from('agendas').update({ 
+        nome: novaAgendaForm.nome, 
+        cor: novaAgendaForm.cor,
+        horarios: novaAgendaForm.horarios
+      }).eq('id', editAgendaId);
+    } else {
+      await supabase.from('agendas').insert({ 
+        nome: novaAgendaForm.nome, 
+        cor: novaAgendaForm.cor,
+        horarios: novaAgendaForm.horarios
+      });
+    }
+    
     setOpenNovaAgenda(false);
+    setEditAgendaId(null);
     setNovaAgendaForm({ nome: '', cor: '#C47E7E', horarios: defaultHours });
     loadData();
+  };
+
+  const handleEditClick = (agenda: any) => {
+    setEditAgendaId(agenda.id);
+    const mergedHorarios = agenda.horarios && Object.keys(agenda.horarios).length > 0 ? agenda.horarios : clinicHours;
+    setNovaAgendaForm({
+      nome: agenda.nome,
+      cor: agenda.cor,
+      horarios: Object.keys(mergedHorarios).length > 0 ? mergedHorarios : defaultHours
+    });
+    setOpenNovaAgenda(true);
+  };
+
+  const toggleCollapse = (id: string) => {
+    setCollapsedAgendas(prev => prev.includes(id) ? prev.filter(a => a !== id) : [...prev, id]);
   };
 
   // Click num slot vazio (Criar Agendamento)
@@ -194,9 +232,11 @@ export function Agenda() {
               };
             });
 
-          const businessHours = agenda.horarios ? Object.entries(agenda.horarios)
+          const horariosAtivos = agenda.horarios && Object.keys(agenda.horarios).length > 0 ? agenda.horarios : clinicHours;
+          const businessHours = horariosAtivos && Object.keys(horariosAtivos).length > 0 ? Object.entries(horariosAtivos)
             .map(([dia, props]: [string, any]) => {
               const daysMap: Record<string, number> = { domingo: 0, segunda: 1, terca: 2, quarta: 3, quinta: 4, sexta: 5, sabado: 6 };
+              if (!props) return null;
               return props.aberto ? {
                 daysOfWeek: [daysMap[dia]],
                 startTime: props.hora_inicio,
@@ -211,8 +251,11 @@ export function Agenda() {
                 style={{ backgroundColor: agenda.cor }}
               >
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-white/20 rounded-[8px]"><CalendarIcon className="w-5 h-5" /></div>
-                  <h2 className="font-cormorant text-2xl font-bold tracking-wide">{agenda.nome}</h2>
+                  <button onClick={() => toggleCollapse(agenda.id)} className="p-1 hover:bg-black/20 rounded transition-colors" title="Recolher/Expandir Agenda">
+                    {collapsedAgendas.includes(agenda.id) ? <ChevronDown className="w-5 h-5" /> : <ChevronUp className="w-5 h-5" />}
+                  </button>
+                  <div className="p-2 bg-white/20 rounded-[8px] hidden sm:block"><CalendarIcon className="w-5 h-5" /></div>
+                  <h2 className="font-cormorant text-xl sm:text-2xl font-bold tracking-wide truncate max-w-[150px] sm:max-w-none">{agenda.nome}</h2>
                   <div className="flex items-center gap-1 bg-black/20 px-2 py-1 rounded text-xs font-mono ml-2 group cursor-pointer transition-colors hover:bg-black/40" title="Copiar ID da Agenda" onClick={() => {
                       navigator.clipboard.writeText(agenda.id);
                       alert('ID da Agenda copiado!');
@@ -223,15 +266,16 @@ export function Agenda() {
                 </div>
                 {user?.role === 'admin' && (
                   <div className="flex space-x-2">
-                    <button className="p-1.5 hover:bg-black/20 rounded transition-colors" title="Editar config"><Edit2 className="w-4 h-4" /></button>
+                    <button onClick={() => handleEditClick(agenda)} className="p-1.5 hover:bg-black/20 rounded transition-colors" title="Editar config"><Edit2 className="w-4 h-4" /></button>
                     <button onClick={() => handleDeletarAgenda(agenda.id)} className="p-1.5 hover:bg-black/20 rounded transition-colors text-white" title="Excluir (Soft)"><Trash2 className="w-4 h-4" /></button>
                   </div>
                 )}
               </div>
               
-              <div className="p-4 fc-agenda-custom">
-                {/* FullCalendar wrapper */}
-                <style>{`
+              {!collapsedAgendas.includes(agenda.id) && (
+                <div className="p-4 fc-agenda-custom">
+                  {/* FullCalendar wrapper */}
+                  <style>{`
                   .fc-agenda-custom .fc-theme-standard td, .fc-theme-standard th { border-color: var(--color-border-card); }
                   .fc-agenda-custom .fc-col-header-cell { background-color: var(--color-bg-base); padding: 8px 0; font-family: var(--font-cormorant); font-size: 16px; border-bottom: 2px solid var(--color-primary-light); }
                   .fc-agenda-custom .fc-timegrid-slot-label { font-size: 12px; color: var(--color-text-muted); }
@@ -261,7 +305,8 @@ export function Agenda() {
                   nowIndicator={true}
                   dayHeaderFormat={{ weekday: 'short', day: 'numeric' }}
                 />
-              </div>
+                </div>
+              )}
             </div>
           );
         })}
@@ -275,7 +320,7 @@ export function Agenda() {
       </div>
 
       {/* MODAL CRIAR AGENDA */}
-      <Modal isOpen={openNovaAgenda} onClose={() => setOpenNovaAgenda(false)} title="Nova Agenda">
+      <Modal isOpen={openNovaAgenda} onClose={() => { setOpenNovaAgenda(false); setEditAgendaId(null); setNovaAgendaForm({ nome: '', cor: '#C47E7E', horarios: defaultHours }); }} title={editAgendaId ? "Editar Agenda" : "Nova Agenda"}>
         <div className="space-y-4">
           <Input label="Nome da agenda" placeholder="Ex: Dra. Ana, Sala 1" value={novaAgendaForm.nome} onChange={e => setNovaAgendaForm({...novaAgendaForm, nome: e.target.value})} />
           <div>

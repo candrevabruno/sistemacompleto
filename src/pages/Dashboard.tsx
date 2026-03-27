@@ -162,9 +162,21 @@ export function Dashboard() {
   const sortedProcs = Object.keys(procMap).map(k => ({ proc: k, count: procMap[k] })).sort((a,b) => b.count - a.count).slice(0, 8);
   const maxProcCount = sortedProcs[0]?.count || 1;
 
+  // 5. Funil de Vendas
+  const totalLeads = leadsData.length;
+  const leadsNaoQualificados = leadsData.filter(l => l.status === 'abandonou_conversa').length;
+  const leadsQualificados = totalLeads - leadsNaoQualificados;
+  
+  const pctQualificados = totalLeads ? Math.round((leadsQualificados / totalLeads) * 100) : 0;
+  const pctNaoQualificados = totalLeads ? Math.round((leadsNaoQualificados / totalLeads) * 100) : 0;
+  
+  const pctAgendaram = leadsQualificados ? Math.round((metrics.agendamentos / leadsQualificados) * 100) : 0;
+  const pctCompareceram = metrics.agendamentos ? Math.round((metrics.comparecimentos / metrics.agendamentos) * 100) : 0;
+  const pctConverteram = metrics.comparecimentos ? Math.round((metrics.pacientes / metrics.comparecimentos) * 100) : 0;
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-rowjustify-between gap-4 p-4 bg-[var(--color-bg-card)] rounded-[12px] border border-[var(--color-border-card)] shadow-[var(--shadow-card)]">
+      <div className="flex flex-col md:flex-row md:justify-between gap-4 p-4 bg-[var(--color-bg-card)] rounded-[12px] border border-[var(--color-border-card)] shadow-[var(--shadow-card)]">
         <div className="flex flex-wrap gap-2 items-center">
           {(['hoje', 'ontem', '7dias', '14semanas', 'mes', 'ano'] as DateFilter[]).map(f => (
             <button
@@ -310,29 +322,59 @@ export function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card className="col-span-2">
+        <Card className="col-span-1 md:col-span-2">
           <CardHeader>
-            <CardTitle>Procedimentos em destaque</CardTitle>
+            <CardTitle>Funil de Vendas</CardTitle>
+            <p className="text-sm text-[var(--color-text-muted)]">Conversão geral no período</p>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {sortedProcs.map((proc, idx) => (
-              <div key={idx} className="flex items-center gap-3">
-                <div className="font-cormorant text-xl font-bold text-[var(--color-primary)] w-6 text-center">{idx + 1}º</div>
-                <div className="flex-1">
-                  <div className="flex justify-between text-sm font-medium mb-1">
-                    <span className="truncate max-w-[150px]">{proc.proc}</span>
-                    <span>{proc.count}</span>
-                  </div>
-                  <div className="h-2 w-full bg-[var(--color-border-card)] rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-[var(--color-primary)] rounded-full" 
-                      style={{ width: `${(proc.count / maxProcCount) * 100}%`, opacity: Math.max(0.3, 1 - (idx * 0.1)) }}
-                    />
-                  </div>
+          <CardContent className="space-y-3">
+            {/* Leads */}
+            <div className="bg-[var(--color-bg-base)] p-3 rounded-lg border border-[var(--color-border-card)]">
+              <div className="flex justify-between items-center mb-1">
+                <span className="font-semibold text-[var(--color-text-main)] flex items-center gap-2"><div className="w-6 h-6 rounded-full bg-[var(--color-border-card)] flex items-center justify-center text-xs">1</div> Leads Recebidos</span>
+                <span className="font-bold text-lg">{totalLeads}</span>
+              </div>
+              <div className="flex flex-col text-[11px] sm:text-xs mt-2 border-t border-[var(--color-border-card)] pt-2 gap-1">
+                <div className="flex justify-between text-[var(--color-success)]"><span className="font-medium">Qualificados</span> <span>{leadsQualificados} ({pctQualificados}%)</span></div>
+                <div className="flex justify-between text-[var(--color-error)] opacity-80"><span>Não qualificados (Abandonaram)</span> <span>{leadsNaoQualificados} ({pctNaoQualificados}%)</span></div>
+              </div>
+            </div>
+
+            {/* Agendamentos */}
+            <div className="bg-[var(--color-bg-base)] p-3 rounded-lg border border-[var(--color-border-card)] ml-4 sm:ml-6 relative">
+              <div className="absolute -left-[17px] sm:-left-[25px] top-1/2 w-4 sm:w-6 border-t-2 border-l-2 border-[var(--color-border-card)] rounded-tl-lg h-full -translate-y-full z-[-1]"></div>
+              <div className="flex justify-between items-center">
+                <span className="font-semibold text-[var(--color-text-main)] flex items-center gap-2"><div className="w-6 h-6 rounded-full bg-[var(--color-border-card)] flex items-center justify-center text-xs">2</div> Agendamentos</span>
+                <div className="text-right">
+                  <span className="font-bold text-lg">{metrics.agendamentos}</span>
+                  <span className="text-xs text-[var(--color-primary)] ml-2 font-medium bg-[var(--color-primary-light)] px-1.5 py-0.5 rounded">+{pctAgendaram}%</span>
                 </div>
               </div>
-            ))}
-            {sortedProcs.length === 0 && <div className="text-sm text-center text-[var(--color-text-muted)] py-10">Nenhum dado na data selecionada.</div>}
+            </div>
+
+            {/* Comparecimentos */}
+            <div className="bg-[var(--color-bg-base)] p-3 rounded-lg border border-[var(--color-border-card)] ml-8 sm:ml-12 relative">
+              <div className="absolute -left-[17px] sm:-left-[25px] top-1/2 w-4 sm:w-6 border-t-2 border-l-2 border-[var(--color-border-card)] rounded-tl-lg h-full -translate-y-full z-[-1]"></div>
+              <div className="flex justify-between items-center">
+                <span className="font-semibold text-[var(--color-text-main)] flex items-center gap-2"><div className="w-6 h-6 rounded-full bg-[var(--color-border-card)] flex items-center justify-center text-xs">3</div> Comparecimentos</span>
+                <div className="text-right">
+                  <span className="font-bold text-lg">{metrics.comparecimentos}</span>
+                  <span className="text-xs text-[var(--color-success)] ml-2 font-medium bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 rounded">+{pctCompareceram}%</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Conversao */}
+            <div className="bg-[var(--color-primary)] text-white p-3 rounded-lg ml-12 sm:ml-16 shadow-sm relative">
+              <div className="absolute -left-[17px] sm:-left-[25px] top-1/2 w-4 sm:w-6 border-t-2 border-l-2 border-[var(--color-border-card)] rounded-tl-lg h-full -translate-y-full z-[-1] opacity-50"></div>
+              <div className="flex justify-between items-center">
+                <span className="font-semibold flex items-center gap-2"><div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center text-xs">4</div> Conversões (Pacientes)</span>
+                <div className="text-right">
+                  <span className="font-bold text-xl">{metrics.pacientes}</span>
+                  <span className="text-xs font-bold bg-white/20 px-1.5 py-0.5 rounded ml-2">+ {pctConverteram}%</span>
+                </div>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
