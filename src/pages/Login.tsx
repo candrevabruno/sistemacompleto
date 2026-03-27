@@ -1,4 +1,6 @@
+// v2 - Ajuste de estilo na tela de login
 import React, { useState } from 'react';
+
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useClinic } from '../contexts/ClinicContext';
@@ -43,12 +45,22 @@ export function Login() {
     <div className="flex h-screen w-full bg-[var(--color-bg-base)]">
       {/* Left Panel */}
       <div className="hidden md:flex flex-col items-center justify-center w-[40%] bg-[var(--color-primary)] text-white p-10">
-        <h1 className="font-cormorant text-5xl font-semibold mb-4 text-center">
-          {config?.nome || "Minha Clínica"}
+        <div className="mb-8">
+          {config?.logo_url ? (
+            <img 
+              src={config.logo_url} 
+              alt={config.nome || "Logo"} 
+              className="max-h-24 w-auto object-contain"
+            />
+          ) : (
+            <div className="w-24 h-24 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm border border-white/30">
+              <span className="text-sm font-medium">LOGO</span>
+            </div>
+          )}
+        </div>
+        <h1 className="font-cormorant text-4xl font-semibold leading-relaxed text-center max-w-sm transition-all duration-700 animate-in fade-in slide-in-from-bottom-4">
+          Para você nunca parar de cuidar, a IA nunca para de trabalhar.
         </h1>
-        <p className="font-dm text-lg opacity-90 text-center">
-          Gestão inteligente para o seu espaço de saúde.
-        </p>
       </div>
 
       {/* Right Panel */}
@@ -56,10 +68,10 @@ export function Login() {
         <div className="w-full max-w-md">
           <div className="mb-10 text-center md:text-left">
             <h2 className="font-cormorant text-4xl font-semibold text-[var(--color-text-main)] mb-2">
-              Bem-vindo
+              Bem-vindo(a) de volta!
             </h2>
-            <p className="text-[var(--color-text-muted)]">
-              Faça login para acessar o sistema.
+            <p className="text-[var(--color-text-muted)] text-lg">
+              Menos burocracia. Mais tempo para seus pacientes.
             </p>
           </div>
 
