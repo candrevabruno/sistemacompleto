@@ -290,16 +290,16 @@ export function Login() {
           .hl-left { display: none; }
 
           .hl-right {
-            padding: 40px 28px 48px;
+            padding: 48px 28px 48px;
             display: flex;
             flex-direction: column;
-            justify-content: center;
+            justify-content: flex-start;
           }
 
           .hl-mobile-logo {
             display: flex !important;
             justify-content: center;
-            margin-bottom: 32px;
+            margin-bottom: 36px;
           }
 
           .hl-title {
@@ -330,7 +330,7 @@ export function Login() {
         <div className="hl-right">
           {/* Logo visível apenas no mobile */}
           <div className="hl-mobile-logo" style={{display: 'none'}}>
-            <img src="/logo.png" alt="HeroicLeap" style={{maxHeight: '60px', width: 'auto', maxWidth: '60%'}} />
+            <img src="/logo.png" alt="HeroicLeap" style={{maxHeight: '90px', width: 'auto', maxWidth: '65%'}} />
           </div>
 
           <div className="hl-eyebrow">Acesso seguro</div>
