@@ -290,7 +290,7 @@ export function Login() {
           .hl-left { display: none; }
 
           .hl-right {
-            padding: 24px 28px 48px;
+            padding: 12px 28px 48px;
             display: flex;
             flex-direction: column;
             justify-content: flex-start;
@@ -299,7 +299,7 @@ export function Login() {
           .hl-mobile-logo {
             display: flex !important;
             justify-content: center;
-            margin-bottom: 16px;
+            margin-bottom: 8px;
           }
 
           .hl-title {
