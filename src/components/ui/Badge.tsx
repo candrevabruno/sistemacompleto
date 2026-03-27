@@ -16,7 +16,8 @@ export interface BadgeProps extends React.HTMLAttributes<HTMLDivElement> {
     | 'cancelado'
     | 'follow_up'
     | 'cancelou_agendamento'
-    | 'abandonou_conversa';
+    | 'abandonou_conversa'
+    | 'conversando';
 }
 
 export const Badge = React.forwardRef<HTMLDivElement, BadgeProps>(
@@ -35,7 +36,8 @@ export const Badge = React.forwardRef<HTMLDivElement, BadgeProps>(
       cancelado: 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400',
       follow_up: 'bg-[#FDEDDF] text-[var(--color-warning)] dark:bg-[rgba(232,168,124,0.2)]',
       cancelou_agendamento: 'bg-orange-50 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400',
-      abandonou_conversa: 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800/50 dark:text-zinc-400',
+      abandonou_conversa: 'bg-[#8E8E93] text-white dark:bg-[#636366] dark:text-white',
+      conversando: 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200',
     };
 
     return (
