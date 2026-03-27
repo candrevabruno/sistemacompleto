@@ -280,12 +280,57 @@ export function Login() {
           text-transform: uppercase;
         }
 
-        /* Responsive */
+        /* ─── MOBILE ──────────────────────────── */
         @media (max-width: 768px) {
-          .hl-login-wrap { grid-template-columns: 1fr; }
-          .hl-left { display: none; }
-          .hl-right { padding: 48px 32px; }
-          .hl-title { white-space: normal; }
+          .hl-login-wrap {
+            grid-template-columns: 1fr;
+            grid-template-rows: auto 1fr;
+            min-height: 100vh;
+          }
+
+          /* Painel esquerdo vira faixa no topo */
+          .hl-left {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            padding: 32px 28px 28px;
+            position: relative;
+          }
+
+          .hl-logo-img {
+            max-height: 64px;
+            width: 60%;
+          }
+
+          .hl-tagline {
+            font-size: 16px;
+            line-height: 1.4;
+          }
+
+          .hl-deco-arc {
+            width: 100px;
+            height: 100px;
+          }
+
+          .hl-deco-circle {
+            top: 16px;
+            right: 20px;
+            width: 36px;
+            height: 36px;
+          }
+
+          /* Painel direito: formulário em off-white abaixo */
+          .hl-right {
+            padding: 36px 28px 48px;
+            border-radius: 0;
+          }
+
+          .hl-title {
+            white-space: normal;
+            font-size: 26px;
+          }
         }
       `}</style>
 
