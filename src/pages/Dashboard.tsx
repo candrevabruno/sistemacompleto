@@ -14,7 +14,7 @@ import {
   CartesianGrid, Tooltip, ResponsiveContainer, Legend 
 } from 'recharts';
 
-type DateFilter = 'hoje' | 'ontem' | '7dias' | '14semanas' | 'mes' | 'ano' | 'custom';
+type DateFilter = 'hoje' | 'ontem' | '7dias' | '14dias' | 'mes' | 'ano' | 'custom';
 
 export function Dashboard() {
   const [filter, setFilter] = useState<DateFilter>('hoje');
@@ -52,7 +52,7 @@ export function Dashboard() {
       case 'hoje': setDateRange({ start: startOfToday(), end: endOfToday() }); break;
       case 'ontem': setDateRange({ start: startOfYesterday(), end: endOfYesterday() }); break;
       case '7dias': setDateRange({ start: subDays(today, 7), end: endOfToday() }); break;
-      case '14semanas': setDateRange({ start: subDays(today, 14 * 7), end: endOfToday() }); break;
+      case '14dias': setDateRange({ start: subDays(today, 14), end: endOfToday() }); break;
       case 'mes': setDateRange({ start: startOfMonth(today), end: endOfMonth(today) }); break;
       case 'ano': setDateRange({ start: startOfYear(today), end: endOfYear(today) }); break;
       case 'custom':
@@ -69,7 +69,7 @@ export function Dashboard() {
     const endIso = dateRange.end.toISOString();
 
     const [agendamentosReq, leadsReq, pacientesReq, upcomingReq] = await Promise.all([
-      supabase.from('agendamentos').select('*').gte('data_hora_inicio', startIso).lte('data_hora_inicio', endIso),
+      supabase.from('agendamentos').select('*').gte('created_at', startIso).lte('created_at', endIso),
       supabase.from('leads').select('*').gte('inicio_atendimento', startIso).lte('inicio_atendimento', endIso),
       supabase.from('pacientes').select('*').gte('created_at', startIso).lte('created_at', endIso),
       supabase.from('agendamentos')
@@ -178,13 +178,13 @@ export function Dashboard() {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:justify-between gap-4 p-4 bg-[var(--color-bg-card)] rounded-[12px] border border-[var(--color-border-card)] shadow-[var(--shadow-card)]">
         <div className="flex flex-wrap gap-2 items-center">
-          {(['hoje', 'ontem', '7dias', '14semanas', 'mes', 'ano'] as DateFilter[]).map(f => (
+          {(['hoje', 'ontem', '7dias', '14dias', 'mes', 'ano'] as DateFilter[]).map(f => (
             <button
               key={f}
               onClick={() => setFilter(f)}
               className={`px-3 py-1.5 text-sm font-medium rounded-[8px] transition-colors ${filter === f ? 'bg-[var(--color-primary)] text-white' : 'bg-[var(--color-bg-base)] text-[var(--color-text-main)] hover:bg-[var(--color-primary-light)]'}`}
             >
-              {f === 'hoje' ? 'Hoje' : f === 'ontem' ? 'Ontem' : f === '7dias' ? '7 dias' : f === '14semanas' ? '14 semanas' : f === 'mes' ? 'Mês' : 'Ano'}
+              {f === 'hoje' ? 'Hoje' : f === 'ontem' ? 'Ontem' : f === '7dias' ? '7 dias' : f === '14dias' ? '14 dias' : f === 'mes' ? 'Mês' : 'Ano'}
             </button>
           ))}
           <div className="flex items-center gap-2 ml-4">
