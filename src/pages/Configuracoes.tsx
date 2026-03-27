@@ -46,6 +46,7 @@ function AbaGeral() {
   const { config, refreshConfig } = useClinic();
   const [nome, setNome] = useState(config?.nome || 'Heroic Leap Health');
   const [logoFile, setLogoFile] = useState<File | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
   const [hours, setHours] = useState<any[]>([]);
   const [loadingHours, setLoadingHours] = useState(false);
@@ -129,7 +130,7 @@ function AbaGeral() {
                 <Button 
                   type="button" 
                   variant="secondary" 
-                  onClick={() => document.getElementById('logo-upload-input')?.click()}
+                  onClick={() => fileInputRef.current?.click()}
                   className="flex items-center gap-2"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -138,7 +139,7 @@ function AbaGeral() {
                   {logoFile ? logoFile.name : 'Escolher imagem'}
                 </Button>
                 <input
-                  id="logo-upload-input"
+                  ref={fileInputRef}
                   type="file"
                   accept="image/*"
                   className="hidden"

@@ -194,6 +194,16 @@ export function Agenda() {
               };
             });
 
+          const businessHours = agenda.horarios ? Object.entries(agenda.horarios)
+            .map(([dia, props]: [string, any]) => {
+              const daysMap: Record<string, number> = { domingo: 0, segunda: 1, terca: 2, quarta: 3, quinta: 4, sexta: 5, sabado: 6 };
+              return props.aberto ? {
+                daysOfWeek: [daysMap[dia]],
+                startTime: props.hora_inicio,
+                endTime: props.hora_fim
+              } : null;
+            }).filter(Boolean) as any[] : undefined;
+
           return (
             <div key={agenda.id} className="bg-[var(--color-bg-card)] border border-[var(--color-border-card)] rounded-[12px] shadow-[var(--shadow-card)] overflow-hidden">
               <div 
@@ -228,6 +238,8 @@ export function Agenda() {
                   .fc-agenda-custom .fc-event { border-radius: 4px; padding: 2px 4px; font-size: 12px; cursor: pointer; transition: transform 0.1s; border: none; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
                   .fc-agenda-custom .fc-event:hover { transform: scale(1.02); z-index: 5 !important; filter: brightness(1.1); }
                   .fc-agenda-custom .fc-timegrid-slot:hover { background-color: var(--color-primary-light); opacity: 0.5; cursor: pointer; }
+                  .fc-agenda-custom .fc-non-business { background-color: rgba(0, 0, 0, 0.04); }
+                  .dark .fc-agenda-custom .fc-non-business { background-color: rgba(255, 255, 255, 0.02); opacity: 1; }
                 `}</style>
                 <FullCalendar
                   ref={calendarRefs.current[agenda.id]}
@@ -236,6 +248,7 @@ export function Agenda() {
                   initialDate={currentDate}
                   locale="pt-br"
                   headerToolbar={false}
+                  businessHours={businessHours}
                   slotMinTime="06:00:00"
                   slotMaxTime="22:00:00"
                   slotDuration="01:00:00"
