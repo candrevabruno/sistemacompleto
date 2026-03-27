@@ -284,47 +284,22 @@ export function Login() {
         @media (max-width: 768px) {
           .hl-login-wrap {
             grid-template-columns: 1fr;
-            grid-template-rows: auto 1fr;
             min-height: 100vh;
           }
 
-          /* Painel esquerdo vira faixa no topo */
-          .hl-left {
+          .hl-left { display: none; }
+
+          .hl-right {
+            padding: 40px 28px 48px;
             display: flex;
             flex-direction: column;
-            align-items: center;
             justify-content: center;
-            gap: 8px;
-            padding: 12px 24px 10px;
-            position: relative;
           }
 
-          .hl-logo-img {
-            max-height: 140px;
-            width: 75%;
-          }
-
-          .hl-tagline {
-            font-size: 14px;
-            line-height: 1.4;
-          }
-
-          .hl-deco-arc {
-            width: 60px;
-            height: 60px;
-          }
-
-          .hl-deco-circle {
-            top: 8px;
-            right: 12px;
-            width: 22px;
-            height: 22px;
-          }
-
-          /* Painel direito: formulário em off-white abaixo */
-          .hl-right {
-            padding: 36px 28px 48px;
-            border-radius: 0;
+          .hl-mobile-logo {
+            display: flex !important;
+            justify-content: center;
+            margin-bottom: 32px;
           }
 
           .hl-title {
@@ -353,6 +328,11 @@ export function Login() {
 
         {/* ─── RIGHT PANEL ─── */}
         <div className="hl-right">
+          {/* Logo visível apenas no mobile */}
+          <div className="hl-mobile-logo" style={{display: 'none'}}>
+            <img src="/logo.png" alt="HeroicLeap" style={{maxHeight: '60px', width: 'auto', maxWidth: '60%'}} />
+          </div>
+
           <div className="hl-eyebrow">Acesso seguro</div>
           <h1 className="hl-title">Bem-vindo(a) de volta!</h1>
           <p className="hl-subtitle">Menos burocracia. Mais tempo para seus pacientes.</p>
