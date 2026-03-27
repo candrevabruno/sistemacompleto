@@ -80,8 +80,9 @@ export function Login() {
 
         /* Logo */
         .hl-logo-img {
-          max-height: 48px;
+          max-height: 96px;
           width: auto;
+          max-width: 90%;
           object-fit: contain;
           position: relative;
           z-index: 1;
@@ -213,7 +214,7 @@ export function Login() {
         .hl-btn {
           width: 100%;
           height: 54px;
-          background: #1A0F0D;
+          background: #C4786E;
           color: #FAF8F5;
           border: none;
           border-radius: 10px;
@@ -237,11 +238,11 @@ export function Login() {
           position: absolute;
           left: 0; top: 0; bottom: 0;
           width: 4px;
-          background: #C4786E;
+          background: #1A0F0D;
           transition: background 0.25s;
         }
-        .hl-btn:hover { background: #C4786E; }
-        .hl-btn:hover::before { background: #1A0F0D; }
+        .hl-btn:hover { background: #1A0F0D; }
+        .hl-btn:hover::before { background: #C4786E; }
         .hl-btn:disabled { opacity: 0.65; cursor: not-allowed; }
 
         .hl-btn-arrow { display: flex; gap: 2px; }
