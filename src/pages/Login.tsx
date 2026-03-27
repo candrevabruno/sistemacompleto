@@ -1,12 +1,7 @@
-// v2 - Ajuste de estilo na tela de login
+// Login — HeroicLeap v9
 import React, { useState } from 'react';
-
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { useClinic } from '../contexts/ClinicContext';
-import { Input } from '../components/ui/Input';
-import { Button } from '../components/ui/Button';
-import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 
 export function Login() {
   const [email, setEmail] = useState('');
@@ -15,23 +10,19 @@ export function Login() {
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
-  const { config } = useClinic();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    
+
     if (!email || !password) {
       setError('Preencha os campos obrigatórios.');
       setLoading(false);
       return;
     }
 
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
 
     if (signInError) {
       setError('Email ou senha incorretos.');
@@ -42,77 +33,362 @@ export function Login() {
   };
 
   return (
-    <div className="flex h-screen w-full bg-[var(--color-bg-base)]">
-      {/* Left Panel */}
-      <div className="hidden md:flex flex-col items-center justify-center w-[40%] bg-[var(--color-primary)] text-white p-10">
-        <div className="mb-4 flex items-center justify-center transform transition-all duration-1000 animate-in fade-in zoom-in-95 duration-700">
-          <img 
-            src={config?.logo_url || "/logo.png"} 
-            alt={config?.nome || "Heroic Leap Logo"} 
-            className="max-h-52 w-auto object-contain hover:scale-105 transition-all duration-300 cursor-pointer drop-shadow-sm opacity-85"
-          />
-        </div>
-        <h1 className="font-cormorant text-3xl font-semibold leading-relaxed text-center max-w-md transition-all duration-700 animate-in fade-in slide-in-from-bottom-4">
-          Para você nunca parar de cuidar, a IA nunca para de trabalhar.
-        </h1>
-      </div>
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;1,400&family=DM+Sans:wght@300;400;500&display=swap');
 
-      {/* Right Panel */}
-      <div className="flex flex-col items-center justify-center w-full md:w-[60%] p-6">
-        <div className="w-full max-w-md">
-          <div className="mb-10 text-center md:text-left">
-            <h2 className="font-cormorant text-4xl font-semibold text-[var(--color-text-main)] mb-2">
-              Bem-vindo(a) de volta!
-            </h2>
-            <p className="text-[var(--color-text-muted)] text-lg">
-              Menos burocracia. Mais tempo para seus pacientes.
-            </p>
+        .hl-login-wrap {
+          display: grid;
+          grid-template-columns: 2fr 3fr;
+          min-height: 100vh;
+          width: 100%;
+          font-family: 'DM Sans', sans-serif;
+          overflow: hidden;
+        }
+
+        /* ─── LEFT PANEL ─────────────────────────── */
+        .hl-left {
+          background: #C4786E;
+          padding: 48px 32px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: space-between;
+          position: relative;
+          overflow: hidden;
+        }
+
+        /* Decorative elements */
+        .hl-deco-circle {
+          position: absolute;
+          top: 36px;
+          right: 32px;
+          width: 56px;
+          height: 56px;
+          border-radius: 50%;
+          background: rgba(255,255,255,0.08);
+        }
+        .hl-deco-arc {
+          position: absolute;
+          bottom: 0;
+          right: 0;
+          width: 160px;
+          height: 160px;
+          border-radius: 50% 0 0 0;
+          background: rgba(255,255,255,0.06);
+        }
+
+        /* Logo */
+        .hl-logo-img {
+          max-height: 48px;
+          width: auto;
+          object-fit: contain;
+          position: relative;
+          z-index: 1;
+        }
+
+        /* Tagline */
+        .hl-tagline {
+          font-family: 'Playfair Display', serif;
+          font-size: clamp(15px, 2.2vw, 28px);
+          font-weight: 400;
+          color: rgba(255,255,255,0.97);
+          line-height: 1.45;
+          text-align: center;
+          width: 100%;
+          position: relative;
+          z-index: 1;
+        }
+        .hl-tagline em {
+          font-style: italic;
+          color: rgba(255,255,255,0.65);
+        }
+
+        .hl-left-bottom { height: 40px; }
+
+        /* ─── RIGHT PANEL ────────────────────────── */
+        .hl-right {
+          background: #FAF8F5;
+          padding: 64px 72px;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+        }
+
+        .hl-eyebrow {
+          font-size: 11px;
+          letter-spacing: 2px;
+          text-transform: uppercase;
+          color: #C4786E;
+          font-weight: 500;
+          margin-bottom: 14px;
+        }
+
+        .hl-title {
+          font-family: 'Playfair Display', serif;
+          font-size: 30px;
+          font-weight: 400;
+          color: #2C2420;
+          margin: 0 0 6px;
+          white-space: nowrap;
+        }
+
+        .hl-subtitle {
+          font-size: 14px;
+          color: #8E7D78;
+          margin: 0 0 36px;
+          font-weight: 300;
+        }
+
+        /* Fields */
+        .hl-field { margin-bottom: 20px; }
+
+        .hl-label {
+          font-size: 13px;
+          font-weight: 400;
+          color: #2C2420;
+          margin-bottom: 8px;
+          display: block;
+        }
+
+        .hl-input-wrap {
+          display: flex;
+          align-items: center;
+          background: #fff;
+          border: 1px solid #E0D8D5;
+          border-radius: 8px;
+          padding: 0 14px;
+          height: 48px;
+          transition: border-color 0.2s;
+          position: relative;
+        }
+        .hl-input-wrap:focus-within { border-color: #C4786E; }
+
+        .hl-input-icon {
+          width: 16px;
+          height: 16px;
+          flex-shrink: 0;
+          margin-right: 10px;
+          opacity: 0.3;
+        }
+
+        .hl-input-wrap input {
+          border: none;
+          background: transparent;
+          font-size: 14px;
+          color: #2C2420;
+          font-family: 'DM Sans', sans-serif;
+          font-weight: 300;
+          outline: none;
+          width: 100%;
+          box-shadow: none;
+        }
+        .hl-input-wrap input::placeholder { color: #C8BFBC; }
+
+        .hl-eye-btn {
+          background: none;
+          border: none;
+          cursor: pointer;
+          padding: 0;
+          display: flex;
+          align-items: center;
+          opacity: 0.4;
+          transition: opacity 0.2s;
+          flex-shrink: 0;
+          margin-left: 8px;
+        }
+        .hl-eye-btn:hover { opacity: 0.8; }
+
+        .hl-forgot { text-align: right; margin-top: 8px; }
+        .hl-forgot a {
+          font-size: 12px;
+          color: #C4786E;
+          text-decoration: none;
+          opacity: 0.8;
+          transition: opacity 0.2s;
+        }
+        .hl-forgot a:hover { opacity: 1; }
+
+        /* Button */
+        .hl-btn {
+          width: 100%;
+          height: 54px;
+          background: #1A0F0D;
+          color: #FAF8F5;
+          border: none;
+          border-radius: 10px;
+          font-family: 'DM Sans', sans-serif;
+          font-size: 13px;
+          font-weight: 500;
+          letter-spacing: 2.5px;
+          text-transform: uppercase;
+          cursor: pointer;
+          margin-top: 28px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 12px;
+          position: relative;
+          overflow: hidden;
+          transition: background 0.25s;
+        }
+        .hl-btn::before {
+          content: '';
+          position: absolute;
+          left: 0; top: 0; bottom: 0;
+          width: 4px;
+          background: #C4786E;
+          transition: background 0.25s;
+        }
+        .hl-btn:hover { background: #C4786E; }
+        .hl-btn:hover::before { background: #1A0F0D; }
+        .hl-btn:disabled { opacity: 0.65; cursor: not-allowed; }
+
+        .hl-btn-arrow { display: flex; gap: 2px; }
+        .hl-btn-arrow span {
+          display: block;
+          width: 7px; height: 7px;
+          border-top: 1.5px solid #FAF8F5;
+          border-right: 1.5px solid #FAF8F5;
+          transform: rotate(45deg);
+        }
+        .hl-btn-arrow span:first-child { opacity: 0.4; margin-right: -2px; }
+
+        /* Error */
+        .hl-error {
+          padding: 10px 14px;
+          border-radius: 8px;
+          background: rgba(196,120,110,0.1);
+          color: #C4786E;
+          font-size: 13px;
+          font-weight: 400;
+          margin-top: 12px;
+        }
+
+        /* Divider */
+        .hl-divider {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          margin: 20px 0 0;
+        }
+        .hl-divider-line { flex: 1; height: 0.5px; background: #DDD5D0; }
+        .hl-divider-text {
+          font-size: 11px;
+          color: #BFB5B1;
+          letter-spacing: 1px;
+          text-transform: uppercase;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+          .hl-login-wrap { grid-template-columns: 1fr; }
+          .hl-left { display: none; }
+          .hl-right { padding: 48px 32px; }
+          .hl-title { white-space: normal; }
+        }
+      `}</style>
+
+      <div className="hl-login-wrap">
+        {/* ─── LEFT PANEL ─── */}
+        <div className="hl-left">
+          <div className="hl-deco-circle" />
+          <div className="hl-deco-arc" />
+
+          {/* Logo branca */}
+          <img src="/logo2.png" alt="HeroicLeap" className="hl-logo-img" />
+
+          {/* Tagline */}
+          <div className="hl-tagline">
+            Para você nunca parar de <em>cuidar.</em>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-6">
-            <Input
-              label="E-mail"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="seu@email.com"
-              icon={<Mail className="w-5 h-5" />}
-            />
+          <div className="hl-left-bottom" />
+        </div>
 
-            <div className="relative">
-              <Input
-                label="Senha"
-                type={showPassword ? 'text' : 'password'}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                icon={<Lock className="w-5 h-5" />}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-9 text-[var(--color-text-muted)] hover:text-[var(--color-text-main)]"
-              >
-                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-              </button>
+        {/* ─── RIGHT PANEL ─── */}
+        <div className="hl-right">
+          <div className="hl-eyebrow">Acesso seguro</div>
+          <h1 className="hl-title">Bem-vindo(a) de volta!</h1>
+          <p className="hl-subtitle">Menos burocracia. Mais tempo para seus pacientes.</p>
+
+          <form onSubmit={handleLogin}>
+            {/* E-mail */}
+            <div className="hl-field">
+              <label className="hl-label">E-mail</label>
+              <div className="hl-input-wrap">
+                <svg className="hl-input-icon" viewBox="0 0 16 16" fill="none">
+                  <rect x="1" y="3" width="14" height="10" rx="2" stroke="#2C2420" strokeWidth="1.2"/>
+                  <path d="M1 5.5L8 9.5L15 5.5" stroke="#2C2420" strokeWidth="1.2"/>
+                </svg>
+                <input
+                  type="email"
+                  placeholder="seu@email.com"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                />
+              </div>
             </div>
 
-            {error && (
-              <div className="p-3 rounded-[8px] bg-[#FCEEEE] text-[var(--color-error)] text-sm font-medium">
-                {error}
+            {/* Senha */}
+            <div className="hl-field">
+              <label className="hl-label">Senha</label>
+              <div className="hl-input-wrap">
+                <svg className="hl-input-icon" viewBox="0 0 16 16" fill="none">
+                  <rect x="3" y="7" width="10" height="8" rx="1.5" stroke="#2C2420" strokeWidth="1.2"/>
+                  <path d="M5 7V5a3 3 0 016 0v2" stroke="#2C2420" strokeWidth="1.2"/>
+                </svg>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                />
+                <button
+                  type="button"
+                  className="hl-eye-btn"
+                  onClick={() => setShowPassword(!showPassword)}
+                  tabIndex={-1}
+                >
+                  {showPassword ? (
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                      <path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5z" stroke="#2C2420" strokeWidth="1.2"/>
+                      <circle cx="8" cy="8" r="2" stroke="#2C2420" strokeWidth="1.2"/>
+                      <path d="M2 2l12 12" stroke="#2C2420" strokeWidth="1.2"/>
+                    </svg>
+                  ) : (
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                      <path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5z" stroke="#2C2420" strokeWidth="1.2"/>
+                      <circle cx="8" cy="8" r="2" stroke="#2C2420" strokeWidth="1.2"/>
+                    </svg>
+                  )}
+                </button>
               </div>
-            )}
+              <div className="hl-forgot">
+                <a href="#">Esqueceu a senha?</a>
+              </div>
+            </div>
 
-            <Button
-              type="submit"
-              className="w-full"
-              loading={loading}
-            >
-              Entrar
-            </Button>
+            {error && <div className="hl-error">{error}</div>}
+
+            <button type="submit" className="hl-btn" disabled={loading}>
+              {loading ? 'Entrando...' : 'Entrar'}
+              {!loading && (
+                <div className="hl-btn-arrow">
+                  <span />
+                  <span />
+                </div>
+              )}
+            </button>
           </form>
+
+          <div className="hl-divider">
+            <div className="hl-divider-line" />
+            <span className="hl-divider-text">acesso protegido</span>
+            <div className="hl-divider-line" />
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
