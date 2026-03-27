@@ -79,18 +79,30 @@ function AbaGeral() {
 
   const saveGeral = async () => {
     setLoading(true);
-    let logo_url = config?.logo_url;
-    if (logoFile) {
-      const { data, error } = await supabase.storage.from('clinic-assets').upload(`logo-${Date.now()}`, logoFile);
-      if (data) {
-        const urlReq = supabase.storage.from('clinic-assets').getPublicUrl(data.path);
-        logo_url = urlReq.data.publicUrl;
+    try {
+      let logo_url = config?.logo_url;
+      if (logoFile) {
+        const { data, error } = await supabase.storage.from('clinic-assets').upload(`logo-${Date.now()}`, logoFile);
+        if (error) {
+          console.error(error);
+          alert('Erro ao fazer upload da imagem: O bucket "clinic-assets" pode não existir no seu Supabase ou não estar público/com permissão. Detalhe: ' + error.message);
+          setLoading(false);
+          return;
+        }
+        if (data) {
+          const urlReq = supabase.storage.from('clinic-assets').getPublicUrl(data.path);
+          logo_url = urlReq.data.publicUrl;
+        }
       }
+      await supabase.from('clinic_config').update({ nome, logo_url }).eq('id', 1);
+      await refreshConfig();
+      setLogoFile(null); // limpa preview local para forçar carregar do servidor
+      alert('Configurações salvas com sucesso!');
+    } catch (err: any) {
+      alert('Ocorreu um erro: ' + err.message);
+    } finally {
+      setLoading(false);
     }
-    await supabase.from('clinic_config').update({ nome, logo_url }).eq('id', 1);
-    await refreshConfig();
-    setLoading(false);
-    alert('Configurações salvas!');
   };
 
   const saveHours = async () => {
