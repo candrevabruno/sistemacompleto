@@ -45,18 +45,12 @@ export function Login() {
     <div className="flex h-screen w-full bg-[var(--color-bg-base)]">
       {/* Left Panel */}
       <div className="hidden md:flex flex-col items-center justify-center w-[40%] bg-[var(--color-primary)] text-white p-10">
-        <div className="mb-8">
-          {config?.logo_url ? (
-            <img 
-              src={config.logo_url} 
-              alt={config.nome || "Logo"} 
-              className="max-h-24 w-auto object-contain"
-            />
-          ) : (
-            <div className="w-24 h-24 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm border border-white/30">
-              <span className="text-sm font-medium">LOGO</span>
-            </div>
-          )}
+        <div className="mb-0 flex items-center justify-center transform transition-all duration-1000 animate-in fade-in zoom-in-95 duration-700">
+          <img 
+            src={config?.logo_url || "/logo.png"} 
+            alt={config?.nome || "Heroic Leap Logo"} 
+            className="max-h-40 w-auto object-contain hover:scale-105 transition-transform cursor-pointer drop-shadow-sm"
+          />
         </div>
         <h1 className="font-cormorant text-3xl font-semibold leading-relaxed text-center max-w-md transition-all duration-700 animate-in fade-in slide-in-from-bottom-4">
           Para você nunca parar de cuidar, a IA nunca para de trabalhar.
