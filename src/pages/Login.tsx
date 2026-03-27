@@ -294,31 +294,31 @@ export function Login() {
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 10px;
-            padding: 20px 24px 16px;
+            gap: 8px;
+            padding: 12px 24px 10px;
             position: relative;
           }
 
           .hl-logo-img {
-            max-height: 120px;
-            width: 70%;
+            max-height: 140px;
+            width: 75%;
           }
 
           .hl-tagline {
-            font-size: 15px;
+            font-size: 14px;
             line-height: 1.4;
           }
 
           .hl-deco-arc {
-            width: 80px;
-            height: 80px;
+            width: 60px;
+            height: 60px;
           }
 
           .hl-deco-circle {
-            top: 12px;
-            right: 16px;
-            width: 28px;
-            height: 28px;
+            top: 8px;
+            right: 12px;
+            width: 22px;
+            height: 22px;
           }
 
           /* Painel direito: formulário em off-white abaixo */
