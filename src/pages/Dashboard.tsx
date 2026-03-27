@@ -186,7 +186,7 @@ export function Dashboard() {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:justify-between gap-4 p-4 bg-[var(--color-bg-card)] rounded-[12px] border border-[var(--color-border-card)] shadow-[var(--shadow-card)]">
         <div className="flex flex-wrap gap-2 items-center">
-          {(['hoje', 'ontem', '7dias', '14dias', 'mes', 'ano'] as DateFilter[]).map(f => (
+          {(['ontem', 'hoje', '7dias', '14dias', 'mes', 'ano'] as DateFilter[]).map(f => (
             <button
               key={f}
               onClick={() => setFilter(f)}
@@ -223,9 +223,9 @@ export function Dashboard() {
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {[
+          { label: 'Novos leads', value: metrics.leads, icon: Users },
           { label: 'Agendamentos do período', value: metrics.agendamentos, icon: CalendarIcon },
           { label: 'Comparecimentos', value: metrics.comparecimentos, icon: UserCheck },
-          { label: 'Novos leads', value: metrics.leads, icon: Users },
           { label: 'Novos pacientes', value: metrics.pacientes, icon: Activity }
         ].map((m, i) => (
           <Card key={i}>
@@ -288,7 +288,11 @@ export function Dashboard() {
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border-card)" />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} />
                 <YAxis axisLine={false} tickLine={false} />
-                <Tooltip cursor={{ fill: 'var(--color-primary-light)', opacity: 0.4 }} />
+                <Tooltip 
+                  cursor={{ fill: 'var(--color-primary-light)', opacity: 0.4 }} 
+                  contentStyle={{ color: 'var(--color-text-main)', borderRadius: '8px', border: '1px solid var(--color-border-card)', boxShadow: 'var(--shadow-dropdown)', background: 'var(--color-bg-base)' }}
+                  itemStyle={{ color: 'var(--color-primary)' }}
+                />
                 <Bar dataKey="valor" fill="var(--color-primary-light)" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>

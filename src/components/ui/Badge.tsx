@@ -28,7 +28,7 @@ export const Badge = React.forwardRef<HTMLDivElement, BadgeProps>(
       error: 'bg-[#FCEEEE] text-[var(--color-error)] dark:bg-[rgba(196,126,126,0.2)]',
       info: 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400',
       
-      agendado: 'bg-indigo-50 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400',
+      agendado: 'bg-[#9b8bb3] text-white dark:bg-[#7F6A8A] dark:text-white',
       confirmado: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400',
       compareceu: 'bg-[#E8F3EC] text-[var(--color-success)] dark:bg-[rgba(122,158,135,0.2)]',
       faltou: 'bg-gray-100 text-gray-600 dark:bg-gray-800/50 dark:text-gray-400',
