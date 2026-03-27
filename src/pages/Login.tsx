@@ -45,11 +45,11 @@ export function Login() {
     <div className="flex h-screen w-full bg-[var(--color-bg-base)]">
       {/* Left Panel */}
       <div className="hidden md:flex flex-col items-center justify-center w-[40%] bg-[var(--color-primary)] text-white p-10">
-        <div className="mb-0 flex items-center justify-center transform transition-all duration-1000 animate-in fade-in zoom-in-95 duration-700">
+        <div className="mb-4 flex items-center justify-center transform transition-all duration-1000 animate-in fade-in zoom-in-95 duration-700">
           <img 
             src={config?.logo_url || "/logo.png"} 
             alt={config?.nome || "Heroic Leap Logo"} 
-            className="max-h-40 w-auto object-contain hover:scale-105 transition-transform cursor-pointer drop-shadow-sm"
+            className="max-h-52 w-auto object-contain hover:scale-105 transition-all duration-300 cursor-pointer drop-shadow-sm opacity-85"
           />
         </div>
         <h1 className="font-cormorant text-3xl font-semibold leading-relaxed text-center max-w-md transition-all duration-700 animate-in fade-in slide-in-from-bottom-4">
