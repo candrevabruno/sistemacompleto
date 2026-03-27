@@ -1,5 +1,6 @@
 {
-  "name": "scaffolding",
+  "name": "heroicleaphealth",
+  "description": "Sistema de Gestão e Automação para Profissionais de Saúde",
   "private": true,
   "version": "0.0.0",
   "type": "module",

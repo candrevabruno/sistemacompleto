@@ -1,6 +1,6 @@
-# Sistema de Gestão para Clínica Médica 🏥
+# Sistema de Gestão para Profissionais de Saúde ⚕️
 
-Sistema completo para gestão de clínicas, focado em alta performance, segurança (LGPD) e experiência do usuário premium.
+Sistema completo para gestão de clínicas, consultórios e profissionais de saúde, focado em alta conversão, segurança (LGPD) e experiência do usuário premium.
 
 ## 🚀 Funcionalidades Principais
 
