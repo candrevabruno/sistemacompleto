@@ -48,7 +48,7 @@ export function Login() {
 
         /* ─── LEFT PANEL ─────────────────────────── */
         .hl-left {
-          background: #C4786E;
+          background: #c47e7e;
           padding: 48px 32px;
           display: flex;
           flex-direction: column;
@@ -80,8 +80,8 @@ export function Login() {
 
         /* Logo */
         .hl-logo-img {
-          max-height: 160px;
-          width: 80%;
+          max-height: 200px;
+          width: 85%;
           object-fit: contain;
           position: relative;
           z-index: 1;
@@ -119,7 +119,7 @@ export function Login() {
           font-size: 11px;
           letter-spacing: 2px;
           text-transform: uppercase;
-          color: #C4786E;
+          color: #c47e7e;
           font-weight: 500;
           margin-bottom: 14px;
         }
@@ -162,7 +162,7 @@ export function Login() {
           transition: border-color 0.2s;
           position: relative;
         }
-        .hl-input-wrap:focus-within { border-color: #C4786E; }
+        .hl-input-wrap:focus-within { border-color: #c47e7e; }
 
         .hl-input-icon {
           width: 16px;
@@ -202,7 +202,7 @@ export function Login() {
         .hl-forgot { text-align: right; margin-top: 8px; }
         .hl-forgot a {
           font-size: 12px;
-          color: #C4786E;
+          color: #c47e7e;
           text-decoration: none;
           opacity: 0.8;
           transition: opacity 0.2s;
@@ -213,7 +213,7 @@ export function Login() {
         .hl-btn {
           width: 100%;
           height: 54px;
-          background: #C4786E;
+          background: #c47e7e;
           color: #FAF8F5;
           border: none;
           border-radius: 10px;
@@ -241,7 +241,7 @@ export function Login() {
           transition: background 0.25s;
         }
         .hl-btn:hover { background: #1A0F0D; }
-        .hl-btn:hover::before { background: #C4786E; }
+        .hl-btn:hover::before { background: #c47e7e; }
         .hl-btn:disabled { opacity: 0.65; cursor: not-allowed; }
 
         .hl-btn-arrow { display: flex; gap: 2px; }
@@ -259,7 +259,7 @@ export function Login() {
           padding: 10px 14px;
           border-radius: 8px;
           background: rgba(196,120,110,0.1);
-          color: #C4786E;
+          color: #c47e7e;
           font-size: 13px;
           font-weight: 400;
           margin-top: 12px;
