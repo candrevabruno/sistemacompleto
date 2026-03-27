@@ -56,45 +56,53 @@ export function Dashboard() {
       case 'mes': setDateRange({ start: startOfMonth(today), end: endOfMonth(today) }); break;
       case 'ano': setDateRange({ start: startOfYear(today), end: endOfYear(today) }); break;
       case 'custom':
-        if (customStart && customEnd) {
-          setDateRange({ start: new Date(customStart + 'T00:00:00'), end: new Date(customEnd + 'T23:59:59') });
-        }
+        // Do not auto-set here, wait for the 'Filtrar' button
         break;
     }
   };
 
+  const handleCustomFilter = () => {
+    if (customStart && customEnd) {
+      setDateRange({ start: new Date(customStart + 'T00:00:00'), end: new Date(customEnd + 'T23:59:59') });
+    }
+  };
+
   const fetchData = async () => {
-    setLoading(true);
-    const startIso = dateRange.start.toISOString();
-    const endIso = dateRange.end.toISOString();
+    try {
+      setLoading(true);
+      const startIso = dateRange.start.toISOString();
+      const endIso = dateRange.end.toISOString();
 
-    const [agendamentosReq, leadsReq, pacientesReq, upcomingReq] = await Promise.all([
-      supabase.from('agendamentos').select('*').gte('created_at', startIso).lte('created_at', endIso),
-      supabase.from('leads').select('*').gte('inicio_atendimento', startIso).lte('inicio_atendimento', endIso),
-      supabase.from('pacientes').select('*').gte('created_at', startIso).lte('created_at', endIso),
-      supabase.from('agendamentos')
-        .select('*, leads(nome_lead, whatsapp_lead), pacientes(leads(nome_lead, whatsapp_lead)), agendas(nome, cor)')
-        .gte('data_hora_inicio', new Date().toISOString())
-        .order('data_hora_inicio', { ascending: true })
-        .limit(5)
-    ]);
+      const [agendamentosReq, leadsReq, pacientesReq, upcomingReq] = await Promise.all([
+        supabase.from('agendamentos').select('*').gte('created_at', startIso).lte('created_at', endIso),
+        supabase.from('leads').select('*').gte('inicio_atendimento', startIso).lte('inicio_atendimento', endIso),
+        supabase.from('pacientes').select('*').gte('created_at', startIso).lte('created_at', endIso),
+        supabase.from('agendamentos')
+          .select('*, leads(nome_lead, whatsapp_lead), pacientes(leads(nome_lead, whatsapp_lead)), agendas(nome, cor)')
+          .gte('data_hora_inicio', new Date().toISOString())
+          .order('data_hora_inicio', { ascending: true })
+          .limit(5)
+      ]);
 
-    const agendamentos = agendamentosReq.data || [];
-    const leads = leadsReq.data || [];
-    const pacientes = pacientesReq.data || [];
+      const agendamentos = agendamentosReq.data || [];
+      const leads = leadsReq.data || [];
+      const pacientes = pacientesReq.data || [];
 
-    setAgendamentosData(agendamentos);
-    setLeadsData(leads);
-    setUpcoming(upcomingReq.data || []);
+      setAgendamentosData(agendamentos);
+      setLeadsData(leads);
+      setUpcoming(upcomingReq.data || []);
 
-    setMetrics({
-      agendamentos: agendamentos.length,
-      comparecimentos: agendamentos.filter(a => a.status === 'compareceu').length,
-      leads: leads.length,
-      pacientes: pacientes.length
-    });
-
-    setLoading(false);
+      setMetrics({
+        agendamentos: agendamentos.length,
+        comparecimentos: agendamentos.filter(a => a.status === 'compareceu').length,
+        leads: leads.length,
+        pacientes: pacientes.length
+      });
+    } catch (error) {
+      console.error("Dashboard fetch error:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Process data for charts
@@ -201,6 +209,14 @@ export function Dashboard() {
               max={format(new Date(), 'yyyy-MM-dd')}
               onChange={e => { setCustomEnd(e.target.value); setFilter('custom'); }} 
             />
+            {filter === 'custom' && (
+              <button 
+                onClick={handleCustomFilter}
+                className="ml-2 px-3 py-1.5 bg-[var(--color-primary)] text-white text-sm font-medium rounded-[8px] transition-colors hover:bg-opacity-90"
+              >
+                Filtrar
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -288,11 +304,11 @@ export function Dashboard() {
             <div className="flex-1">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie data={chart3Data} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
+                  <Pie data={chart3Data} cx="50%" cy="45%" innerRadius={50} outerRadius={70} paddingAngle={5} dataKey="value">
                     {chart3Data.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index]} />)}
                   </Pie>
                   <Tooltip />
-                  <Legend verticalAlign="bottom" height={36}/>
+                  <Legend verticalAlign="bottom" height={40} style={{ paddingBottom: '10px' }} />
                 </PieChart>
               </ResponsiveContainer>
             </div>
