@@ -6,7 +6,7 @@ import { Input } from '../components/ui/Input';
 import { Modal } from '../components/ui/Modal';
 import { Badge } from '../components/ui/Badge';
 import { Avatar } from '../components/ui/Avatar';
-import { ChevronLeft, ChevronRight, Plus, Edit2, Trash2, Calendar as CalendarIcon, Clock, User as UserIcon } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Edit2, Trash2, Calendar as CalendarIcon, Clock, User as UserIcon, Copy } from 'lucide-react';
 import FullCalendar from '@fullcalendar/react';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
@@ -25,7 +25,16 @@ export function Agenda() {
   const [openEvento, setOpenEvento] = useState(false);
 
   // Forms state
-  const [novaAgendaForm, setNovaAgendaForm] = useState({ nome: '', cor: '#C47E7E' });
+  const defaultHours = {
+    domingo: { aberto: false, hora_inicio: '08:00', hora_fim: '18:00' },
+    segunda: { aberto: true, hora_inicio: '08:00', hora_fim: '18:00' },
+    terca: { aberto: true, hora_inicio: '08:00', hora_fim: '18:00' },
+    quarta: { aberto: true, hora_inicio: '08:00', hora_fim: '18:00' },
+    quinta: { aberto: true, hora_inicio: '08:00', hora_fim: '18:00' },
+    sexta: { aberto: true, hora_inicio: '08:00', hora_fim: '18:00' },
+    sabado: { aberto: false, hora_inicio: '08:00', hora_fim: '18:00' },
+  };
+  const [novaAgendaForm, setNovaAgendaForm] = useState({ nome: '', cor: '#C47E7E', horarios: defaultHours });
   const [agendamentoForm, setAgendamentoForm] = useState({ 
     id: '', lead_id: '', paciente_id: '', nome_livre: '', procedimento_nome: '', 
     data: '', hora: '', agenda_id: '', observacoes: '' 
@@ -84,10 +93,10 @@ export function Agenda() {
     await supabase.from('agendas').insert({ 
       nome: novaAgendaForm.nome, 
       cor: novaAgendaForm.cor,
-      esteticista_id: user?.id
+      horarios: novaAgendaForm.horarios
     });
     setOpenNovaAgenda(false);
-    setNovaAgendaForm({ nome: '', cor: '#C47E7E' });
+    setNovaAgendaForm({ nome: '', cor: '#C47E7E', horarios: defaultHours });
     loadData();
   };
 
@@ -194,6 +203,13 @@ export function Agenda() {
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-white/20 rounded-[8px]"><CalendarIcon className="w-5 h-5" /></div>
                   <h2 className="font-cormorant text-2xl font-bold tracking-wide">{agenda.nome}</h2>
+                  <div className="flex items-center gap-1 bg-black/20 px-2 py-1 rounded text-xs font-mono ml-2 group cursor-pointer transition-colors hover:bg-black/40" title="Copiar ID da Agenda" onClick={() => {
+                      navigator.clipboard.writeText(agenda.id);
+                      alert('ID da Agenda copiado!');
+                  }}>
+                    <span className="opacity-80">ID: {agenda.id.substring(0, 8)}</span>
+                    <Copy className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </div>
                 </div>
                 {user?.role === 'admin' && (
                   <div className="flex space-x-2">
@@ -259,6 +275,53 @@ export function Agenda() {
                   className={`w-8 h-8 rounded-full border-2 transition-transform ${novaAgendaForm.cor === c ? 'border-[var(--color-text-main)] scale-110' : 'border-transparent'}`}
                   style={{ backgroundColor: c }}
                 />
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-[var(--color-text-main)] mb-1">Horários de funcionamento</label>
+            <div className="space-y-2 border border-[var(--color-border-card)] p-3 rounded-lg max-h-48 overflow-y-auto bg-gray-50 dark:bg-black/20">
+              {['domingo', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado'].map(dia => (
+                <div key={dia} className="flex items-center gap-3 text-sm">
+                  <div className="w-20 font-medium capitalize">{dia}</div>
+                  <input 
+                    type="checkbox" 
+                    checked={(novaAgendaForm.horarios as any)[dia].aberto}
+                    onChange={(e) => {
+                      const newHorarios = { ...novaAgendaForm.horarios };
+                      (newHorarios as any)[dia].aberto = e.target.checked;
+                      setNovaAgendaForm({ ...novaAgendaForm, horarios: newHorarios });
+                    }}
+                    className="rounded border-[var(--color-border-card)] text-[var(--color-primary)] focus:ring-[var(--color-primary)] cursor-pointer"
+                  />
+                  {(novaAgendaForm.horarios as any)[dia].aberto ? (
+                    <div className="flex items-center gap-1">
+                      <input 
+                        type="time" 
+                        value={(novaAgendaForm.horarios as any)[dia].hora_inicio}
+                        onChange={(e) => {
+                          const newHorarios = { ...novaAgendaForm.horarios };
+                          (newHorarios as any)[dia].hora_inicio = e.target.value;
+                          setNovaAgendaForm({ ...novaAgendaForm, horarios: newHorarios });
+                        }}
+                        className="bg-white dark:bg-[var(--color-bg-base)] border border-[var(--color-border-card)] rounded px-1.5 py-0.5 text-xs text-[var(--color-text-main)] outline-none focus:border-[var(--color-primary)]"
+                      />
+                      <span className="text-[var(--color-text-muted)] text-xs">às</span>
+                      <input 
+                        type="time" 
+                        value={(novaAgendaForm.horarios as any)[dia].hora_fim}
+                        onChange={(e) => {
+                          const newHorarios = { ...novaAgendaForm.horarios };
+                          (newHorarios as any)[dia].hora_fim = e.target.value;
+                          setNovaAgendaForm({ ...novaAgendaForm, horarios: newHorarios });
+                        }}
+                        className="bg-white dark:bg-[var(--color-bg-base)] border border-[var(--color-border-card)] rounded px-1.5 py-0.5 text-xs text-[var(--color-text-main)] outline-none focus:border-[var(--color-primary)]"
+                      />
+                    </div>
+                  ) : (
+                    <span className="text-xs text-[var(--color-text-muted)] italic">Fechado</span>
+                  )}
+                </div>
               ))}
             </div>
           </div>

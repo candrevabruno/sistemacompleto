@@ -62,8 +62,17 @@ function AbaGeral() {
     const order = ['domingo', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado'];
     const { data } = await supabase.from('clinic_hours').select('*');
     if (data) {
-      data.sort((a,b) => order.indexOf(a.dia) - order.indexOf(b.dia));
-      setHours(data);
+      if (data.length === 0) {
+        const defaults = order.map(dia => ({ dia, aberto: dia !== 'domingo' && dia !== 'sabado', hora_inicio: '08:00', hora_fim: '18:00' }));
+        const { data: inserted } = await supabase.from('clinic_hours').insert(defaults).select('*');
+        if (inserted) {
+          inserted.sort((a: any, b: any) => order.indexOf(a.dia) - order.indexOf(b.dia));
+          setHours(inserted);
+        }
+      } else {
+        data.sort((a,b) => order.indexOf(a.dia) - order.indexOf(b.dia));
+        setHours(data);
+      }
     }
   };
 
@@ -92,45 +101,120 @@ function AbaGeral() {
     alert('Horários salvos!');
   };
 
+  const diasPT: Record<string, string> = {
+    domingo: 'Domingo', segunda: 'Segunda-feira', terca: 'Terça-feira',
+    quarta: 'Quarta-feira', quinta: 'Quinta-feira', sexta: 'Sexta-feira', sabado: 'Sábado'
+  };
+
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader><CardTitle>Identidade da Clínica</CardTitle></CardHeader>
+        <CardHeader><CardTitle>Identidade da Empresa</CardTitle></CardHeader>
         <CardContent className="space-y-4">
-          <Input label="Nome da clínica" value={nome} onChange={e => setNome(e.target.value)} />
+          <Input label="Nome da empresa" value={nome} onChange={e => setNome(e.target.value)} />
+
+          {/* Logo upload estilizado */}
           <div>
-            <label className="block text-sm font-medium mb-1">Logo da clínica (max 2MB)</label>
+            <label className="block text-sm font-medium mb-2">Logo da empresa (max 2MB)</label>
             <div className="flex items-center gap-4">
-              {config?.logo_url && <img src={config.logo_url} className="h-16 object-contain border" alt="Logo" />}
-              <input type="file" accept="image/*" onChange={e => setLogoFile(e.target.files?.[0] || null)} className="text-sm" />
+              {(logoFile ? URL.createObjectURL(logoFile) : config?.logo_url) && (
+                <img
+                  src={logoFile ? URL.createObjectURL(logoFile) : config?.logo_url || ''}
+                  className="h-14 w-auto object-contain border border-[var(--color-border-card)] rounded-lg p-1"
+                  alt="Logo atual"
+                />
+              )}
+              
+              <div>
+                <Button 
+                  type="button" 
+                  variant="secondary" 
+                  onClick={() => document.getElementById('logo-upload-input')?.click()}
+                  className="flex items-center gap-2"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M12 12V4m0 0L8 8m4-4l4 4" />
+                  </svg>
+                  {logoFile ? logoFile.name : 'Escolher imagem'}
+                </Button>
+                <input
+                  id="logo-upload-input"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={e => setLogoFile(e.target.files?.[0] || null)}
+                />
+              </div>
+
+              {logoFile && (
+                <button
+                  onClick={() => setLogoFile(null)}
+                  className="text-xs text-[var(--color-text-muted)] hover:text-[var(--color-error)] transition-colors"
+                >
+                  Remover
+                </button>
+              )}
             </div>
           </div>
+
           <Button onClick={saveGeral} loading={loading}>Salvar alterações</Button>
         </CardContent>
       </Card>
-      
+
       <Card>
         <CardHeader><CardTitle>Horário de Funcionamento</CardTitle></CardHeader>
-        <CardContent className="space-y-4">
-          {hours.map((h, i) => (
-            <div key={h.id} className="flex items-center gap-4">
-              <div className="w-24 font-medium capitalize">{h.dia}</div>
-              <label className="flex items-center space-x-2">
-                <input type="checkbox" checked={h.aberto} onChange={e => {
-                  const newH = [...hours]; newH[i].aberto = e.target.checked; setHours(newH);
-                }} />
-                <span>Aberto</span>
-              </label>
-              <Input type="time" disabled={!h.aberto} value={h.hora_inicio || ''} onChange={e => {
-                const newH = [...hours]; newH[i].hora_inicio = e.target.value; setHours(newH);
-              }} />
-              <span>até</span>
-              <Input type="time" disabled={!h.aberto} value={h.hora_fim || ''} onChange={e => {
-                const newH = [...hours]; newH[i].hora_fim = e.target.value; setHours(newH);
-              }} />
+        <CardContent>
+          {hours.length === 0 ? (
+            <p className="text-sm text-[var(--color-text-muted)] py-4">Carregando horários...</p>
+          ) : (
+            <div className="divide-y divide-[var(--color-border-card)]">
+              {hours.map((h, i) => (
+                <div key={h.id} className="flex items-center gap-4 py-3">
+                  {/* Dia */}
+                  <div className="w-36 text-sm font-medium text-[var(--color-text-main)]">
+                    {diasPT[h.dia] || h.dia}
+                  </div>
+
+                  {/* Toggle Aberto/Fechado */}
+                  <button
+                    onClick={() => {
+                      const newH = [...hours]; newH[i].aberto = !newH[i].aberto; setHours(newH);
+                    }}
+                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 focus:outline-none flex-shrink-0 ${h.aberto ? 'bg-[var(--color-primary)]' : 'bg-gray-300'}`}
+                  >
+                    <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform duration-200 ${h.aberto ? 'translate-x-4' : 'translate-x-1'}`} />
+                  </button>
+                  <span className={`text-xs w-14 ${h.aberto ? 'text-[var(--color-primary)] font-medium' : 'text-[var(--color-text-muted)]'}`}>
+                    {h.aberto ? 'Aberto' : 'Fechado'}
+                  </span>
+
+                  {/* Horários */}
+                  {h.aberto ? (
+                    <div className="flex items-center gap-2 flex-1">
+                      <input
+                        type="time"
+                        value={h.hora_inicio || '08:00'}
+                        onChange={e => { const newH = [...hours]; newH[i].hora_inicio = e.target.value; setHours(newH); }}
+                        className="border border-[var(--color-border-card)] rounded-lg px-3 py-1.5 text-sm text-[var(--color-text-main)] bg-white focus:outline-none focus:border-[var(--color-primary)] transition-colors"
+                      />
+                      <span className="text-sm text-[var(--color-text-muted)]">até</span>
+                      <input
+                        type="time"
+                        value={h.hora_fim || '18:00'}
+                        onChange={e => { const newH = [...hours]; newH[i].hora_fim = e.target.value; setHours(newH); }}
+                        className="border border-[var(--color-border-card)] rounded-lg px-3 py-1.5 text-sm text-[var(--color-text-main)] bg-white focus:outline-none focus:border-[var(--color-primary)] transition-colors"
+                      />
+                    </div>
+                  ) : (
+                    <span className="text-sm text-[var(--color-text-muted)] italic">Não atende neste dia</span>
+                  )}
+                </div>
+              ))}
             </div>
-          ))}
-          <Button onClick={saveHours} loading={loadingHours}>Salvar horários</Button>
+          )}
+          <div className="pt-4 border-t border-[var(--color-border-card)] mt-2">
+            <Button onClick={saveHours} loading={loadingHours}>Salvar horários</Button>
+          </div>
         </CardContent>
       </Card>
     </div>
