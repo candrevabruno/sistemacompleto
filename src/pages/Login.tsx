@@ -80,9 +80,8 @@ export function Login() {
 
         /* Logo */
         .hl-logo-img {
-          max-height: 96px;
-          width: auto;
-          max-width: 90%;
+          max-height: 160px;
+          width: 80%;
           object-fit: contain;
           position: relative;
           z-index: 1;
@@ -383,11 +382,7 @@ export function Login() {
             </button>
           </form>
 
-          <div className="hl-divider">
-            <div className="hl-divider-line" />
-            <span className="hl-divider-text">acesso protegido</span>
-            <div className="hl-divider-line" />
-          </div>
+
         </div>
       </div>
     </>
