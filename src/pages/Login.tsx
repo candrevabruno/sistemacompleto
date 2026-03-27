@@ -58,7 +58,7 @@ export function Login() {
             </div>
           )}
         </div>
-        <h1 className="font-cormorant text-4xl font-semibold leading-relaxed text-center max-w-sm transition-all duration-700 animate-in fade-in slide-in-from-bottom-4">
+        <h1 className="font-cormorant text-3xl font-semibold leading-relaxed text-center max-w-md transition-all duration-700 animate-in fade-in slide-in-from-bottom-4">
           Para você nunca parar de cuidar, a IA nunca para de trabalhar.
         </h1>
       </div>
