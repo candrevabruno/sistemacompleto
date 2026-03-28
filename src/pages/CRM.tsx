@@ -12,14 +12,14 @@ import { ptBR } from 'date-fns/locale';
 import { Plus, User, FileText, Calendar, DollarSign, Clock } from 'lucide-react';
 
 const COLUMNS = [
-  { id: 'iniciou_atendimento', title: 'Iniciou', color: 'border-t-4 border-[#C47E7E]' },
-  { id: 'conversando', title: 'Conversando', color: 'border-t-4 border-blue-400' },
-  { id: 'agendado', title: 'Agendado', color: 'border-t-4 border-[#7A9E87]' },
-  { id: 'compareceu', title: 'Compareceu', color: 'border-t-4 border-green-600' },
-  { id: 'faltou', title: 'Faltou', color: 'border-t-4 border-gray-600' },
-  { id: 'cancelou_agendamento', title: 'Cancelou Agendamento', color: 'border-t-4 border-[#E8A87C]' },
-  { id: 'follow_up', title: 'Follow Up', color: 'border-t-4 border-orange-400' },
-  { id: 'abandonou_conversa', title: 'Abandonou', color: 'border-t-4 border-gray-400' }
+  { id: 'iniciou_atendimento', title: 'Iniciou', colorClass: 'border-[#C47E7E]' },
+  { id: 'conversando', title: 'Conversando', colorClass: 'border-blue-400' },
+  { id: 'agendado', title: 'Agendado', colorClass: 'border-[#7A9E87]' },
+  { id: 'compareceu', title: 'Compareceu', colorClass: 'border-green-500' },
+  { id: 'faltou', title: 'Faltou', colorClass: 'border-gray-600' },
+  { id: 'cancelou_agendamento', title: 'Cancelou Agendamento', colorClass: 'border-[#E8A87C]' },
+  { id: 'follow_up', title: 'Follow Up', colorClass: 'border-amber-400' },
+  { id: 'abandonou_conversa', title: 'Abandonou', colorClass: 'border-red-500' }
 ];
 
 export function CRM() {
@@ -142,7 +142,7 @@ export function CRM() {
               {COLUMNS.map(col => {
                 const colCards = cardsByCol[col.id] || [];
                 return (
-                  <div key={col.id} className={`flex flex-col flex-shrink-0 w-[300px] h-full max-h-full bg-[var(--color-bg-sidebar)] rounded-[12px] border border-[var(--color-border-card)] shadow-sm ${col.color}`}>
+                  <div key={col.id} className={`flex flex-col flex-shrink-0 w-[300px] h-full max-h-full bg-[var(--color-bg-sidebar)] rounded-[12px] border border-[var(--color-border-card)] border-t-4 shadow-sm ${col.colorClass}`}>
                     <div className="p-3 font-semibold text-[var(--color-text-main)] flex justify-between items-center bg-white/50 border-b border-[var(--color-border-card)] rounded-t-[10px]">
                       <span className="truncate pr-2">{col.title}</span>
                       <span className="bg-white border rounded-full px-2 py-0.5 text-xs text-[var(--color-text-muted)] font-mono">{colCards.length}</span>
@@ -164,7 +164,7 @@ export function CRM() {
                                   {...provided.dragHandleProps}
                                   onClick={() => openDrawer(card)}
                                   style={provided.draggableProps.style}
-                                  className={`bg-[var(--color-bg-card)] p-3 rounded-[8px] border border-[var(--color-border-card)] shadow-[var(--shadow-card)] cursor-grab hover:border-[var(--color-primary)] transition-colors ${snapshot.isDragging ? 'opacity-90 scale-[1.02] shadow-lg ring-2 ring-[var(--color-primary)]' : ''}`}
+                                  className={`bg-[var(--color-bg-card)] p-3 rounded-[8px] border-2 shadow-[var(--shadow-card)] cursor-grab hover:border-[var(--color-primary)] transition-colors ${col.colorClass} ${snapshot.isDragging ? 'opacity-90 scale-[1.02] shadow-lg ring-2 ring-[var(--color-primary)]' : ''}`}
                                 >
                                   <div className="font-semibold text-sm line-clamp-1 mb-1">{card.nome_lead || 'Lead sem nome'}</div>
                                   <div className="text-xs text-[var(--color-text-muted)] mb-3">{card.whatsapp_lead}</div>
