@@ -349,51 +349,51 @@ export function Dashboard() {
             <CardTitle>Funil de Vendas</CardTitle>
             <p className="text-sm text-[var(--color-text-muted)]">Conversão geral no período</p>
           </CardHeader>
-          <CardContent className="space-y-3 overflow-x-auto overflow-y-hidden pb-4">
+          <CardContent className="space-y-3 pb-2">
             {/* Leads */}
-            <div className="bg-[var(--color-bg-base)] p-3 rounded-lg border border-[var(--color-border-card)] min-w-[300px]">
+            <div className="bg-[var(--color-bg-base)] p-3 rounded-lg border border-[var(--color-border-card)]">
               <div className="flex justify-between items-center mb-1">
-                <span className="font-semibold text-[var(--color-text-main)] flex items-center gap-2"><div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-[var(--color-border-card)] flex items-center justify-center text-[10px] sm:text-xs">1</div> Leads</span>
-                <span className="font-bold text-base sm:text-lg">{totalLeads}</span>
+                <span className="font-semibold text-[var(--color-text-main)] flex items-center gap-2 truncate pr-2"><div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-[var(--color-border-card)] flex items-center justify-center text-[10px] sm:text-xs shrink-0">1</div> <span className="truncate">Leads</span></span>
+                <span className="font-bold text-base sm:text-lg shrink-0">{totalLeads}</span>
               </div>
-              <div className="flex flex-col text-[11px] sm:text-xs mt-2 border-t border-[var(--color-border-card)] pt-2 gap-1">
-                <div className="flex justify-between text-[var(--color-success)]"><span className="font-medium">Qualificados</span> <span>{leadsQualificados} ({pctQualificados}%)</span></div>
-                <div className="flex justify-between text-[var(--color-error)] opacity-80"><span>Não qualificados (Abandonaram)</span> <span>{leadsNaoQualificados} ({pctNaoQualificados}%)</span></div>
+              <div className="flex flex-col text-[10px] sm:text-xs mt-2 border-t border-[var(--color-border-card)] pt-2 gap-1 w-full">
+                <div className="flex justify-between items-center text-[var(--color-success)]"><span className="font-medium truncate pr-2">Qualificados</span> <span className="shrink-0 whitespace-nowrap">{leadsQualificados} ({pctQualificados}%)</span></div>
+                <div className="flex justify-between items-center text-[var(--color-error)] opacity-80"><span className="truncate pr-2">Abandonaram</span> <span className="shrink-0 whitespace-nowrap">{leadsNaoQualificados} ({pctNaoQualificados}%)</span></div>
               </div>
             </div>
 
             {/* Agendamentos */}
-            <div className="bg-[var(--color-bg-base)] p-3 rounded-lg border border-[var(--color-border-card)] ml-4 sm:ml-6 relative">
-              <div className="absolute -left-[17px] sm:-left-[25px] top-1/2 w-4 sm:w-6 border-t-2 border-l-2 border-[var(--color-border-card)] rounded-tl-lg h-full -translate-y-full z-[-1]"></div>
-              <div className="flex justify-between items-center">
-                <span className="font-semibold text-[var(--color-text-main)] flex items-center gap-2"><div className="w-6 h-6 rounded-full bg-[var(--color-border-card)] flex items-center justify-center text-xs">2</div> Agendamentos</span>
-                <div className="text-right">
-                  <span className="font-bold text-lg">{metrics.agendamentos}</span>
-                  <span className="text-xs text-[var(--color-primary)] ml-2 font-medium bg-[var(--color-primary-light)] px-1.5 py-0.5 rounded">+{pctAgendaram}%</span>
+            <div className="bg-[var(--color-bg-base)] p-3 rounded-lg border border-[var(--color-border-card)] ml-3 sm:ml-6 relative">
+              <div className="absolute -left-[13px] sm:-left-[25px] top-1/2 w-3 sm:w-6 border-t-2 border-l-2 border-[var(--color-border-card)] rounded-tl-lg h-full -translate-y-full z-[-1]"></div>
+              <div className="flex justify-between items-center gap-2">
+                <span className="font-semibold text-[var(--color-text-main)] flex items-center gap-2 truncate"><div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-[var(--color-border-card)] flex items-center justify-center text-[10px] sm:text-xs shrink-0">2</div> <span className="truncate">Agendamentos</span></span>
+                <div className="text-right flex items-center shrink-0">
+                  <span className="font-bold text-base sm:text-lg">{metrics.agendamentos}</span>
+                  <span className="text-[10px] sm:text-xs text-[var(--color-primary)] ml-1 sm:ml-2 font-medium bg-[var(--color-primary-light)] px-1 sm:px-1.5 py-0.5 rounded shrink-0">+{pctAgendaram}%</span>
                 </div>
               </div>
             </div>
 
             {/* Comparecimentos */}
-            <div className="bg-[var(--color-bg-base)] p-3 rounded-lg border border-[var(--color-border-card)] ml-8 sm:ml-12 relative">
-              <div className="absolute -left-[17px] sm:-left-[25px] top-1/2 w-4 sm:w-6 border-t-2 border-l-2 border-[var(--color-border-card)] rounded-tl-lg h-full -translate-y-full z-[-1]"></div>
-              <div className="flex justify-between items-center">
-                <span className="font-semibold text-[var(--color-text-main)] flex items-center gap-2"><div className="w-6 h-6 rounded-full bg-[var(--color-border-card)] flex items-center justify-center text-xs">3</div> Comparecimentos</span>
-                <div className="text-right">
-                  <span className="font-bold text-lg">{metrics.comparecimentos}</span>
-                  <span className="text-xs text-[var(--color-success)] ml-2 font-medium bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 rounded">+{pctCompareceram}%</span>
+            <div className="bg-[var(--color-bg-base)] p-3 rounded-lg border border-[var(--color-border-card)] ml-6 sm:ml-12 relative">
+              <div className="absolute -left-[13px] sm:-left-[25px] top-1/2 w-3 sm:w-6 border-t-2 border-l-2 border-[var(--color-border-card)] rounded-tl-lg h-full -translate-y-full z-[-1]"></div>
+              <div className="flex justify-between items-center gap-2">
+                <span className="font-semibold text-[var(--color-text-main)] flex items-center gap-2 truncate"><div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-[var(--color-border-card)] flex items-center justify-center text-[10px] sm:text-xs shrink-0">3</div> <span className="truncate">Confirmados</span></span>
+                <div className="text-right flex items-center shrink-0">
+                  <span className="font-bold text-base sm:text-lg">{metrics.comparecimentos}</span>
+                  <span className="text-[10px] sm:text-xs text-[var(--color-success)] ml-1 sm:ml-2 font-medium bg-green-100 dark:bg-green-900/30 px-1 sm:px-1.5 py-0.5 rounded shrink-0">+{pctCompareceram}%</span>
                 </div>
               </div>
             </div>
 
             {/* Conversao */}
-            <div className="bg-[var(--color-primary)] text-white p-3 rounded-lg ml-8 sm:ml-16 shadow-sm relative min-w-[300px]">
+            <div className="bg-[var(--color-primary)] text-white p-3 rounded-lg ml-9 sm:ml-16 shadow-sm relative">
               <div className="absolute -left-[13px] sm:-left-[25px] top-1/2 w-3 sm:w-6 border-t-2 border-l-2 border-[var(--color-border-card)] rounded-tl-lg h-full -translate-y-full z-[-1] opacity-50"></div>
-              <div className="flex justify-between items-center">
-                <span className="font-semibold flex items-center gap-2 text-sm sm:text-base"><div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-white/20 flex items-center justify-center text-[10px] sm:text-xs">4</div> Conversões</span>
-                <div className="text-right">
+              <div className="flex justify-between items-center gap-2">
+                <span className="font-semibold flex items-center gap-2 text-sm sm:text-base truncate"><div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-white/20 flex items-center justify-center text-[10px] sm:text-xs shrink-0">4</div> <span className="truncate">Conversões</span></span>
+                <div className="text-right flex items-center shrink-0">
                   <span className="font-bold text-lg sm:text-xl">{metrics.pacientes}</span>
-                  <span className="text-[10px] sm:text-xs font-bold bg-white/20 px-1 py-0.5 sm:px-1.5 sm:py-0.5 rounded ml-1 sm:ml-2">+ {pctConverteram}%</span>
+                  <span className="text-[10px] sm:text-xs font-bold bg-white/20 px-1 sm:px-1.5 py-0.5 rounded ml-1 sm:ml-2 mt-0.5 shrink-0">+{pctConverteram}%</span>
                 </div>
               </div>
             </div>

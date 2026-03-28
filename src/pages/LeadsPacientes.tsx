@@ -236,13 +236,15 @@ export function LeadsPacientes() {
                   </button>
                 ))}
                 </div>
-                <div className="flex flex-wrap items-center gap-2 w-full xl:w-auto xl:ml-2 xl:border-l border-[var(--color-border-card)] xl:pl-4 mt-2 xl:mt-0">
-                  <Input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)} className="h-9 flex-1 w-auto min-w-[120px]"/>
-                  <span className="text-sm text-[var(--color-text-muted)] whitespace-nowrap">até</span>
-                  <Input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)} className="h-9 flex-1 w-auto min-w-[120px]"/>
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full xl:w-auto xl:ml-2 xl:border-l border-[var(--color-border-card)] xl:pl-4 mt-3 xl:mt-0">
+                  <div className="flex flex-row items-center justify-between gap-2 w-full sm:w-auto">
+                    <Input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)} className="h-9 flex-1 min-w-0"/>
+                    <span className="text-sm text-[var(--color-text-muted)] shrink-0">até</span>
+                    <Input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)} className="h-9 flex-1 min-w-0"/>
+                  </div>
                   <button 
                     onClick={() => setDateFilter('custom')}
-                    className="px-4 py-2 sm:px-3 sm:py-1.5 bg-[var(--color-primary)] text-white text-sm font-medium rounded-[8px] transition-colors hover:bg-opacity-90 whitespace-nowrap w-full sm:w-auto mt-2 sm:mt-0"
+                    className="px-4 py-2 sm:px-3 sm:py-1.5 bg-[var(--color-primary)] text-white text-sm font-medium rounded-[8px] transition-colors hover:bg-opacity-90 whitespace-nowrap w-full sm:w-auto"
                   >
                     Filtrar
                   </button>
@@ -253,8 +255,8 @@ export function LeadsPacientes() {
       </Card>
 
       {/* Tabs */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between border-b border-[var(--color-border-card)] gap-4 pb-2">
-         <div className="flex space-x-6">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between border-b border-[var(--color-border-card)] gap-4 pb-2 w-full overflow-hidden">
+         <div className="flex space-x-4 sm:space-x-6 w-full md:w-auto overflow-x-auto whitespace-nowrap pb-1 hide-scrollbar">
            <button onClick={() => setActiveTab('leads')} className={`pb-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'leads' ? 'border-[var(--color-primary)] text-[var(--color-primary)]' : 'border-transparent text-[var(--color-text-muted)] hover:text-[var(--color-text-main)]'}`}>
              Base de Leads ({activeTab === 'leads' ? filteredLeads.length : '...'})
            </button>
