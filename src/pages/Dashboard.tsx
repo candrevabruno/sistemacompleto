@@ -209,14 +209,12 @@ export function Dashboard() {
               max={format(new Date(), 'yyyy-MM-dd')}
               onChange={e => { setCustomEnd(e.target.value); setFilter('custom'); }} 
             />
-            {filter === 'custom' && (
               <button 
                 onClick={handleCustomFilter}
                 className="ml-2 px-3 py-1.5 bg-[var(--color-primary)] text-white text-sm font-medium rounded-[8px] transition-colors hover:bg-opacity-90"
               >
                 Filtrar
               </button>
-            )}
           </div>
         </div>
       </div>
