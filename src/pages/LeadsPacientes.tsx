@@ -5,9 +5,11 @@ import { Badge } from '../components/ui/Badge';
 import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
-import { UserSearch, UserCheck, Search, Calendar, ExternalLink } from 'lucide-react';
+import { UserSearch, UserCheck, Search, Calendar, ExternalLink, Download, FileText } from 'lucide-react';
 import { formatDistanceToNow, parseISO, startOfToday, endOfToday, startOfYesterday, endOfYesterday, subDays, startOfMonth, endOfMonth, startOfYear, endOfYear, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 type DateFilter = 'ontem' | 'hoje' | '7dias' | '14dias' | 'mes' | 'ano' | 'custom';
 
@@ -99,6 +101,101 @@ export function LeadsPacientes() {
     return (p.leads?.nome_lead?.toLowerCase().includes(term) || p.leads?.whatsapp_lead?.includes(term));
   });
 
+  const handleExportCSV = () => {
+    const isLeads = activeTab === 'leads';
+    const data = isLeads ? filteredLeads : filteredPacientes;
+    if (data.length === 0) return alert('Nenhum dado para exportar no filtro atual.');
+
+    const headers = isLeads
+      ? ['Nome', 'WhatsApp', 'Serviço de Interesse', 'Status do Lead', 'Última Mensagem', 'Agendamento', 'Data de Início']
+      : ['Nome', 'WhatsApp', 'Procedimentos Realizados (Qtd)', 'Próximo Agendamento', 'Paciente Desde'];
+
+    const rows = data.map(item => {
+      if (isLeads) {
+        return [
+          item.nome_lead || 'Sem Nome',
+          item.whatsapp_lead || '',
+          item.procedimento_interesse || '-',
+          item.status || '',
+          item.ultima_mensagem ? format(parseISO(item.ultima_mensagem), 'dd/MM/yyyy HH:mm') : '-',
+          item.data_agendamento ? format(parseISO(item.data_agendamento), 'dd/MM/yyyy HH:mm') : '-',
+          item.inicio_atendimento ? format(parseISO(item.inicio_atendimento), 'dd/MM/yyyy') : '-'
+        ];
+      } else {
+        return [
+          item.leads?.nome_lead || 'Sem Nome',
+          item.leads?.whatsapp_lead || '',
+          item.countCompareceu?.toString() || '0',
+          item.proxAgendamento ? format(parseISO(item.proxAgendamento), 'dd/MM/yyyy HH:mm') : 'Sem agendamentos futuros',
+          item.data_primeira_visita ? format(parseISO(item.data_primeira_visita), 'dd/MM/yyyy') : '-'
+        ];
+      }
+    });
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(r => r.map(x => `"${String(x).replace(/"/g, '""')}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `relatorio_${activeTab}_${format(new Date(), 'dd-MM-yyyy')}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleExportPDF = () => {
+    const isLeads = activeTab === 'leads';
+    const data = isLeads ? filteredLeads : filteredPacientes;
+    if (data.length === 0) return alert('Nenhum dado para exportar no filtro atual.');
+
+    const doc = new jsPDF('landscape');
+    doc.setFontSize(18);
+    doc.text(`Relatório de ${isLeads ? 'Leads' : 'Pacientes'}`, 14, 22);
+    doc.setFontSize(11);
+    doc.text(`Período de filtro gerado: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, 14, 30);
+
+    const head = isLeads
+      ? [['Nome', 'WhatsApp', 'Serviço', 'Status', 'Últ. Msg', 'Agendado', 'Início']]
+      : [['Nome', 'WhatsApp', 'Procedimentos (Qtd)', 'Próx. Agendamento', 'Paciente Desde']];
+
+    const body = data.map(item => {
+      if (isLeads) {
+        return [
+          item.nome_lead || 'Sem Nome',
+          item.whatsapp_lead || '',
+          item.procedimento_interesse || '-',
+          item.status || '',
+          item.ultima_mensagem ? format(parseISO(item.ultima_mensagem), 'dd/MM/yyyy HH:mm') : '-',
+          item.data_agendamento ? format(parseISO(item.data_agendamento), 'dd/MM/yyyy HH:mm') : '-',
+          item.inicio_atendimento ? format(parseISO(item.inicio_atendimento), 'dd/MM/yyyy') : '-'
+        ];
+      } else {
+        return [
+          item.leads?.nome_lead || 'Sem Nome',
+          item.leads?.whatsapp_lead || '',
+          item.countCompareceu?.toString() || '0',
+          item.proxAgendamento ? format(parseISO(item.proxAgendamento), 'dd/MM/yyyy HH:mm') : '-',
+          item.data_primeira_visita ? format(parseISO(item.data_primeira_visita), 'dd/MM/yyyy') : '-'
+        ];
+      }
+    });
+
+    autoTable(doc, {
+      startY: 35,
+      head,
+      body,
+      theme: 'striped',
+      headStyles: { fillColor: [142, 98, 98] }, // Cor base da paleta Heroic Leap Health
+      styles: { fontSize: 9 }
+    });
+
+    doc.save(`relatorio_${activeTab}_${format(new Date(), 'dd-MM-yyyy')}.pdf`);
+  };
+
   return (
     <div className="space-y-6 flex flex-col h-full bg-[var(--color-bg-base)]">
       {/* Top Cards Explanation */}
@@ -141,9 +238,12 @@ export function LeadsPacientes() {
                   <Input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)} className="h-9"/>
                   <span className="text-sm text-[var(--color-text-muted)]">até</span>
                   <Input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)} className="h-9"/>
-                  <Button size="sm" onClick={() => setDateFilter('custom')} variant="secondary" className="h-9 whitespace-nowrap">
+                  <button 
+                    onClick={() => setDateFilter('custom')}
+                    className="ml-2 px-3 py-1.5 bg-[var(--color-primary)] text-white text-sm font-medium rounded-[8px] transition-colors hover:bg-opacity-90 whitespace-nowrap"
+                  >
                     Filtrar
-                  </Button>
+                  </button>
                 </div>
               </div>
            </div>
@@ -151,7 +251,7 @@ export function LeadsPacientes() {
       </Card>
 
       {/* Tabs */}
-      <div className="flex items-center justify-between border-b border-[var(--color-border-card)]">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between border-b border-[var(--color-border-card)] gap-4 pb-2">
          <div className="flex space-x-6">
            <button onClick={() => setActiveTab('leads')} className={`pb-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'leads' ? 'border-[var(--color-primary)] text-[var(--color-primary)]' : 'border-transparent text-[var(--color-text-muted)] hover:text-[var(--color-text-main)]'}`}>
              Base de Leads ({activeTab === 'leads' ? filteredLeads.length : '...'})
@@ -160,14 +260,20 @@ export function LeadsPacientes() {
              Base de Pacientes ({activeTab === 'pacientes' ? filteredPacientes.length : '...'})
            </button>
          </div>
-         <div className="pb-2 w-64">
+         <div className="flex flex-wrap items-center gap-2 w-full md:w-auto mt-2 md:mt-0">
            <Input 
              placeholder="Buscar nome ou zap..." 
              value={searchTerm} 
              onChange={e => setSearchTerm(e.target.value)}
              icon={<Search className="w-4 h-4"/>}
-             className="h-9"
+             className="h-9 w-full md:w-56"
            />
+           <Button size="sm" variant="secondary" onClick={handleExportCSV} title="Exportar filtrados para CSV" className="h-9 border-[var(--color-border-card)] text-[var(--color-text-main)] hover:bg-[var(--color-bg-sidebar)]">
+             <Download className="w-4 h-4 mr-2"/> CSV
+           </Button>
+           <Button size="sm" variant="secondary" onClick={handleExportPDF} title="Exportar filtrados para PDF" className="h-9 border-[var(--color-border-card)] text-[var(--color-text-main)] hover:bg-[var(--color-bg-sidebar)]">
+             <FileText className="w-4 h-4 mr-2"/> PDF
+           </Button>
          </div>
       </div>
 
