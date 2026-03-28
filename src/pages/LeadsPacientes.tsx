@@ -9,7 +9,7 @@ import { UserSearch, UserCheck, Search, Calendar, ExternalLink } from 'lucide-re
 import { formatDistanceToNow, parseISO, startOfToday, endOfToday, startOfYesterday, endOfYesterday, subDays, startOfMonth, endOfMonth, startOfYear, endOfYear, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
-type DateFilter = 'hoje' | 'ontem' | '7dias' | '14semanas' | 'mes' | 'ano' | 'custom';
+type DateFilter = 'ontem' | 'hoje' | '7dias' | '14dias' | 'mes' | 'ano' | 'custom';
 
 export function LeadsPacientes() {
   const [activeTab, setActiveTab] = useState<'leads' | 'pacientes'>('leads');
@@ -46,7 +46,7 @@ export function LeadsPacientes() {
       case 'hoje': setDateRange({ start: startOfToday(), end: endOfToday() }); break;
       case 'ontem': setDateRange({ start: startOfYesterday(), end: endOfYesterday() }); break;
       case '7dias': setDateRange({ start: subDays(today, 7), end: endOfToday() }); break;
-      case '14semanas': setDateRange({ start: subDays(today, 14 * 7), end: endOfToday() }); break;
+      case '14dias': setDateRange({ start: subDays(today, 14), end: endOfToday() }); break;
       case 'mes': setDateRange({ start: startOfMonth(today), end: endOfMonth(today) }); break;
       case 'ano': setDateRange({ start: startOfYear(today), end: endOfYear(today) }); break;
       case 'custom':
@@ -128,19 +128,22 @@ export function LeadsPacientes() {
          <CardContent className="p-4">
            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div className="flex flex-wrap gap-2 items-center">
-                {(['hoje', 'ontem', '7dias', '14semanas', 'mes', 'ano'] as DateFilter[]).map(f => (
+                {(['ontem', 'hoje', '7dias', '14dias', 'mes', 'ano'] as DateFilter[]).map(f => (
                   <button
                     key={f}
                     onClick={() => setDateFilter(f)}
                     className={`px-3 py-1.5 text-sm font-medium rounded-[8px] transition-colors ${dateFilter === f ? 'bg-[var(--color-primary)] text-white' : 'bg-[var(--color-bg-base)] text-[var(--color-text-main)] hover:bg-[var(--color-primary-light)]'}`}
                   >
-                    {f === 'hoje' ? 'Hoje' : f === 'ontem' ? 'Ontem' : f === '7dias' ? '7 dias' : f === '14semanas' ? '14 semanas' : f === 'mes' ? 'Mês' : 'Ano'}
+                    {f === 'ontem' ? 'Ontem' : f === 'hoje' ? 'Hoje' : f === '7dias' ? '7 dias' : f === '14dias' ? '14 dias' : f === 'mes' ? 'Mês' : 'Ano'}
                   </button>
                 ))}
                 <div className="flex items-center gap-2 ml-2 border-l border-[var(--color-border-card)] pl-4">
-                  <Input type="date" value={customStart} onChange={e => { setCustomStart(e.target.value); setDateFilter('custom'); }} className="h-9"/>
+                  <Input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)} className="h-9"/>
                   <span className="text-sm text-[var(--color-text-muted)]">até</span>
-                  <Input type="date" value={customEnd} onChange={e => { setCustomEnd(e.target.value); setDateFilter('custom'); }} className="h-9"/>
+                  <Input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)} className="h-9"/>
+                  <Button size="sm" onClick={() => setDateFilter('custom')} variant="secondary" className="h-9 whitespace-nowrap">
+                    Filtrar
+                  </Button>
                 </div>
               </div>
            </div>
