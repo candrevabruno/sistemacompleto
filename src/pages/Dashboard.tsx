@@ -184,34 +184,38 @@ export function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:justify-between gap-4 p-4 bg-[var(--color-bg-card)] rounded-[12px] border border-[var(--color-border-card)] shadow-[var(--shadow-card)]">
-        <div className="flex flex-wrap gap-2 items-center">
-          {(['ontem', 'hoje', '7dias', '14dias', 'mes', 'ano'] as DateFilter[]).map(f => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={`px-3 py-1.5 text-sm font-medium rounded-[8px] transition-colors ${filter === f ? 'bg-[var(--color-primary)] text-white' : 'bg-[var(--color-bg-base)] text-[var(--color-text-main)] hover:bg-[var(--color-primary-light)]'}`}
-            >
-              {f === 'hoje' ? 'Hoje' : f === 'ontem' ? 'Ontem' : f === '7dias' ? '7 dias' : f === '14dias' ? '14 dias' : f === 'mes' ? 'Mês' : 'Ano'}
-            </button>
-          ))}
-          <div className="flex items-center gap-2 ml-4">
+      <div className="flex flex-col gap-4 p-4 bg-[var(--color-bg-card)] rounded-[12px] border border-[var(--color-border-card)] shadow-[var(--shadow-card)]">
+        <div className="flex flex-col xl:flex-row flex-wrap gap-4 xl:gap-2 xl:items-center w-full">
+          <div className="flex flex-wrap gap-2 w-full xl:w-auto">
+            {(['ontem', 'hoje', '7dias', '14dias', 'mes', 'ano'] as DateFilter[]).map(f => (
+              <button
+                key={f}
+                onClick={() => setFilter(f)}
+                className={`px-3 py-1.5 text-sm font-medium rounded-[8px] transition-colors flex-grow sm:flex-grow-0 text-center ${filter === f ? 'bg-[var(--color-primary)] text-white' : 'bg-[var(--color-bg-base)] text-[var(--color-text-main)] hover:bg-[var(--color-primary-light)]'}`}
+              >
+                {f === 'hoje' ? 'Hoje' : f === 'ontem' ? 'Ontem' : f === '7dias' ? '7 dias' : f === '14dias' ? '14 dias' : f === 'mes' ? 'Mês' : 'Ano'}
+              </button>
+            ))}
+          </div>
+          <div className="flex flex-wrap items-center gap-2 w-full xl:w-auto mt-2 xl:mt-0 xl:ml-4">
             <Input 
               type="date" 
               value={customStart} 
               max={format(new Date(), 'yyyy-MM-dd')}
               onChange={e => { setCustomStart(e.target.value); setFilter('custom'); }} 
+              className="flex-1 w-auto min-w-[120px]"
             />
-            <span className="text-[var(--color-text-muted)]">até</span>
+            <span className="text-[var(--color-text-muted)] text-sm whitespace-nowrap">até</span>
             <Input 
               type="date" 
               value={customEnd} 
               max={format(new Date(), 'yyyy-MM-dd')}
               onChange={e => { setCustomEnd(e.target.value); setFilter('custom'); }} 
+              className="flex-1 w-auto min-w-[120px]"
             />
               <button 
                 onClick={handleCustomFilter}
-                className="ml-2 px-3 py-1.5 bg-[var(--color-primary)] text-white text-sm font-medium rounded-[8px] transition-colors hover:bg-opacity-90"
+                className="px-4 py-2 sm:px-3 sm:py-1.5 bg-[var(--color-primary)] text-white text-sm font-medium rounded-[8px] transition-colors hover:bg-opacity-90 w-full sm:w-auto"
               >
                 Filtrar
               </button>
@@ -291,7 +295,7 @@ export function Dashboard() {
                   contentStyle={{ color: 'var(--color-text-main)', borderRadius: '8px', border: '1px solid var(--color-border-card)', boxShadow: 'var(--shadow-dropdown)', background: 'var(--color-bg-base)' }}
                   itemStyle={{ color: 'var(--color-primary)' }}
                 />
-                <Bar dataKey="valor" fill="var(--color-primary-light)" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="valor" fill="var(--color-primary-light)" radius={[4, 4, 0, 0]} label={{ position: 'top', fill: 'var(--color-primary)', fontSize: 13, fontWeight: 'bold' }} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -306,7 +310,7 @@ export function Dashboard() {
             <div className="flex-1">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie data={chart3Data} cx="50%" cy="40%" innerRadius={55} outerRadius={75} paddingAngle={5} dataKey="value">
+                  <Pie data={chart3Data} cx="50%" cy="40%" innerRadius={55} outerRadius={75} paddingAngle={5} dataKey="value" label={({ name, value }) => value > 0 ? `${value}` : ''}>
                     {chart3Data.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index]} />)}
                   </Pie>
                   <Tooltip />
@@ -332,9 +336,9 @@ export function Dashboard() {
               <BarChart data={sortedProcs} layout="vertical" margin={{ left: 80 }}>
                 <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--color-border-card)" />
                 <XAxis type="number" hide />
-                <YAxis dataKey="proc" type="category" axisLine={false} tickLine={false} width={100} style={{ fontSize: '12px' }}/>
+                <YAxis dataKey="proc" type="category" axisLine={false} tickLine={false} width={100} style={{ fontSize: '11px' }}/>
                 <Tooltip cursor={{ fill: 'var(--color-border-card)', opacity: 0.4 }} />
-                <Bar dataKey="count" fill="var(--color-primary)" radius={[0, 4, 4, 0]} barSize={20} />
+                <Bar dataKey="count" fill="var(--color-primary)" radius={[0, 4, 4, 0]} barSize={20} label={{ position: 'right', fill: 'var(--color-primary)', fontSize: 12, fontWeight: 'bold' }} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -345,12 +349,12 @@ export function Dashboard() {
             <CardTitle>Funil de Vendas</CardTitle>
             <p className="text-sm text-[var(--color-text-muted)]">Conversão geral no período</p>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-3 overflow-x-auto overflow-y-hidden pb-4">
             {/* Leads */}
-            <div className="bg-[var(--color-bg-base)] p-3 rounded-lg border border-[var(--color-border-card)]">
+            <div className="bg-[var(--color-bg-base)] p-3 rounded-lg border border-[var(--color-border-card)] min-w-[300px]">
               <div className="flex justify-between items-center mb-1">
-                <span className="font-semibold text-[var(--color-text-main)] flex items-center gap-2"><div className="w-6 h-6 rounded-full bg-[var(--color-border-card)] flex items-center justify-center text-xs">1</div> Leads Recebidos</span>
-                <span className="font-bold text-lg">{totalLeads}</span>
+                <span className="font-semibold text-[var(--color-text-main)] flex items-center gap-2"><div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-[var(--color-border-card)] flex items-center justify-center text-[10px] sm:text-xs">1</div> Leads</span>
+                <span className="font-bold text-base sm:text-lg">{totalLeads}</span>
               </div>
               <div className="flex flex-col text-[11px] sm:text-xs mt-2 border-t border-[var(--color-border-card)] pt-2 gap-1">
                 <div className="flex justify-between text-[var(--color-success)]"><span className="font-medium">Qualificados</span> <span>{leadsQualificados} ({pctQualificados}%)</span></div>
@@ -383,13 +387,13 @@ export function Dashboard() {
             </div>
 
             {/* Conversao */}
-            <div className="bg-[var(--color-primary)] text-white p-3 rounded-lg ml-12 sm:ml-16 shadow-sm relative">
-              <div className="absolute -left-[17px] sm:-left-[25px] top-1/2 w-4 sm:w-6 border-t-2 border-l-2 border-[var(--color-border-card)] rounded-tl-lg h-full -translate-y-full z-[-1] opacity-50"></div>
+            <div className="bg-[var(--color-primary)] text-white p-3 rounded-lg ml-8 sm:ml-16 shadow-sm relative min-w-[300px]">
+              <div className="absolute -left-[13px] sm:-left-[25px] top-1/2 w-3 sm:w-6 border-t-2 border-l-2 border-[var(--color-border-card)] rounded-tl-lg h-full -translate-y-full z-[-1] opacity-50"></div>
               <div className="flex justify-between items-center">
-                <span className="font-semibold flex items-center gap-2"><div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center text-xs">4</div> Conversões (Pacientes)</span>
+                <span className="font-semibold flex items-center gap-2 text-sm sm:text-base"><div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-white/20 flex items-center justify-center text-[10px] sm:text-xs">4</div> Conversões</span>
                 <div className="text-right">
-                  <span className="font-bold text-xl">{metrics.pacientes}</span>
-                  <span className="text-xs font-bold bg-white/20 px-1.5 py-0.5 rounded ml-2">+ {pctConverteram}%</span>
+                  <span className="font-bold text-lg sm:text-xl">{metrics.pacientes}</span>
+                  <span className="text-[10px] sm:text-xs font-bold bg-white/20 px-1 py-0.5 sm:px-1.5 sm:py-0.5 rounded ml-1 sm:ml-2">+ {pctConverteram}%</span>
                 </div>
               </div>
             </div>
@@ -406,26 +410,26 @@ export function Dashboard() {
             {upcoming.map((u, i) => {
               const nome = u.leads?.nome_lead || u.pacientes?.leads?.nome_lead || 'Sem nome';
               return (
-                <div key={u.id} className={`flex items-center justify-between py-4 ${i !== upcoming.length - 1 ? 'border-b border-[var(--color-border-card)]' : ''}`}>
-                  <div className="flex items-center gap-4">
-                    <div className="bg-[var(--color-bg-base)] rounded-[8px] p-2 text-center min-w-[60px] border border-[var(--color-border-card)]">
-                      <div className="text-xs text-[var(--color-text-muted)] uppercase">{format(parseISO(u.data_hora_inicio), 'MMM', { locale: ptBR })}</div>
-                      <div className="text-lg font-bold text-[var(--color-primary)] leading-none">{format(parseISO(u.data_hora_inicio), 'dd')}</div>
+                <div key={u.id} className={`flex flex-col sm:flex-row sm:items-center justify-between py-4 gap-4 ${i !== upcoming.length - 1 ? 'border-b border-[var(--color-border-card)]' : ''}`}>
+                  <div className="flex items-center gap-3 sm:gap-4 overflow-hidden">
+                    <div className="bg-[var(--color-bg-base)] rounded-[8px] p-2 text-center min-w-[55px] sm:min-w-[60px] border border-[var(--color-border-card)] flex-shrink-0">
+                      <div className="text-[10px] sm:text-xs text-[var(--color-text-muted)] uppercase">{format(parseISO(u.data_hora_inicio), 'MMM', { locale: ptBR })}</div>
+                      <div className="text-base sm:text-lg font-bold text-[var(--color-primary)] leading-none">{format(parseISO(u.data_hora_inicio), 'dd')}</div>
                     </div>
-                    <div>
-                      <div className="font-medium text-[var(--color-text-main)] flex items-center gap-2">
-                        {nome} <Badge variant={u.status}>{u.status}</Badge>
+                    <div className="min-w-0 pr-2">
+                      <div className="font-medium text-[var(--color-text-main)] flex items-center gap-2 flex-wrap">
+                        <span className="truncate">{nome}</span> <Badge variant={u.status} className="flex-shrink-0">{u.status}</Badge>
                       </div>
-                      <div className="text-sm text-[var(--color-text-muted)] flex items-center gap-3 mt-1">
-                        <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5"/> {format(parseISO(u.data_hora_inicio), 'HH:mm')}</span>
-                        {u.procedimento_nome && <span>• {u.procedimento_nome}</span>}
+                      <div className="text-xs sm:text-sm text-[var(--color-text-muted)] flex items-center gap-2 sm:gap-3 mt-1 flex-wrap">
+                        <span className="flex items-center gap-1 whitespace-nowrap text-xs"><Clock className="w-3.5 h-3.5"/> {format(parseISO(u.data_hora_inicio), 'HH:mm')}</span>
+                        {u.procedimento_nome && <span className="truncate max-w-[150px] sm:max-w-[200px] text-xs">• {u.procedimento_nome}</span>}
                       </div>
                     </div>
                   </div>
                   {u.agendas && (
-                    <div className="text-sm border rounded-full px-3 py-1 flex items-center gap-2" style={{ borderColor: u.agendas.cor }}>
-                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: u.agendas.cor }}></div>
-                      {u.agendas.nome}
+                    <div className="text-[10px] sm:text-sm border rounded-full px-2 py-0.5 sm:px-3 sm:py-1 flex items-center gap-2 flex-shrink-0 self-start sm:self-auto ml-[70px] sm:ml-0" style={{ borderColor: u.agendas.cor }}>
+                      <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full" style={{ backgroundColor: u.agendas.cor }}></div>
+                      <span className="truncate max-w-[120px]">{u.agendas.nome}</span>
                     </div>
                   )}
                 </div>

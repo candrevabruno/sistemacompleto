@@ -223,24 +223,26 @@ export function LeadsPacientes() {
       {/* Date Filter & Search */}
       <Card>
          <CardContent className="p-4">
-           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-              <div className="flex flex-wrap gap-2 items-center">
+           <div className="flex flex-col w-full">
+              <div className="flex flex-col xl:flex-row flex-wrap gap-4 xl:gap-2 xl:items-center w-full">
+                <div className="flex flex-wrap gap-2 w-full xl:w-auto">
                 {(['ontem', 'hoje', '7dias', '14dias', 'mes', 'ano'] as DateFilter[]).map(f => (
                   <button
                     key={f}
                     onClick={() => setDateFilter(f)}
-                    className={`px-3 py-1.5 text-sm font-medium rounded-[8px] transition-colors ${dateFilter === f ? 'bg-[var(--color-primary)] text-white' : 'bg-[var(--color-bg-base)] text-[var(--color-text-main)] hover:bg-[var(--color-primary-light)]'}`}
+                    className={`px-3 py-1.5 text-sm font-medium rounded-[8px] transition-colors flex-grow sm:flex-grow-0 text-center ${dateFilter === f ? 'bg-[var(--color-primary)] text-white' : 'bg-[var(--color-bg-base)] text-[var(--color-text-main)] hover:bg-[var(--color-primary-light)]'}`}
                   >
                     {f === 'ontem' ? 'Ontem' : f === 'hoje' ? 'Hoje' : f === '7dias' ? '7 dias' : f === '14dias' ? '14 dias' : f === 'mes' ? 'Mês' : 'Ano'}
                   </button>
                 ))}
-                <div className="flex items-center gap-2 ml-2 border-l border-[var(--color-border-card)] pl-4">
-                  <Input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)} className="h-9"/>
-                  <span className="text-sm text-[var(--color-text-muted)]">até</span>
-                  <Input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)} className="h-9"/>
+                </div>
+                <div className="flex flex-wrap items-center gap-2 w-full xl:w-auto xl:ml-2 xl:border-l border-[var(--color-border-card)] xl:pl-4 mt-2 xl:mt-0">
+                  <Input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)} className="h-9 flex-1 w-auto min-w-[120px]"/>
+                  <span className="text-sm text-[var(--color-text-muted)] whitespace-nowrap">até</span>
+                  <Input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)} className="h-9 flex-1 w-auto min-w-[120px]"/>
                   <button 
                     onClick={() => setDateFilter('custom')}
-                    className="ml-2 px-3 py-1.5 bg-[var(--color-primary)] text-white text-sm font-medium rounded-[8px] transition-colors hover:bg-opacity-90 whitespace-nowrap"
+                    className="px-4 py-2 sm:px-3 sm:py-1.5 bg-[var(--color-primary)] text-white text-sm font-medium rounded-[8px] transition-colors hover:bg-opacity-90 whitespace-nowrap w-full sm:w-auto mt-2 sm:mt-0"
                   >
                     Filtrar
                   </button>
@@ -278,8 +280,8 @@ export function LeadsPacientes() {
       </div>
 
       {/* Data Table */}
-      <div className="flex-1 overflow-x-auto bg-[var(--color-bg-card)] rounded-[12px] border border-[var(--color-border-card)] shadow-[var(--shadow-card)] p-0">
-        <table className="w-full text-left text-sm">
+      <div className="flex-1 overflow-x-auto overflow-y-hidden max-w-[100vw] bg-[var(--color-bg-card)] rounded-[12px] border border-[var(--color-border-card)] shadow-[var(--shadow-card)] p-0">
+        <table className="w-full text-left text-sm whitespace-nowrap">
           <thead className="bg-[#FAF0EE] dark:bg-black/20 text-[var(--color-text-main)] border-b border-[var(--color-border-card)]">
             <tr>
               <th className="px-6 py-4 font-semibold">Nome</th>

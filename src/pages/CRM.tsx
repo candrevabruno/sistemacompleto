@@ -124,12 +124,12 @@ export function CRM() {
   return (
     <div className="flex flex-col h-full overflow-hidden bg-[var(--color-bg-base)]">
       {/* Header */}
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
          <div>
             <h1 className="font-cormorant text-2xl font-bold">CRM — Funil de Atendimento</h1>
             <p className="text-sm text-[var(--color-text-muted)] mt-1">Navegue os contatos pelos estágios de venda.</p>
          </div>
-         <Button onClick={() => setOpenNewLead(true)}><Plus className="w-4 h-4 mr-2"/> Novo lead</Button>
+         <Button onClick={() => setOpenNewLead(true)} className="w-full sm:w-auto"><Plus className="w-4 h-4 mr-2"/> Novo lead</Button>
       </div>
 
       {/* Kanban Board */}

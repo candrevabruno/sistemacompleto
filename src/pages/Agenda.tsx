@@ -199,18 +199,18 @@ export function Agenda() {
       
       {/* HEADER DA AGENDA */}
       <div className="flex flex-col sm:flex-row items-center justify-between bg-[var(--color-bg-card)] p-4 rounded-[12px] border border-[var(--color-border-card)] shadow-[var(--shadow-card)] gap-4">
-        <div className="flex items-center space-x-4">
-          <Button variant="secondary" size="sm" onClick={handlePrevWeek}>
-            <ChevronLeft className="w-5 h-5 mr-1" /> Semana anterior
+        <div className="flex items-center justify-center w-full sm:w-auto gap-2">
+          <Button variant="secondary" size="sm" onClick={handlePrevWeek} className="px-2">
+            <ChevronLeft className="w-5 h-5" />
           </Button>
-          <div className="font-cormorant text-xl font-bold px-2 whitespace-nowrap">
+          <div className="font-cormorant text-lg sm:text-xl font-bold px-1 whitespace-nowrap text-center">
             {format(currentWeekStart, 'dd/MM', { locale: dateFnsPtBR })} - {format(currentWeekEnd, 'dd/MM/yyyy', { locale: dateFnsPtBR })}
           </div>
-          <Button variant="secondary" size="sm" onClick={handleNextWeek}>
-            Próxima <ChevronRight className="w-5 h-5 ml-1" />
+          <Button variant="secondary" size="sm" onClick={handleNextWeek} className="px-2">
+            <ChevronRight className="w-5 h-5" />
           </Button>
         </div>
-        <Button onClick={() => setOpenNovaAgenda(true)}><Plus className="w-4 h-4 mr-2" /> Nova agenda</Button>
+        <Button onClick={() => setOpenNovaAgenda(true)} className="w-full sm:w-auto"><Plus className="w-4 h-4 mr-2" /> Nova agenda</Button>
       </div>
 
       {/* RENDERIZAR AGENDAS EMPILHADAS */}
@@ -273,7 +273,7 @@ export function Agenda() {
               </div>
               
               {!collapsedAgendas.includes(agenda.id) && (
-                <div className="p-4 fc-agenda-custom">
+                <div className="p-4 fc-agenda-custom overflow-x-auto">
                   {/* FullCalendar wrapper */}
                   <style>{`
                   .fc-agenda-custom .fc-theme-standard td, .fc-theme-standard th { border-color: var(--color-border-card); }
@@ -285,26 +285,28 @@ export function Agenda() {
                   .fc-agenda-custom .fc-non-business { background-color: rgba(0, 0, 0, 0.04); }
                   .dark .fc-agenda-custom .fc-non-business { background-color: rgba(255, 255, 255, 0.02); opacity: 1; }
                 `}</style>
-                <FullCalendar
-                  ref={calendarRefs.current[agenda.id]}
-                  plugins={[timeGridPlugin, interactionPlugin]}
-                  initialView="timeGridWeek"
-                  initialDate={currentDate}
-                  locale="pt-br"
-                  headerToolbar={false}
-                  businessHours={businessHours}
-                  slotMinTime="06:00:00"
-                  slotMaxTime="22:00:00"
-                  slotDuration="01:00:00"
-                  allDaySlot={false}
-                  height="auto"
-                  expandRows={true}
-                  events={events}
-                  dateClick={(info) => handleDateClick(info, agenda.id)}
-                  eventClick={handleEventClick}
-                  nowIndicator={true}
-                  dayHeaderFormat={{ weekday: 'short', day: 'numeric' }}
-                />
+                <div className="min-w-[600px]">
+                  <FullCalendar
+                    ref={calendarRefs.current[agenda.id]}
+                    plugins={[timeGridPlugin, interactionPlugin]}
+                    initialView="timeGridWeek"
+                    initialDate={currentDate}
+                    locale="pt-br"
+                    headerToolbar={false}
+                    businessHours={businessHours}
+                    slotMinTime="06:00:00"
+                    slotMaxTime="22:00:00"
+                    slotDuration="01:00:00"
+                    allDaySlot={false}
+                    height="auto"
+                    expandRows={true}
+                    events={events}
+                    dateClick={(info) => handleDateClick(info, agenda.id)}
+                    eventClick={handleEventClick}
+                    nowIndicator={true}
+                    dayHeaderFormat={{ weekday: 'short', day: 'numeric' }}
+                  />
+                </div>
                 </div>
               )}
             </div>

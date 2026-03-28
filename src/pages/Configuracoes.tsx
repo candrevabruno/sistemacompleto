@@ -182,44 +182,48 @@ function AbaGeral() {
           ) : (
             <div className="divide-y divide-[var(--color-border-card)]">
               {hours.map((h, i) => (
-                <div key={h.id} className="flex items-center gap-4 py-3">
-                  {/* Dia */}
-                  <div className="w-36 text-sm font-medium text-[var(--color-text-main)]">
-                    {diasPT[h.dia] || h.dia}
-                  </div>
+                <div key={h.id} className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 py-4 sm:py-3">
+                  <div className="flex items-center justify-between w-full sm:w-auto">
+                    {/* Dia */}
+                    <div className="w-32 sm:w-36 text-sm font-medium text-[var(--color-text-main)]">
+                      {diasPT[h.dia] || h.dia}
+                    </div>
 
-                  {/* Toggle Aberto/Fechado */}
-                  <button
-                    onClick={() => {
-                      const newH = [...hours]; newH[i].aberto = !newH[i].aberto; setHours(newH);
-                    }}
-                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 focus:outline-none flex-shrink-0 ${h.aberto ? 'bg-[var(--color-primary)]' : 'bg-gray-300'}`}
-                  >
-                    <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform duration-200 ${h.aberto ? 'translate-x-4' : 'translate-x-1'}`} />
-                  </button>
-                  <span className={`text-xs w-14 ${h.aberto ? 'text-[var(--color-primary)] font-medium' : 'text-[var(--color-text-muted)]'}`}>
-                    {h.aberto ? 'Aberto' : 'Fechado'}
-                  </span>
+                    {/* Toggle Aberto/Fechado */}
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => {
+                          const newH = [...hours]; newH[i].aberto = !newH[i].aberto; setHours(newH);
+                        }}
+                        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 focus:outline-none flex-shrink-0 ${h.aberto ? 'bg-[var(--color-primary)]' : 'bg-gray-300'}`}
+                      >
+                        <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform duration-200 ${h.aberto ? 'translate-x-4' : 'translate-x-1'}`} />
+                      </button>
+                      <span className={`text-xs w-14 ${h.aberto ? 'text-[var(--color-primary)] font-medium' : 'text-[var(--color-text-muted)]'}`}>
+                        {h.aberto ? 'Aberto' : 'Fechado'}
+                      </span>
+                    </div>
+                  </div>
 
                   {/* Horários */}
                   {h.aberto ? (
-                    <div className="flex items-center gap-2 flex-1">
+                    <div className="flex items-center gap-2 w-full sm:flex-1 mt-1 sm:mt-0 justify-between sm:justify-start">
                       <input
                         type="time"
                         value={h.hora_inicio || '08:00'}
                         onChange={e => { const newH = [...hours]; newH[i].hora_inicio = e.target.value; setHours(newH); }}
-                        className="border border-[var(--color-border-card)] rounded-lg px-3 py-1.5 text-sm text-[var(--color-text-main)] bg-white focus:outline-none focus:border-[var(--color-primary)] transition-colors"
+                        className="border border-[var(--color-border-card)] flex-1 sm:flex-none w-full sm:w-auto rounded-lg px-2 sm:px-3 py-1.5 text-sm text-[var(--color-text-main)] bg-white focus:outline-none focus:border-[var(--color-primary)] transition-colors"
                       />
                       <span className="text-sm text-[var(--color-text-muted)]">até</span>
                       <input
                         type="time"
                         value={h.hora_fim || '18:00'}
                         onChange={e => { const newH = [...hours]; newH[i].hora_fim = e.target.value; setHours(newH); }}
-                        className="border border-[var(--color-border-card)] rounded-lg px-3 py-1.5 text-sm text-[var(--color-text-main)] bg-white focus:outline-none focus:border-[var(--color-primary)] transition-colors"
+                        className="border border-[var(--color-border-card)] flex-1 sm:flex-none w-full sm:w-auto rounded-lg px-2 sm:px-3 py-1.5 text-sm text-[var(--color-text-main)] bg-white focus:outline-none focus:border-[var(--color-primary)] transition-colors"
                       />
                     </div>
                   ) : (
-                    <span className="text-sm text-[var(--color-text-muted)] italic">Não atende neste dia</span>
+                    <span className="text-sm text-[var(--color-text-muted)] italic mt-1 sm:mt-0">Não atende neste dia</span>
                   )}
                 </div>
               ))}
