@@ -197,7 +197,7 @@ export function LeadsPacientes() {
   };
 
   return (
-    <div className="space-y-6 flex flex-col h-full bg-[var(--color-bg-base)]">
+    <div className="space-y-6 flex flex-col min-h-[calc(100vh-100px)] bg-[var(--color-bg-base)] pb-10">
       {/* Top Cards Explanation */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
          <Card className="border-l-4 border-l-[var(--color-primary)]">
@@ -255,12 +255,12 @@ export function LeadsPacientes() {
       </Card>
 
       {/* Tabs */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between border-b border-[var(--color-border-card)] gap-4 pb-2 w-full overflow-hidden">
-         <div className="flex space-x-4 sm:space-x-6 w-full md:w-auto overflow-x-auto whitespace-nowrap pb-1 hide-scrollbar">
-           <button onClick={() => setActiveTab('leads')} className={`pb-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'leads' ? 'border-[var(--color-primary)] text-[var(--color-primary)]' : 'border-transparent text-[var(--color-text-muted)] hover:text-[var(--color-text-main)]'}`}>
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between border-b border-[var(--color-border-card)] gap-4 pb-2 w-full overflow-visible">
+         <div className="flex space-x-4 sm:space-x-6 w-full md:w-auto overflow-x-auto whitespace-nowrap pb-2 pt-1 hide-scrollbar">
+           <button onClick={() => setActiveTab('leads')} className={`pb-3 text-base sm:text-base font-medium border-b-2 transition-colors ${activeTab === 'leads' ? 'border-[var(--color-primary)] text-[var(--color-primary)]' : 'border-transparent text-[var(--color-text-muted)] hover:text-[var(--color-text-main)]'}`}>
              Base de Leads ({activeTab === 'leads' ? filteredLeads.length : '...'})
            </button>
-           <button onClick={() => setActiveTab('pacientes')} className={`pb-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'pacientes' ? 'border-[var(--color-primary)] text-[var(--color-primary)]' : 'border-transparent text-[var(--color-text-muted)] hover:text-[var(--color-text-main)]'}`}>
+           <button onClick={() => setActiveTab('pacientes')} className={`pb-3 text-base sm:text-base font-medium border-b-2 transition-colors ${activeTab === 'pacientes' ? 'border-[var(--color-primary)] text-[var(--color-primary)]' : 'border-transparent text-[var(--color-text-muted)] hover:text-[var(--color-text-main)]'}`}>
              Base de Pacientes ({activeTab === 'pacientes' ? filteredPacientes.length : '...'})
            </button>
          </div>
@@ -282,7 +282,7 @@ export function LeadsPacientes() {
       </div>
 
       {/* Data Table */}
-      <div className="flex-1 overflow-x-auto overflow-y-hidden max-w-[100vw] bg-[var(--color-bg-card)] rounded-[12px] border border-[var(--color-border-card)] shadow-[var(--shadow-card)] p-0">
+      <div className="w-full overflow-x-auto bg-[var(--color-bg-card)] rounded-[12px] border border-[var(--color-border-card)] shadow-[var(--shadow-card)] p-0">
         <table className="w-full text-left text-sm whitespace-nowrap">
           <thead className="bg-[#FAF0EE] dark:bg-black/20 text-[var(--color-text-main)] border-b border-[var(--color-border-card)]">
             <tr>
