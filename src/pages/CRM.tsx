@@ -85,7 +85,8 @@ export function CRM() {
     const { error } = await supabase.from('leads').update({ status: 'compareceu' }).eq('id', leadId);
     if (error) {
        updateLeadState(leadId, sourceCol);
-       alert('Erro ao marcar comparecimento.');
+       console.error('ERRO COMPARECEU DETALHADO:', JSON.stringify(error));
+       alert(`Erro ao marcar comparecimento.\n\nDetalhes: ${error.message}\nCódigo: ${error.code}`);
     } else {
        // O DB trigger converte para Paciente. O card ficará no kanban com status 'compareceu' pois mantemos o lead visível
        // de acordo as regras ("o registro em leads é mantido").
