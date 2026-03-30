@@ -170,17 +170,23 @@ export function Dashboard() {
   const sortedProcs = Object.keys(procMap).map(k => ({ proc: k, count: procMap[k] })).sort((a,b) => b.count - a.count).slice(0, 8);
   const maxProcCount = sortedProcs[0]?.count || 1;
 
-  // 5. Funil de Vendas
+  // 5. Funil de Vendas — usa status dos leads (espelho do CRM Kanban)
   const totalLeads = leadsData.length;
   const leadsNaoQualificados = leadsData.filter(l => l.status === 'abandonou_conversa').length;
   const leadsQualificados = totalLeads - leadsNaoQualificados;
-  
+  // Agendados = leads que chegaram a 'agendado', 'compareceu' ou 'cancelou_agendamento'
+  const leadsAgendados = leadsData.filter(l =>
+    ['agendado', 'compareceu', 'cancelou_agendamento'].includes(l.status)
+  ).length;
+  // Compareceram = leads com status 'compareceu'
+  const leadsCompareceram = leadsData.filter(l => l.status === 'compareceu').length;
+
   const pctQualificados = totalLeads ? Math.round((leadsQualificados / totalLeads) * 100) : 0;
   const pctNaoQualificados = totalLeads ? Math.round((leadsNaoQualificados / totalLeads) * 100) : 0;
-  
-  const pctAgendaram = leadsQualificados ? Math.round((metrics.agendamentos / leadsQualificados) * 100) : 0;
-  const pctCompareceram = metrics.agendamentos ? Math.round((metrics.comparecimentos / metrics.agendamentos) * 100) : 0;
-  const pctConverteram = metrics.comparecimentos ? Math.round((metrics.pacientes / metrics.comparecimentos) * 100) : 0;
+
+  const pctAgendaram = leadsQualificados ? Math.round((leadsAgendados / leadsQualificados) * 100) : 0;
+  const pctCompareceram = leadsAgendados ? Math.round((leadsCompareceram / leadsAgendados) * 100) : 0;
+  const pctConverteram = leadsCompareceram ? Math.round((metrics.pacientes / leadsCompareceram) * 100) : 0;
 
   return (
     <div className="space-y-6">
@@ -370,7 +376,7 @@ export function Dashboard() {
               <div className="flex justify-between items-center gap-2">
                 <span className="font-semibold text-[var(--color-text-main)] flex items-center gap-2 truncate"><div className="w-6 h-6 rounded-full bg-[var(--color-border-card)] flex items-center justify-center text-xs shrink-0">2</div> <span className="truncate">Agendamentos</span></span>
                 <div className="text-right flex items-center shrink-0">
-                  <span className="font-bold text-lg">{metrics.agendamentos}</span>
+                  <span className="font-bold text-lg">{leadsAgendados}</span>
                   <span className="text-xs text-[var(--color-primary)] ml-2 font-medium bg-[var(--color-primary-light)] px-1.5 py-0.5 rounded shrink-0">+{pctAgendaram}%</span>
                 </div>
               </div>
@@ -382,7 +388,7 @@ export function Dashboard() {
               <div className="flex justify-between items-center gap-2">
                 <span className="font-semibold text-[var(--color-text-main)] flex items-center gap-2 truncate"><div className="w-6 h-6 rounded-full bg-[var(--color-border-card)] flex items-center justify-center text-xs shrink-0">3</div> <span className="truncate">Confirmados</span></span>
                 <div className="text-right flex items-center shrink-0">
-                  <span className="font-bold text-lg">{metrics.comparecimentos}</span>
+                  <span className="font-bold text-lg">{leadsCompareceram}</span>
                   <span className="text-xs text-[var(--color-success)] ml-2 font-medium bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 rounded shrink-0">+{pctCompareceram}%</span>
                 </div>
               </div>
