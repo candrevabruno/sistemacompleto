@@ -7,6 +7,7 @@ import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
 import { CRM } from './pages/CRM';
 import { Agenda } from './pages/Agenda';
+import { CentralAgendamentos } from './pages/CentralAgendamentos';
 import { LeadsPacientes } from './pages/LeadsPacientes';
 import { DocumentacaoAPI } from './pages/DocumentacaoAPI';
 import { Configuracoes } from './pages/Configuracoes';
@@ -32,6 +33,7 @@ export function App() {
                 <Route path="/crm" element={<CRM />} />
                 <Route path="/leads-pacientes" element={<LeadsPacientes />} />
                 <Route path="/agenda" element={<Agenda />} />
+                <Route path="/central-agendamentos" element={<CentralAgendamentos />} />
                 <Route path="/documentacao-api" element={<DocumentacaoAPI />} />
                 <Route 
                   path="/configuracoes" 
