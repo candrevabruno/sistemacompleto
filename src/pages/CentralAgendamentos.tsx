@@ -117,7 +117,7 @@ export function CentralAgendamentos() {
         confirmar: 'agendado',
         compareceu: 'compareceu',
         cancelar: 'cancelou_agendamento',
-        faltou: 'faltou',
+        faltou: 'follow_up',
       };
       await supabase.from('leads').update({ status: leadStatusMap[acao] }).eq('id', agendamento.lead_id);
     }
@@ -301,6 +301,12 @@ export function CentralAgendamentos() {
                             className="px-2.5 py-1 text-xs font-medium rounded-[6px] bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors border border-amber-200">
                             ↻ Reagendar
                           </button>
+                          {ag.status !== 'faltou' && (
+                            <button onClick={() => setAcaoModal({ agendamento: ag, acao: 'faltou' })}
+                              className="px-2.5 py-1 text-xs font-medium rounded-[6px] bg-gray-50 text-gray-600 hover:bg-gray-100 transition-colors border border-gray-200">
+                              ✕ Faltou
+                            </button>
+                          )}
                           <button onClick={() => setAcaoModal({ agendamento: ag, acao: 'cancelar' })}
                             className="px-2.5 py-1 text-xs font-medium rounded-[6px] bg-red-50 text-red-600 hover:bg-red-100 transition-colors border border-red-200">
                             ✕ Cancelar
@@ -334,6 +340,7 @@ export function CentralAgendamentos() {
           }`}>
             {acaoModal?.acao === 'confirmar' && `Confirmar o agendamento de ${acaoModal?.agendamento?.nome_lead || 'paciente'}?`}
             {acaoModal?.acao === 'compareceu' && `Marcar que ${acaoModal?.agendamento?.nome_lead || 'o paciente'} compareceu?`}
+            {acaoModal?.acao === 'faltou' && `Marcar que ${acaoModal?.agendamento?.nome_lead || 'o paciente'} faltou? O lead será movido para Follow Up no CRM.`}
             {acaoModal?.acao === 'cancelar' && `Cancelar o agendamento de ${acaoModal?.agendamento?.nome_lead || 'paciente'}? Isso atualizará o status no CRM também.`}
           </div>
           {acaoModal?.agendamento?.data_hora_inicio && (
