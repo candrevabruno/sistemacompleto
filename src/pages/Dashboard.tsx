@@ -185,7 +185,7 @@ export function Dashboard() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 p-4 bg-[var(--color-bg-card)] rounded-[12px] border border-[var(--color-border-card)] shadow-[var(--shadow-card)]">
-        <div className="flex flex-col xl:flex-row flex-wrap gap-4 xl:gap-2 xl:items-center w-full">
+        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 w-full">
           <div className="flex flex-wrap gap-2 w-full xl:w-auto">
             {(['ontem', 'hoje', '7dias', '14dias', 'mes', 'ano'] as DateFilter[]).map(f => (
               <button
@@ -197,28 +197,30 @@ export function Dashboard() {
               </button>
             ))}
           </div>
-          <div className="flex flex-wrap items-center gap-2 w-full xl:w-auto mt-2 xl:mt-0 xl:ml-4">
-            <Input 
-              type="date" 
-              value={customStart} 
-              max={format(new Date(), 'yyyy-MM-dd')}
-              onChange={e => { setCustomStart(e.target.value); setFilter('custom'); }} 
-              className="flex-1 w-auto min-w-[120px]"
-            />
-            <span className="text-[var(--color-text-muted)] text-sm whitespace-nowrap">até</span>
-            <Input 
-              type="date" 
-              value={customEnd} 
-              max={format(new Date(), 'yyyy-MM-dd')}
-              onChange={e => { setCustomEnd(e.target.value); setFilter('custom'); }} 
-              className="flex-1 w-auto min-w-[120px]"
-            />
-              <button 
-                onClick={handleCustomFilter}
-                className="px-4 py-2 sm:px-3 sm:py-1.5 bg-[var(--color-primary)] text-white text-sm font-medium rounded-[8px] transition-colors hover:bg-opacity-90 w-full sm:w-auto"
-              >
-                Filtrar
-              </button>
+          <div className="flex items-center gap-2 w-full xl:w-auto mt-2 xl:mt-0 xl:justify-end">
+            <div className="flex items-center gap-2 flex-1 sm:flex-none">
+              <Input 
+                type="date" 
+                value={customStart} 
+                max={format(new Date(), 'yyyy-MM-dd')}
+                onChange={e => { setCustomStart(e.target.value); setFilter('custom'); }} 
+                className="w-full sm:w-[140px]"
+              />
+              <span className="text-[var(--color-text-muted)] text-sm font-medium">até</span>
+              <Input 
+                type="date" 
+                value={customEnd} 
+                max={format(new Date(), 'yyyy-MM-dd')}
+                onChange={e => { setCustomEnd(e.target.value); setFilter('custom'); }} 
+                className="w-full sm:w-[140px]"
+              />
+            </div>
+            <button 
+              onClick={handleCustomFilter}
+              className="px-4 py-2 sm:px-3 sm:py-2 bg-[var(--color-primary)] text-white text-sm font-medium rounded-[8px] transition-colors hover:bg-opacity-90 shrink-0"
+            >
+              Filtrar
+            </button>
           </div>
         </div>
       </div>
@@ -344,14 +346,14 @@ export function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card className="col-span-1 md:col-span-2">
+        <Card className="col-span-1 md:col-span-2 overflow-hidden">
           <CardHeader>
             <CardTitle>Funil de Vendas</CardTitle>
             <p className="text-sm text-[var(--color-text-muted)]">Conversão geral no período</p>
           </CardHeader>
-          <CardContent className="space-y-3 pb-2 sm:space-y-3 flex flex-col items-center sm:items-stretch">
+          <CardContent className="space-y-4 pb-4 px-4 flex flex-col items-center">
             {/* Leads */}
-            <div className="bg-[var(--color-bg-base)] p-3 sm:p-4 rounded-lg border border-[var(--color-border-card)] w-full max-w-[400px] sm:max-w-none">
+            <div className="bg-[var(--color-bg-base)] p-3 sm:p-4 rounded-lg border border-[var(--color-border-card)] w-full max-w-[450px]">
               <div className="flex justify-between items-center mb-1">
                 <span className="font-semibold text-[var(--color-text-main)] flex items-center gap-2 truncate pr-2"><div className="w-6 h-6 rounded-full bg-[var(--color-border-card)] flex items-center justify-center text-xs shrink-0">1</div> <span className="truncate">Leads</span></span>
                 <span className="font-bold text-lg shrink-0">{totalLeads}</span>
@@ -363,8 +365,8 @@ export function Dashboard() {
             </div>
 
             {/* Agendamentos */}
-            <div className="bg-[var(--color-bg-base)] p-3 sm:p-4 rounded-lg border border-[var(--color-border-card)] w-[95%] sm:w-full mx-auto sm:ml-6 relative max-w-[400px] sm:max-w-none">
-              <div className="hidden sm:block absolute -left-[25px] top-1/2 w-6 border-t-2 border-l-2 border-[var(--color-border-card)] rounded-tl-lg h-full -translate-y-full z-[-1]"></div>
+            <div className="bg-[var(--color-bg-base)] p-3 sm:p-4 rounded-lg border border-[var(--color-border-card)] w-[95%] sm:w-[calc(100%-1.5rem)] ml-auto relative max-w-[450px]">
+              <div className="hidden sm:block absolute -left-[25px] top-[-16px] w-[25px] h-[40px] border-l-2 border-b-2 border-[var(--color-border-card)] rounded-bl-lg z-[0]"></div>
               <div className="flex justify-between items-center gap-2">
                 <span className="font-semibold text-[var(--color-text-main)] flex items-center gap-2 truncate"><div className="w-6 h-6 rounded-full bg-[var(--color-border-card)] flex items-center justify-center text-xs shrink-0">2</div> <span className="truncate">Agendamentos</span></span>
                 <div className="text-right flex items-center shrink-0">
@@ -375,8 +377,8 @@ export function Dashboard() {
             </div>
 
             {/* Comparecimentos */}
-            <div className="bg-[var(--color-bg-base)] p-3 sm:p-4 rounded-lg border border-[var(--color-border-card)] w-[90%] sm:w-full mx-auto sm:ml-12 relative max-w-[400px] sm:max-w-none">
-              <div className="hidden sm:block absolute -left-[25px] top-1/2 w-6 border-t-2 border-l-2 border-[var(--color-border-card)] rounded-tl-lg h-full -translate-y-full z-[-1]"></div>
+            <div className="bg-[var(--color-bg-base)] p-3 sm:p-4 rounded-lg border border-[var(--color-border-card)] w-[90%] sm:w-[calc(100%-3rem)] ml-auto relative max-w-[450px]">
+              <div className="hidden sm:block absolute -left-[25px] top-[-16px] w-[25px] h-[40px] border-l-2 border-b-2 border-[var(--color-border-card)] rounded-bl-lg z-[0]"></div>
               <div className="flex justify-between items-center gap-2">
                 <span className="font-semibold text-[var(--color-text-main)] flex items-center gap-2 truncate"><div className="w-6 h-6 rounded-full bg-[var(--color-border-card)] flex items-center justify-center text-xs shrink-0">3</div> <span className="truncate">Confirmados</span></span>
                 <div className="text-right flex items-center shrink-0">
@@ -387,8 +389,8 @@ export function Dashboard() {
             </div>
 
             {/* Conversao */}
-            <div className="bg-[var(--color-primary)] text-white p-3 sm:p-4 rounded-lg w-[85%] sm:w-full mx-auto sm:ml-16 shadow-sm relative max-w-[400px] sm:max-w-none">
-              <div className="hidden sm:block absolute -left-[25px] top-1/2 w-6 border-t-2 border-l-2 border-[var(--color-border-card)] rounded-tl-lg h-full -translate-y-full z-[-1] opacity-50"></div>
+            <div className="bg-[var(--color-primary)] text-white p-3 sm:p-4 rounded-lg w-[85%] sm:w-[calc(100%-4.5rem)] ml-auto shadow-sm relative max-w-[450px]">
+              <div className="hidden sm:block absolute -left-[25px] top-[-16px] w-[25px] h-[40px] border-l-2 border-b-2 border-white/20 rounded-bl-lg z-[0]"></div>
               <div className="flex justify-between items-center gap-2">
                 <span className="font-semibold flex items-center gap-2 text-base truncate"><div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center text-xs shrink-0">4</div> <span className="truncate">Conversões</span></span>
                 <div className="text-right flex items-center shrink-0">
