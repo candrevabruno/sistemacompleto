@@ -98,13 +98,17 @@ export function CRM() {
 
   const handleSaveNewLead = async () => {
     if (!newLeadForm.whatsapp) return;
-    await supabase.from('leads').insert({
+    const { error } = await supabase.from('leads').insert({
       whatsapp_lead: newLeadForm.whatsapp,
-      nome_lead: newLeadForm.nome,
-      procedimento_interesse: newLeadForm.procedimento,
-      historico_conversa: newLeadForm.motivo,
+      nome_lead: newLeadForm.nome || null,
+      procedimento_interesse: newLeadForm.procedimento || null,
+      motivo_contato: newLeadForm.motivo || null,
       status: 'iniciou_atendimento'
     });
+    if (error) {
+      alert(`Erro ao criar lead: ${error.message}`);
+      return;
+    }
     setOpenNewLead(false);
     setNewLeadForm({ whatsapp: '', nome: '', procedimento: '', motivo: '' });
     fetchLeads();
