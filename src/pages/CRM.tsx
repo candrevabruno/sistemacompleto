@@ -25,10 +25,16 @@ const COLUMNS = [
 export function CRM() {
   const [leads, setLeads] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [agendas, setAgendas] = useState<any[]>([]);
 
   // New Lead
   const [openNewLead, setOpenNewLead] = useState(false);
   const [newLeadForm, setNewLeadForm] = useState({ whatsapp: '', nome: '', procedimento: '', motivo: '' });
+
+  // Agendado Modal
+  const [confirmAgendado, setConfirmAgendado] = useState<{ leadId: string, sourceCol: string, lead: any } | null>(null);
+  const [agendadoForm, setAgendadoForm] = useState({ dataHora: '', procedimento: '', agendaId: '' });
+  const [savingAgendado, setSavingAgendado] = useState(false);
 
   // Compareceu Confirmation
   const [confirmCompareceu, setConfirmCompareceu] = useState<{ leadId: string, sourceCol: string } | null>(null);
@@ -44,7 +50,15 @@ export function CRM() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchLeads(); }, []);
+  const fetchAgendas = async () => {
+    const { data } = await supabase.from('agendas').select('id, nome, cor').eq('ativo', true);
+    if (data) setAgendas(data);
+  };
+
+  useEffect(() => {
+    fetchLeads();
+    fetchAgendas();
+  }, []);
 
   const handleDragEnd = async (result: DropResult) => {
     const { destination, source, draggableId } = result;
@@ -55,18 +69,29 @@ export function CRM() {
     const oldStatus = source.droppableId;
     const newStatus = destination.droppableId;
 
+    // Agendado: abre modal para coletar dados do agendamento
+    if (newStatus === 'agendado' && oldStatus !== 'agendado') {
+      const lead = leads.find(l => l.id === leadId);
+      setAgendadoForm({
+        dataHora: '',
+        procedimento: lead?.procedimento_interesse || '',
+        agendaId: agendas[0]?.id || ''
+      });
+      setConfirmAgendado({ leadId, sourceCol: oldStatus, lead });
+      return;
+    }
+
+    // Compareceu: confirma e aciona trigger DB
     if (newStatus === 'compareceu' && oldStatus !== 'compareceu') {
       setConfirmCompareceu({ leadId, sourceCol: oldStatus });
       return;
     }
 
-    // Optimistic UI update
+    // Demais colunas: update simples
     updateLeadState(leadId, newStatus);
-    
-    // DB update
     const { error } = await supabase.from('leads').update({ status: newStatus }).eq('id', leadId);
     if (error) {
-       updateLeadState(leadId, oldStatus); // revert
+       updateLeadState(leadId, oldStatus);
        alert('Erro ao mover lead.');
     }
   };
@@ -75,10 +100,68 @@ export function CRM() {
     setLeads(prev => prev.map(l => l.id === id ? { ...l, status: newStatus } : l));
   };
 
+  // ── AGENDADO ──────────────────────────────────────────────────────────────
+  const confirmAgendadoAction = async () => {
+    if (!confirmAgendado || !agendadoForm.dataHora) return;
+    const { leadId, sourceCol, lead } = confirmAgendado;
+    setSavingAgendado(true);
+
+    try {
+      // 1. Cria o agendamento na tabela agendamentos
+      const { data: agendamento, error: agError } = await supabase
+        .from('agendamentos')
+        .insert({
+          lead_id: leadId,
+          agenda_id: agendadoForm.agendaId || null,
+          procedimento_nome: agendadoForm.procedimento || lead?.procedimento_interesse || null,
+          nome_lead: lead?.nome_lead || null,
+          whatsapp_lead: lead?.whatsapp_lead || null,
+          data_hora_inicio: new Date(agendadoForm.dataHora).toISOString(),
+          status: 'agendado'
+        })
+        .select()
+        .single();
+
+      if (agError) {
+        alert(`Erro ao criar agendamento: ${agError.message}`);
+        return;
+      }
+
+      // 2. Atualiza o lead com referência ao agendamento
+      const { error: leadError } = await supabase
+        .from('leads')
+        .update({
+          status: 'agendado',
+          data_agendamento: new Date(agendadoForm.dataHora).toISOString(),
+          agendamento_criado_em: new Date().toISOString(),
+          id_agendamento: agendamento.id
+        })
+        .eq('id', leadId);
+
+      if (leadError) {
+        alert(`Erro ao atualizar lead: ${leadError.message}`);
+        return;
+      }
+
+      updateLeadState(leadId, 'agendado');
+      setConfirmAgendado(null);
+      setAgendadoForm({ dataHora: '', procedimento: '', agendaId: '' });
+      fetchLeads();
+    } finally {
+      setSavingAgendado(false);
+    }
+  };
+
+  const cancelAgendadoAction = () => {
+    setConfirmAgendado(null);
+    setAgendadoForm({ dataHora: '', procedimento: '', agendaId: '' });
+  };
+
+  // ── COMPARECEU ───────────────────────────────────────────────────────────
   const confirmCompareceuAction = async () => {
     if (!confirmCompareceu) return;
     const { leadId, sourceCol } = confirmCompareceu;
-    
+
     updateLeadState(leadId, 'compareceu');
     setConfirmCompareceu(null);
 
@@ -86,9 +169,6 @@ export function CRM() {
     if (error) {
        updateLeadState(leadId, sourceCol);
        alert('Erro ao marcar comparecimento.');
-    } else {
-       // O DB trigger converte para Paciente. O card ficará no kanban com status 'compareceu' pois mantemos o lead visível
-       // de acordo as regras ("o registro em leads é mantido").
     }
   };
 
@@ -96,6 +176,7 @@ export function CRM() {
     setConfirmCompareceu(null);
   };
 
+  // ── NOVO LEAD ─────────────────────────────────────────────────────────────
   const handleSaveNewLead = async () => {
     if (!newLeadForm.whatsapp) return;
     const { error } = await supabase.from('leads').insert({
@@ -119,7 +200,7 @@ export function CRM() {
     setOpenLeadDetails(true);
   };
 
-  // Organize cards by column map for performance
+  // Organize cards by column for performance
   const cardsByCol = COLUMNS.reduce((acc, col) => {
     acc[col.id] = leads.filter(l => l.status === col.id);
     return acc;
@@ -172,7 +253,7 @@ export function CRM() {
                                 >
                                   <div className="font-semibold text-sm line-clamp-1 mb-1">{card.nome_lead || 'Lead sem nome'}</div>
                                   <div className="text-xs text-[var(--color-text-muted)] mb-3">{card.whatsapp_lead}</div>
-                                  
+
                                   {card.procedimento_interesse && (
                                     <div className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded mb-3 truncate border">
                                       {card.procedimento_interesse}
@@ -212,13 +293,74 @@ export function CRM() {
         </div>
       </Modal>
 
+      {/* MODAL AGENDAMENTO (ao arrastar para "Agendado") */}
+      <Modal isOpen={!!confirmAgendado} onClose={cancelAgendadoAction} title="Registrar Agendamento">
+        <div className="space-y-4">
+          <div className="p-3 bg-[#7A9E87]/10 border border-[#7A9E87] rounded-[8px] text-[#7A9E87] font-medium text-sm">
+            📅 Preencha os dados do agendamento de <strong>{confirmAgendado?.lead?.nome_lead || confirmAgendado?.lead?.whatsapp_lead}</strong>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-[var(--color-text-main)] mb-1">Data e Horário <span className="text-red-500">*</span></label>
+            <input
+              type="datetime-local"
+              value={agendadoForm.dataHora}
+              onChange={e => setAgendadoForm({...agendadoForm, dataHora: e.target.value})}
+              className="w-full border border-[var(--color-border-card)] rounded-[8px] px-3 py-2 text-sm bg-[var(--color-bg-base)] text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-[var(--color-text-main)] mb-1">Procedimento</label>
+            <input
+              type="text"
+              placeholder="Ex: Botox, Limpeza de pele..."
+              value={agendadoForm.procedimento}
+              onChange={e => setAgendadoForm({...agendadoForm, procedimento: e.target.value})}
+              className="w-full border border-[var(--color-border-card)] rounded-[8px] px-3 py-2 text-sm bg-[var(--color-bg-base)] text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+            />
+          </div>
+
+          {agendas.length > 0 && (
+            <div>
+              <label className="block text-sm font-medium text-[var(--color-text-main)] mb-1">Agenda</label>
+              <select
+                value={agendadoForm.agendaId}
+                onChange={e => setAgendadoForm({...agendadoForm, agendaId: e.target.value})}
+                className="w-full border border-[var(--color-border-card)] rounded-[8px] px-3 py-2 text-sm bg-[var(--color-bg-base)] text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+              >
+                <option value="">— Sem agenda definida —</option>
+                {agendas.map(a => (
+                  <option key={a.id} value={a.id}>{a.nome}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          <p className="text-xs text-[var(--color-text-muted)]">
+            O agendamento será criado automaticamente na aba <strong>Agenda</strong> e o lead será marcado como <strong>Agendado</strong>.
+          </p>
+
+          <div className="flex gap-3 justify-end mt-4">
+            <Button variant="secondary" onClick={cancelAgendadoAction}>Cancelar</Button>
+            <Button
+              className="bg-[#7A9E87] text-white hover:bg-[#5f8a6e] border-none"
+              onClick={confirmAgendadoAction}
+              disabled={!agendadoForm.dataHora || savingAgendado}
+            >
+              {savingAgendado ? 'Salvando...' : 'Confirmar Agendamento'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
       {/* CONFIRMAÇÃO COMPARECEU */}
       <Modal isOpen={!!confirmCompareceu} onClose={cancelCompareceuAction} title="Confirmar Comparecimento">
         <div className="space-y-4">
           <div className="p-4 bg-[var(--color-success)]/10 border border-[var(--color-success)] rounded-[8px] text-[var(--color-success)] font-medium">
             Confirmar que este lead compareceu à clínica?
           </div>
-          <p className="text-sm text-[var(--color-text-muted)]">Ao confirmar, o sistema promoverá este lead automaticamente para a base de <strong>Pacientes</strong> (tabela de Pacientes da clínica).</p>
+          <p className="text-sm text-[var(--color-text-muted)]">Ao confirmar, o sistema promoverá este lead automaticamente para a base de <strong>Pacientes</strong>.</p>
           <div className="flex gap-3 justify-end mt-4">
             <Button variant="secondary" onClick={cancelCompareceuAction}>Cancelar</Button>
             <Button className="bg-[var(--color-success)] text-white hover:bg-green-700 border-none" onClick={confirmCompareceuAction}>Confirmar Comparecimento</Button>
@@ -226,7 +368,7 @@ export function CRM() {
         </div>
       </Modal>
 
-      {/* DRAWER DETALHES DO LEAD (usando componente Modal como base centralizada para facilidade, as specs indicam Modal/Drawer lateral, mas o funcionamento e o conteudo sao os mesmos) */}
+      {/* DRAWER DETALHES DO LEAD */}
       <Modal isOpen={openLeadDetails} onClose={() => setOpenLeadDetails(false)} title="Detalhes do Contato">
         {selectedLead && (
           <div className="space-y-6 max-h-[70vh] overflow-y-auto pr-2">
@@ -253,17 +395,17 @@ export function CRM() {
               <h3 className="font-semibold text-sm border-b pb-1">Informações de Negócio</h3>
               <div className="flex flex-col gap-2">
                 <div className="flex flex-col p-2 border rounded bg-white gap-1"><span className="text-xs text-gray-500">Procedimento de interesse</span><span className="text-sm font-medium">{selectedLead.procedimento_interesse || '-'}</span></div>
-                <div className="flex flex-col p-2 border rounded bg-white gap-1"><span className="text-xs text-gray-500">Motivo do contato</span><span className="text-sm font-medium">{selectedLead.historico_conversa || '-'}</span></div>
-                {selectedLead.data_agendamento && <div className="flex flex-col p-2 border rounded bg-white gap-1"><span className="text-xs text-gray-500">Data Agendada Inicial</span><span className="text-sm font-medium">{format(parseISO(selectedLead.data_agendamento), 'dd/MM/yyyy HH:mm')}</span></div>}
+                <div className="flex flex-col p-2 border rounded bg-white gap-1"><span className="text-xs text-gray-500">Motivo do contato</span><span className="text-sm font-medium">{selectedLead.motivo_contato || '-'}</span></div>
+                {selectedLead.data_agendamento && <div className="flex flex-col p-2 border rounded bg-white gap-1"><span className="text-xs text-gray-500">Data Agendada</span><span className="text-sm font-medium">{format(parseISO(selectedLead.data_agendamento), 'dd/MM/yyyy HH:mm')}</span></div>}
               </div>
             </div>
 
              <div className="space-y-3">
               <h3 className="font-semibold text-sm border-b pb-1">Follow Ups (Tentativas)</h3>
               <ul className="text-sm space-y-1">
-                <li className="flex justify-between border-b border-dashed py-1.5"><span className="text-gray-600">Follow up 1:</span> <span className="font-medium">{selectedLead.data_followup_1 ? format(parseISO(selectedLead.data_followup_1), 'dd/MM HH:mm') : 'Pendente'}</span></li>
-                <li className="flex justify-between border-b border-dashed py-1.5"><span className="text-gray-600">Follow up 2:</span> <span className="font-medium">{selectedLead.data_followup_2 ? format(parseISO(selectedLead.data_followup_2), 'dd/MM HH:mm') : 'Pendente'}</span></li>
-                <li className="flex justify-between border-b border-dashed py-1.5"><span className="text-gray-600">Follow up 3:</span> <span className="font-medium">{selectedLead.data_followup_3 ? format(parseISO(selectedLead.data_followup_3), 'dd/MM HH:mm') : 'Pendente'}</span></li>
+                <li className="flex justify-between border-b border-dashed py-1.5"><span className="text-gray-600">Follow up 1:</span> <span className="font-medium">{selectedLead.follow_up_1 ? format(parseISO(selectedLead.follow_up_1), 'dd/MM HH:mm') : 'Pendente'}</span></li>
+                <li className="flex justify-between border-b border-dashed py-1.5"><span className="text-gray-600">Follow up 2:</span> <span className="font-medium">{selectedLead.follow_up_2 ? format(parseISO(selectedLead.follow_up_2), 'dd/MM HH:mm') : 'Pendente'}</span></li>
+                <li className="flex justify-between border-b border-dashed py-1.5"><span className="text-gray-600">Follow up 3:</span> <span className="font-medium">{selectedLead.follow_up_3 ? format(parseISO(selectedLead.follow_up_3), 'dd/MM HH:mm') : 'Pendente'}</span></li>
               </ul>
             </div>
           </div>
