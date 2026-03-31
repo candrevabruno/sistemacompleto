@@ -31,7 +31,8 @@ export function App() {
               <Route element={<PrivateRoute><Layout /></PrivateRoute>}>
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/crm" element={<CRM />} />
-                <Route path="/leads-pacientes" element={<LeadsPacientes />} />
+                <Route path="/leads" element={<LeadsPacientes mode="leads" />} />
+                <Route path="/pacientes" element={<LeadsPacientes mode="pacientes" />} />
                 <Route path="/agenda" element={<Agenda />} />
                 <Route path="/central-agendamentos" element={<CentralAgendamentos />} />
                 <Route path="/documentacao-api" element={<DocumentacaoAPI />} />

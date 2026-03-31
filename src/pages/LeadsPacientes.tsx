@@ -13,8 +13,8 @@ import autoTable from 'jspdf-autotable';
 
 type DateFilter = 'ontem' | 'hoje' | '7dias' | '14dias' | 'mes' | 'ano' | 'custom';
 
-export function LeadsPacientes() {
-  const [activeTab, setActiveTab] = useState<'leads' | 'pacientes'>('leads');
+export function LeadsPacientes({ mode }: { mode?: 'leads' | 'pacientes' }) {
+  const [activeTab, setActiveTab] = useState<'leads' | 'pacientes'>(mode || 'leads');
   const [searchTerm, setSearchTerm] = useState('');
   
   // Date filter state
@@ -255,31 +255,56 @@ export function LeadsPacientes() {
       </Card>
 
       {/* Tabs */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between border-b border-[var(--color-border-card)] gap-4 pb-2 w-full overflow-visible">
-         <div className="flex space-x-4 sm:space-x-6 w-full md:w-auto overflow-x-auto whitespace-nowrap pb-2 pt-1 hide-scrollbar">
-           <button onClick={() => setActiveTab('leads')} className={`pb-3 text-base sm:text-base font-medium border-b-2 transition-colors ${activeTab === 'leads' ? 'border-[var(--color-primary)] text-[var(--color-primary)]' : 'border-transparent text-[var(--color-text-muted)] hover:text-[var(--color-text-main)]'}`}>
-             Base de Leads ({activeTab === 'leads' ? filteredLeads.length : '...'})
-           </button>
-           <button onClick={() => setActiveTab('pacientes')} className={`pb-3 text-base sm:text-base font-medium border-b-2 transition-colors ${activeTab === 'pacientes' ? 'border-[var(--color-primary)] text-[var(--color-primary)]' : 'border-transparent text-[var(--color-text-muted)] hover:text-[var(--color-text-main)]'}`}>
-             Base de Pacientes ({activeTab === 'pacientes' ? filteredPacientes.length : '...'})
-           </button>
-         </div>
-         <div className="flex flex-wrap items-center gap-2 w-full md:w-auto mt-2 md:mt-0">
-           <Input 
-             placeholder="Buscar nome ou zap..." 
-             value={searchTerm} 
-             onChange={e => setSearchTerm(e.target.value)}
-             icon={<Search className="w-4 h-4"/>}
-             className="h-9 w-full md:w-56"
-           />
-           <Button size="sm" variant="secondary" onClick={handleExportCSV} title="Exportar filtrados para CSV" className="h-9 border-[var(--color-border-card)] text-[var(--color-text-main)] hover:bg-[var(--color-bg-sidebar)]">
-             <Download className="w-4 h-4 mr-2"/> CSV
-           </Button>
-           <Button size="sm" variant="secondary" onClick={handleExportPDF} title="Exportar filtrados para PDF" className="h-9 border-[var(--color-border-card)] text-[var(--color-text-main)] hover:bg-[var(--color-bg-sidebar)]">
-             <FileText className="w-4 h-4 mr-2"/> PDF
-           </Button>
-         </div>
-      </div>
+      {!mode && (
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between border-b border-[var(--color-border-card)] gap-4 pb-2 w-full overflow-visible">
+           <div className="flex space-x-4 sm:space-x-6 w-full md:w-auto overflow-x-auto whitespace-nowrap pb-2 pt-1 hide-scrollbar">
+             <button onClick={() => setActiveTab('leads')} className={`pb-3 text-base sm:text-base font-medium border-b-2 transition-colors ${activeTab === 'leads' ? 'border-[var(--color-primary)] text-[var(--color-primary)]' : 'border-transparent text-[var(--color-text-muted)] hover:text-[var(--color-text-main)]'}`}>
+               Base de Leads ({activeTab === 'leads' ? filteredLeads.length : '...'})
+             </button>
+             <button onClick={() => setActiveTab('pacientes')} className={`pb-3 text-base sm:text-base font-medium border-b-2 transition-colors ${activeTab === 'pacientes' ? 'border-[var(--color-primary)] text-[var(--color-primary)]' : 'border-transparent text-[var(--color-text-muted)] hover:text-[var(--color-text-main)]'}`}>
+               Base de Pacientes ({activeTab === 'pacientes' ? filteredPacientes.length : '...'})
+             </button>
+           </div>
+           <div className="flex flex-wrap items-center gap-2 w-full md:w-auto mt-2 md:mt-0">
+             <Input 
+               placeholder="Buscar nome ou zap..." 
+               value={searchTerm} 
+               onChange={e => setSearchTerm(e.target.value)}
+               icon={<Search className="w-4 h-4"/>}
+               className="h-9 w-full md:w-56"
+             />
+             <Button size="sm" variant="secondary" onClick={handleExportCSV} title="Exportar filtrados para CSV" className="h-9 border-[var(--color-border-card)] text-[var(--color-text-main)] hover:bg-[var(--color-bg-sidebar)]">
+               <Download className="w-4 h-4 mr-2"/> CSV
+             </Button>
+             <Button size="sm" variant="secondary" onClick={handleExportPDF} title="Exportar filtrados para PDF" className="h-9 border-[var(--color-border-card)] text-[var(--color-text-main)] hover:bg-[var(--color-bg-sidebar)]">
+               <FileText className="w-4 h-4 mr-2"/> PDF
+             </Button>
+           </div>
+        </div>
+      )}
+
+      {mode && (
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4 w-full">
+          <h2 className="text-2xl font-cormorant font-bold text-[var(--color-primary)]">
+            Base de {mode === 'leads' ? 'Leads' : 'Pacientes'} ({activeTab === 'leads' ? filteredLeads.length : filteredPacientes.length})
+          </h2>
+          <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+            <Input 
+              placeholder="Buscar nome ou zap..." 
+              value={searchTerm} 
+              onChange={e => setSearchTerm(e.target.value)}
+              icon={<Search className="w-4 h-4"/>}
+              className="h-9 w-full md:w-56"
+            />
+            <Button size="sm" variant="secondary" onClick={handleExportCSV} title="Exportar filtrados para CSV" className="h-9 border-[var(--color-border-card)] text-[var(--color-text-main)] hover:bg-[var(--color-bg-sidebar)]">
+              <Download className="w-4 h-4 mr-2"/> CSV
+            </Button>
+            <Button size="sm" variant="secondary" onClick={handleExportPDF} title="Exportar filtrados para PDF" className="h-9 border-[var(--color-border-card)] text-[var(--color-text-main)] hover:bg-[var(--color-bg-sidebar)]">
+              <FileText className="w-4 h-4 mr-2"/> PDF
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Data Table */}
       <div className="w-full overflow-x-auto bg-[var(--color-bg-card)] rounded-[12px] border border-[var(--color-border-card)] shadow-[var(--shadow-card)] p-0">
