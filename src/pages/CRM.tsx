@@ -15,6 +15,7 @@ const COLUMNS = [
   { id: 'iniciou_atendimento', title: 'Iniciou', colorClass: 'border-[#C47E7E]' },
   { id: 'conversando', title: 'Conversando', colorClass: 'border-blue-400' },
   { id: 'agendado', title: 'Agendado', colorClass: 'border-[#7A9E87]' },
+  { id: 'reagendado', title: 'Reagendado', colorClass: 'border-violet-400' },
   { id: 'compareceu', title: 'Compareceu', colorClass: 'border-green-500' },
   { id: 'faltou', title: 'Faltou', colorClass: 'border-gray-600' },
   { id: 'cancelou_agendamento', title: 'Cancelou Agendamento', colorClass: 'border-[#E8A87C]' },

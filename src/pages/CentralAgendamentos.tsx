@@ -135,14 +135,14 @@ export function CentralAgendamentos() {
 
     const { error } = await supabase
       .from('agendamentos')
-      .update({ data_hora_inicio: novaData, status: 'agendado' })
+      .update({ data_hora_inicio: novaData, status: 'reagendado' })
       .eq('id', reagendarModal.id);
 
     if (error) { alert(`Erro: ${error.message}`); setSalvandoReagendar(false); return; }
 
     // Sincroniza data no lead
     if (reagendarModal.lead_id) {
-      await supabase.from('leads').update({ data_agendamento: novaData }).eq('id', reagendarModal.lead_id);
+      await supabase.from('leads').update({ data_agendamento: novaData, status: 'reagendado' }).eq('id', reagendarModal.lead_id);
     }
 
     setReagendar(null);

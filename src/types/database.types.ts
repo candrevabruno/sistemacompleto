@@ -359,6 +359,7 @@ export type Database = {
         | "compareceu"
         | "faltou"
         | "cancelado"
+        | "reagendado"
       dia_semana:
         | "domingo"
         | "segunda"
@@ -375,6 +376,7 @@ export type Database = {
         | "cancelou_agendamento"
         | "follow_up"
         | "abandonou_conversa"
+        | "reagendado"
       user_role: "admin" | "user"
     }
     CompositeTypes: {

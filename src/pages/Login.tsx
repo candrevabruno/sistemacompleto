@@ -48,7 +48,7 @@ export function Login() {
 
         /* ─── LEFT PANEL ─────────────────────────── */
         .hl-left {
-          background: #c47e7e;
+          background: #1A2B4A;
           padding: 48px 32px;
           display: flex;
           flex-direction: column;
@@ -101,14 +101,14 @@ export function Login() {
         }
         .hl-tagline em {
           font-style: italic;
-          color: rgba(255,255,255,0.65);
+          color: #E8C97A;
         }
 
         .hl-left-bottom { height: 40px; }
 
         /* ─── RIGHT PANEL ────────────────────────── */
         .hl-right {
-          background: #FAF8F5;
+          background: #F7F5F2;
           padding: 64px 72px;
           display: flex;
           flex-direction: column;
@@ -119,7 +119,7 @@ export function Login() {
           font-size: 11px;
           letter-spacing: 2px;
           text-transform: uppercase;
-          color: #c47e7e;
+          color: #C9A84C;
           font-weight: 500;
           margin-bottom: 14px;
         }
@@ -128,14 +128,14 @@ export function Login() {
           font-family: 'Playfair Display', serif;
           font-size: 30px;
           font-weight: 400;
-          color: #2C2420;
+          color: #1A2B4A;
           margin: 0 0 6px;
           white-space: nowrap;
         }
 
         .hl-subtitle {
           font-size: 14px;
-          color: #8E7D78;
+          color: #9A9088;
           margin: 0 0 36px;
           font-weight: 300;
         }
@@ -146,7 +146,7 @@ export function Login() {
         .hl-label {
           font-size: 13px;
           font-weight: 400;
-          color: #2C2420;
+          color: #2E3F5C;
           margin-bottom: 8px;
           display: block;
         }
@@ -155,14 +155,14 @@ export function Login() {
           display: flex;
           align-items: center;
           background: #fff;
-          border: 1px solid #E0D8D5;
+          border: 1px solid #E8E2D9;
           border-radius: 8px;
           padding: 0 14px;
           height: 48px;
           transition: border-color 0.2s;
           position: relative;
         }
-        .hl-input-wrap:focus-within { border-color: #c47e7e; }
+        .hl-input-wrap:focus-within { border-color: #1A2B4A; }
 
         .hl-input-icon {
           width: 16px;
@@ -176,7 +176,7 @@ export function Login() {
           border: none;
           background: transparent;
           font-size: 14px;
-          color: #2C2420;
+          color: #1A2B4A;
           font-family: 'DM Sans', sans-serif;
           font-weight: 300;
           outline: none;
@@ -202,7 +202,7 @@ export function Login() {
         .hl-forgot { text-align: right; margin-top: 8px; }
         .hl-forgot a {
           font-size: 12px;
-          color: #c47e7e;
+          color: #C9A84C;
           text-decoration: none;
           opacity: 0.8;
           transition: opacity 0.2s;
@@ -213,8 +213,8 @@ export function Login() {
         .hl-btn {
           width: 100%;
           height: 54px;
-          background: #c47e7e;
-          color: #FAF8F5;
+          background: #1A2B4A;
+          color: #E8C97A;
           border: none;
           border-radius: 10px;
           font-family: 'DM Sans', sans-serif;
@@ -237,19 +237,19 @@ export function Login() {
           position: absolute;
           left: 0; top: 0; bottom: 0;
           width: 4px;
-          background: #1A0F0D;
+          background: #E8C97A;
           transition: background 0.25s;
         }
-        .hl-btn:hover { background: #1A0F0D; }
-        .hl-btn:hover::before { background: #c47e7e; }
+        .hl-btn:hover { background: #2E3F5C; }
+        .hl-btn:hover::before { background: #E8C97A; }
         .hl-btn:disabled { opacity: 0.65; cursor: not-allowed; }
 
         .hl-btn-arrow { display: flex; gap: 2px; }
         .hl-btn-arrow span {
           display: block;
           width: 7px; height: 7px;
-          border-top: 1.5px solid #FAF8F5;
-          border-right: 1.5px solid #FAF8F5;
+          border-top: 1.5px solid #E8C97A;
+          border-right: 1.5px solid #E8C97A;
           transform: rotate(45deg);
         }
         .hl-btn-arrow span:first-child { opacity: 0.4; margin-right: -2px; }
@@ -258,8 +258,8 @@ export function Login() {
         .hl-error {
           padding: 10px 14px;
           border-radius: 8px;
-          background: rgba(196,120,110,0.1);
-          color: #c47e7e;
+          background: rgba(26,43,74,0.05);
+          color: #1A2B4A;
           font-size: 13px;
           font-weight: 400;
           margin-top: 12px;
