@@ -12,15 +12,14 @@ import { ptBR } from 'date-fns/locale';
 import { Plus, User, FileText, Calendar, DollarSign, Clock } from 'lucide-react';
 
 const COLUMNS = [
-  { id: 'iniciou_atendimento', title: 'Iniciou', colorClass: 'border-[var(--color-primary)]' },
+  { id: 'novo_contato', title: 'Iniciou', colorClass: 'border-[var(--color-primary)]' },
   { id: 'conversando', title: 'Conversando', colorClass: 'border-[var(--color-text-main)]' },
-  { id: 'agendado', title: 'Agendado', colorClass: 'border-emerald-500' },
+  { id: 'consulta_agendada', title: 'Agendado', colorClass: 'border-emerald-500' },
   { id: 'reagendado', title: 'Reagendado', colorClass: 'border-amber-400' },
   { id: 'compareceu', title: 'Compareceu', colorClass: 'border-green-600' },
   { id: 'faltou', title: 'Faltou', colorClass: 'border-slate-500' },
-  { id: 'cancelou_agendamento', title: 'Cancelou Agendamento', colorClass: 'border-rose-400' },
-  { id: 'follow_up', title: 'Follow Up', colorClass: 'border-sky-400' },
-  { id: 'abandonou_conversa', title: 'Abandonou', colorClass: 'border-gray-400' }
+  { id: 'perdido', title: 'Perdido', colorClass: 'border-rose-400' },
+  { id: 'follow_up', title: 'Follow Up', colorClass: 'border-sky-400' }
 ];
 
 export function CRM() {
@@ -70,8 +69,8 @@ export function CRM() {
     const oldStatus = source.droppableId;
     const newStatus = destination.droppableId;
 
-    // Agendado: abre modal para coletar dados do agendamento
-    if (newStatus === 'agendado' && oldStatus !== 'agendado') {
+    // Consulta Agendada: abre modal para coletar dados do agendamento
+    if (newStatus === 'consulta_agendada' && oldStatus !== 'consulta_agendada') {
       const lead = leads.find(l => l.id === leadId);
       setAgendadoForm({
         dataHora: '',
@@ -92,8 +91,9 @@ export function CRM() {
     updateLeadState(leadId, newStatus);
     const { error } = await supabase.from('leads').update({ status: newStatus }).eq('id', leadId);
     if (error) {
+       console.error('Erro ao mover lead:', error);
        updateLeadState(leadId, oldStatus);
-       alert('Erro ao mover lead.');
+       alert(`Erro ao mover lead para ${newStatus}. Verifique o console para detalhes.`);
     }
   };
 
@@ -132,7 +132,7 @@ export function CRM() {
       const { error: leadError } = await supabase
         .from('leads')
         .update({
-          status: 'agendado',
+          status: 'consulta_agendada',
           data_agendamento: new Date(agendadoForm.dataHora).toISOString(),
           agendamento_criado_em: new Date().toISOString(),
           id_agendamento: agendamento.id
@@ -140,11 +140,12 @@ export function CRM() {
         .eq('id', leadId);
 
       if (leadError) {
+        console.error('Erro ao atualizar lead para consulta_agendada:', leadError);
         alert(`Erro ao atualizar lead: ${leadError.message}`);
         return;
       }
 
-      updateLeadState(leadId, 'agendado');
+      updateLeadState(leadId, 'consulta_agendada');
       setConfirmAgendado(null);
       setAgendadoForm({ dataHora: '', procedimento: '', agendaId: '' });
       fetchLeads();
