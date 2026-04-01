@@ -48,7 +48,7 @@ export function Sidebar() {
             {config?.nome?.substring(0, 2).toUpperCase() || 'HL'}
           </div>
         )}
-        <h2 className="font-cormorant text-center text-[18px] font-semibold">
+        <h2 className="font-cormorant text-center text-[18px] font-semibold text-[var(--color-primary)]">
           {config?.nome || 'Heroic Leap Health'}
         </h2>
       </div>
