@@ -25,21 +25,21 @@ export const Badge = React.forwardRef<HTMLDivElement, BadgeProps>(
   ({ className, variant = 'default', children, ...props }, ref) => {
     const variants: Record<string, string> = {
       default: 'bg-[var(--color-primary-light)] text-[var(--color-primary)]',
-      success: 'bg-[#E8F3EC] text-[var(--color-success)] dark:bg-[rgba(122,158,135,0.2)]',
-      warning: 'bg-[#FDEDDF] text-[var(--color-warning)] dark:bg-[rgba(232,168,124,0.2)]',
+      success: 'bg-[#EAF3DE] text-[#3B6D11] dark:bg-[rgba(122,158,135,0.2)]',
+      warning: 'bg-[#F7F3E8] text-[#C9A84C] dark:bg-[rgba(232,168,124,0.2)]',
       error: 'bg-[#FCEEEE] text-[var(--color-error)] dark:bg-[rgba(196,126,126,0.2)]',
       info: 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400',
       
-      agendado: 'bg-[#9b8bb3] text-white dark:bg-[#7F6A8A] dark:text-white',
-      confirmado: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400',
-      compareceu: 'bg-[#E8F3EC] text-[var(--color-success)] dark:bg-[rgba(122,158,135,0.2)]',
-      faltou: 'bg-gray-100 text-gray-600 dark:bg-gray-800/50 dark:text-gray-400',
-      cancelado: 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400',
-      follow_up: 'bg-[#FDEDDF] text-[var(--color-warning)] dark:bg-[rgba(232,168,124,0.2)]',
-      cancelou_agendamento: 'bg-orange-50 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400',
-      abandonou_conversa: 'bg-[#8E8E93] text-white dark:bg-[#636366] dark:text-white',
-       conversando: 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200',
-      reagendado: 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400 border-violet-200',
+      agendado: 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400',
+      confirmado: 'bg-[#EAF3DE] text-[#3B6D11]',
+      compareceu: 'bg-[#EAF3DE] text-[#3B6D11]',
+      faltou: 'bg-slate-100 text-slate-600',
+      cancelado: 'bg-rose-50 text-rose-700',
+      follow_up: 'bg-sky-50 text-sky-700',
+      cancelou_agendamento: 'bg-rose-50 text-rose-700',
+      abandonou_conversa: 'bg-gray-100 text-gray-500',
+      conversando: 'bg-[var(--color-primary-light)] text-[var(--color-primary)]',
+      reagendado: 'bg-amber-50 text-amber-700 border-amber-200/50',
     };
 
     return (

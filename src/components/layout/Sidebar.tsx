@@ -35,7 +35,7 @@ export function Sidebar() {
   ];
 
   const sidebarContent = (
-    <div className="flex h-full flex-col bg-[var(--color-bg-sidebar)] text-[var(--color-text-main)] transition-colors">
+    <div className="flex h-full flex-col bg-[var(--color-bg-sidebar)] text-white/70 transition-colors">
       <div className="flex flex-col items-center justify-center py-8">
         {config?.logo_url ? (
           <img
@@ -62,9 +62,9 @@ export function Sidebar() {
             className={({ isActive }) =>
               cn(
                 'group flex items-center rounded-[8px] px-3 py-2.5 text-sm font-medium transition-colors hover:bg-[var(--color-primary-light)] border-l-[3px] border-transparent',
-                isActive
-                  ? 'border-[var(--color-primary)] bg-[var(--color-sidebar-active)] text-[var(--color-primary)]'
-                  : 'text-[var(--color-text-main)] hover:text-[var(--color-primary)]'
+                  isActive
+                    ? 'border-[var(--color-primary)] bg-[var(--color-sidebar-active)] text-[var(--color-primary)]'
+                    : 'text-white/50 hover:text-[var(--color-primary)]'
               )
             }
           >
@@ -77,14 +77,14 @@ export function Sidebar() {
       <div className="border-t border-[var(--color-border-card)] p-4">
         <div className="flex items-center mb-4">
           <Avatar size="sm" fallback={user?.email?.[0]} />
-          <div className="ml-3 truncate text-sm font-medium">
+          <div className="ml-3 truncate text-sm font-medium text-white/80">
             {user?.email}
           </div>
         </div>
         <div className="flex items-center justify-between">
           <button
             onClick={signOut}
-            className="flex items-center text-sm font-medium text-[var(--color-text-muted)] hover:text-[var(--color-primary)] transition-colors"
+            className="flex items-center text-sm font-medium text-white/40 hover:text-[var(--color-primary)] transition-colors"
           >
             <LogOut className="mr-2 h-[18px] w-[18px]" />
             Sair

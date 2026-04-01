@@ -27,26 +27,26 @@
 }
 
 :root {
-  --bg-base: #FDFAF8;
-  --bg-sidebar: #FFF5F5;
+  --bg-base: #F7F5F2; /* Warm White */
+  --bg-sidebar: #1A2B4A; /* Navy Deep */
   --bg-card: #FFFFFF;
-  --border-card: #F0E0DC;
+  --border-card: #E8E2D9; /* Warm Border */
   
-  --primary: #C47E7E;
-  --primary-hover: #A85F5F;
-  --primary-light: #FAF0EE;
+  --primary: #E8C97A; /* Gold Main */
+  --primary-hover: #C9A84C; /* Gold Deep */
+  --primary-light: rgba(255, 255, 255, 0.05); /* Subtle white overlay for dark backgrounds */
   
-  --text-main: #2D2020;
-  --text-muted: #8A6A6A;
+  --text-main: #1A2B4A; /* Navy Deep */
+  --text-muted: #9A9088; /* Warm Muted */
   
   --success: #7A9E87;
   --warning: #E8A87C;
   --error: #C47E7E;
-  --sidebar-active: #F5E6E6;
+  --sidebar-active: rgba(232, 201, 122, 0.12); /* Gold Subtle */
 
-  --shadow-card: 0 1px 3px rgba(196, 126, 126, 0.08), 0 1px 2px rgba(45, 32, 32, 0.04);
-  --shadow-modal: 0 20px 60px rgba(45, 32, 32, 0.15);
-  --shadow-dropdown: 0 4px 16px rgba(45, 32, 32, 0.10);
+  --shadow-card: 0 1px 3px rgba(26, 43, 74, 0.06), 0 1px 2px rgba(26, 43, 74, 0.04);
+  --shadow-modal: 0 20px 60px rgba(26, 43, 74, 0.15);
+  --shadow-dropdown: 0 4px 16px rgba(26, 43, 74, 0.10);
 }
 
 

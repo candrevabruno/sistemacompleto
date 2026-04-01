@@ -12,15 +12,15 @@ import { ptBR } from 'date-fns/locale';
 import { Plus, User, FileText, Calendar, DollarSign, Clock } from 'lucide-react';
 
 const COLUMNS = [
-  { id: 'iniciou_atendimento', title: 'Iniciou', colorClass: 'border-[#C47E7E]' },
-  { id: 'conversando', title: 'Conversando', colorClass: 'border-blue-400' },
-  { id: 'agendado', title: 'Agendado', colorClass: 'border-[#7A9E87]' },
-  { id: 'reagendado', title: 'Reagendado', colorClass: 'border-violet-400' },
-  { id: 'compareceu', title: 'Compareceu', colorClass: 'border-green-500' },
-  { id: 'faltou', title: 'Faltou', colorClass: 'border-gray-600' },
-  { id: 'cancelou_agendamento', title: 'Cancelou Agendamento', colorClass: 'border-[#E8A87C]' },
-  { id: 'follow_up', title: 'Follow Up', colorClass: 'border-amber-400' },
-  { id: 'abandonou_conversa', title: 'Abandonou', colorClass: 'border-red-500' }
+  { id: 'iniciou_atendimento', title: 'Iniciou', colorClass: 'border-[var(--color-primary)]' },
+  { id: 'conversando', title: 'Conversando', colorClass: 'border-[var(--color-text-main)]' },
+  { id: 'agendado', title: 'Agendado', colorClass: 'border-emerald-500' },
+  { id: 'reagendado', title: 'Reagendado', colorClass: 'border-amber-400' },
+  { id: 'compareceu', title: 'Compareceu', colorClass: 'border-green-600' },
+  { id: 'faltou', title: 'Faltou', colorClass: 'border-slate-500' },
+  { id: 'cancelou_agendamento', title: 'Cancelou Agendamento', colorClass: 'border-rose-400' },
+  { id: 'follow_up', title: 'Follow Up', colorClass: 'border-sky-400' },
+  { id: 'abandonou_conversa', title: 'Abandonou', colorClass: 'border-gray-400' }
 ];
 
 export function CRM() {

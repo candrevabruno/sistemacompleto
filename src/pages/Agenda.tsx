@@ -37,7 +37,7 @@ export function Agenda() {
     sexta: { aberto: true, hora_inicio: '08:00', hora_fim: '18:00' },
     sabado: { aberto: false, hora_inicio: '08:00', hora_fim: '18:00' },
   };
-  const [novaAgendaForm, setNovaAgendaForm] = useState({ nome: '', cor: '#C47E7E', horarios: defaultHours });
+  const [novaAgendaForm, setNovaAgendaForm] = useState({ nome: '', cor: '#E8C97A', horarios: defaultHours });
   const [agendamentoForm, setAgendamentoForm] = useState({ 
     id: '', lead_id: '', paciente_id: '', nome_livre: '', procedimento_nome: '', 
     data: '', hora: '', agenda_id: '', observacoes: '' 
@@ -119,7 +119,7 @@ export function Agenda() {
     
     setOpenNovaAgenda(false);
     setEditAgendaId(null);
-    setNovaAgendaForm({ nome: '', cor: '#C47E7E', horarios: defaultHours });
+    setNovaAgendaForm({ nome: '', cor: '#E8C97A', horarios: defaultHours });
     loadData();
   };
 
@@ -322,13 +322,13 @@ export function Agenda() {
       </div>
 
       {/* MODAL CRIAR AGENDA */}
-      <Modal isOpen={openNovaAgenda} onClose={() => { setOpenNovaAgenda(false); setEditAgendaId(null); setNovaAgendaForm({ nome: '', cor: '#C47E7E', horarios: defaultHours }); }} title={editAgendaId ? "Editar Agenda" : "Nova Agenda"}>
+      <Modal isOpen={openNovaAgenda} onClose={() => { setOpenNovaAgenda(false); setEditAgendaId(null); setNovaAgendaForm({ nome: '', cor: '#E8C97A', horarios: defaultHours }); }} title={editAgendaId ? "Editar Agenda" : "Nova Agenda"}>
         <div className="space-y-4">
           <Input label="Nome da agenda" placeholder="Ex: Dra. Ana, Sala 1" value={novaAgendaForm.nome} onChange={e => setNovaAgendaForm({...novaAgendaForm, nome: e.target.value})} />
           <div>
             <label className="block text-sm font-medium text-[var(--color-text-main)] mb-1">Cor de identificação</label>
             <div className="flex gap-2">
-              {['#C47E7E', '#7A9E87', '#E8A87C', '#7F6A8A', '#608CA8', '#A6927D'].map(c => (
+              {['#E8C97A', '#1A2B4A', '#7A9E87', '#E8A87C', '#7F6A8A', '#A6927D'].map(c => (
                 <button 
                   key={c} 
                   onClick={() => setNovaAgendaForm({...novaAgendaForm, cor: c})}
