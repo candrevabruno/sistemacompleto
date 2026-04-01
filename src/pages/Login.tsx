@@ -320,7 +320,7 @@ export function Login() {
 
           {/* Tagline */}
           <div className="hl-tagline">
-            Para você nunca parar de <em>cuidar.</em>
+            Para você focar no que realmente <em>importa.</em>
           </div>
 
           <div className="hl-left-bottom" />
