@@ -1,0 +1,732 @@
+{
+  "name": "3- CRM | Ellegance Clínica Integrada",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "whatsapp_lead"
+            },
+            {
+              "name": "id_conta_chatwoot"
+            },
+            {
+              "name": "id_conversa_chatwoot"
+            },
+            {
+              "name": "id_lead_chatwoot"
+            },
+            {
+              "name": "inbox_id_chatwoot"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        64,
+        208
+      ],
+      "id": "c42de6a5-f70b-4c87-b910-1501ebe53aec",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryManager",
+      "typeVersion": 1.1,
+      "position": [
+        2448,
+        336
+      ],
+      "id": "e6346744-54a4-4f46-ab7f-b7f4c33b62f6",
+      "name": "Chat Memory Manager1"
+    },
+    {
+      "parameters": {
+        "content": "# Puxar Histórico da conversa",
+        "height": 500,
+        "width": 460,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        2320,
+        160
+      ],
+      "typeVersion": 1,
+      "id": "7fedc1ad-ca57-465f-85c7-093b7e6bebce",
+      "name": "Sticky Note9"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "leads",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "whatsapp_lead",
+              "condition": "eq",
+              "keyValue": "={{ $json.whatsapp_lead }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "follow_up_1",
+              "fieldValue": "={{ null }}"
+            },
+            {
+              "fieldId": "follow_up_2",
+              "fieldValue": "={{ null }}"
+            },
+            {
+              "fieldId": "follow_up_3",
+              "fieldValue": "={{ null }}"
+            },
+            {
+              "fieldId": "ultima_mensagem",
+              "fieldValue": "={{ $now }}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "conversando"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1536,
+        272
+      ],
+      "id": "ad9c300a-e60f-4941-8afa-0a7ee6d7606b",
+      "name": "atualizaFollowUP",
+      "credentials": {
+        "supabaseApi": {
+          "id": "juhkfWmwyQbFaGjC",
+          "name": "Supabase - Heroic Leap Health"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "# Deixa \"null\" em todos os campos do Follow Up e atualizar o Timestamp",
+        "height": 500,
+        "width": 440,
+        "color": 2
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1392,
+        32
+      ],
+      "typeVersion": 1,
+      "id": "77d89f15-3bd9-4d8c-96b3-c6a26addafd3",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "# Gatilho: vem da secretaria",
+        "height": 500,
+        "width": 248,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        0,
+        0
+      ],
+      "typeVersion": 1,
+      "id": "e3847775-b701-41d7-9c10-27ca1e5dba2d",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "# Seta as informações",
+        "height": 500,
+        "width": 284,
+        "color": 2
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        272,
+        0
+      ],
+      "typeVersion": 1,
+      "id": "7ed628d4-5852-4c84-8613-afec1e587dc5",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "# Resumo da Conversa",
+        "height": 500,
+        "width": 484,
+        "color": 2
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        2816,
+        160
+      ],
+      "typeVersion": 1,
+      "id": "d835af06-9ac2-4293-9512-4068d1888228",
+      "name": "Sticky Note10"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        2912,
+        512
+      ],
+      "id": "1c70c8ce-d590-4382-ad49-e25aa977906e",
+      "name": "OpenAI Chat Model3",
+      "credentials": {
+        "openAiApi": {
+          "id": "T7IHUAGaXa4OG4Rq",
+          "name": "OpenAi - Heroic Leap"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"nome_lead\": \"Carolina Silva\",\n  \"motivo_contato\": \"Paciente quer saber valores e como funciona o botox.\",\n  \"procedimento_interesse\": \"Botox\",\n  \"resumo_conversa\": \"A paciente Carolina Silva entrou em contato perguntando sobre o procedimento de botox, comentou que começou a se incomodar com linhas de expressão na testa e queria entender como funciona a aplicação, duração do resultado e valores do tratamento.\"\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        3152,
+        512
+      ],
+      "id": "3f9f7b4c-d72c-4ddc-ab13-94a9b49b3ec5",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "leads",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "whatsapp_lead",
+              "condition": "eq",
+              "keyValue": "={{ $('seta_informacoes').item.json.whatsapp_lead }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "nome_lead",
+              "fieldValue": "={{ $json.output.nome_lead }}"
+            },
+            {
+              "fieldId": "motivo_contato",
+              "fieldValue": "={{ $json.output.motivo_contato }}"
+            },
+            {
+              "fieldId": "procedimento_interesse",
+              "fieldValue": "={{ $json.output.procedimento_interesse }}"
+            },
+            {
+              "fieldId": "resumo_conversa",
+              "fieldValue": "={{ $json.output.resumo_conversa }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        3520,
+        336
+      ],
+      "id": "01422abf-df1a-419c-9722-5d91e4c4d71b",
+      "name": "atualizarCRM",
+      "credentials": {
+        "supabaseApi": {
+          "id": "juhkfWmwyQbFaGjC",
+          "name": "Supabase - Heroic Leap Health"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.messages.map(m => `Usuário: ${m.human}\\nIA: ${m.ai}`).join('\\n\\n') }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=Dia e hora atual: {{ $now }}\n\n# IDENTIDADE\n\nVocê é um **agente de IA responsável por atualizar o CRM da Ellegance Clínica Integrada**, uma clínica de estética.\n\nSua função é **ler toda a conversa entre a secretária Larissa e o paciente** e registrar as informações relevantes no CRM.\n\nEssas informações serão utilizadas para manter o histórico de atendimento organizado e facilitar o acompanhamento futuro do paciente pela clínica.\n\nVocê **nunca inventa informações**.  \nVocê **registra apenas informações que o paciente realmente mencionou na conversa**.\n\n# SUA FUNÇÃO\n\nVocê deve:\n\n-   Ler **toda a conversa entre a secretária Larissa e o paciente** antes de preencher qualquer campo.\n-   Registrar as informações no CRM de forma **clara, objetiva e fiel ao que foi dito**.\n-   Utilizar **somente as falas do paciente** para preencher os campos.\n-   **Nunca completar informações que não foram mencionadas**.\n-  Se alguma informação **não estiver clara na conversa**, o campo deve ser **deixado em branco**.\n\n# CAMPOS OBRIGATÓRIOS\n\n## nome_lead\n\nRegistre **exatamente o nome informado pelo paciente**.\n\nRegras:\n-   Se ele informar **nome completo**, registre completo.\n-   Se informar **apenas o primeiro nome**, registre apenas ele.\n-   **Nunca invente ou complete o nome**.\n-   A primeira letra deve estar **em maiúsculo**.\n\nDeixe em branco se o paciente não informar o nome.\n\n## motivo_contato\n\nRegistre **o motivo principal do contato do paciente com a clínica**.\n\nEsse campo deve ser **sempre uma frase curta e direta**.\n\nExemplos de preenchimento:\n-   \"Quer saber valores do botox.\"\n-   \"Agendar avaliação para estrias.\"\n-   \"Quer saber mais informações sobre preenchimento labial.\"\n-   \"Quer fazer um tratamento para manchas.\"\n-   \"Quer entender como funciona o procedimento de harmonização.\"\n\nRegras:\n\n-   Sempre escrever **em uma única frase**.\n-   Usar apenas o que **o paciente realmente demonstrou interesse**.\n-   **Não inventar motivos**.\n\nSe não ficar claro o motivo do contato, deixar em branco.\n\n## procedimento_interesse\n\nRegistre **o procedimento estético que o paciente demonstrou interesse**.\n\nRegras:\n\n-   Registrar exatamente o **tratamento mencionado pelo paciente**.\n-   Se o paciente citar **mais de um procedimento**, registrar todos separados por vírgula.\n\nExemplo:\n\nBotox  \nPreenchimento labial  \nBotox, Skinbooster  \nHarmonização facial\n\nSe o paciente **não mencionar claramente o procedimento**, deixe o campo em branco.\n\n## resumo_conversa\n\nEscreva um **resumo natural, claro e direto da conversa**.\n\nRegras importantes:\n-   O resumo deve ser **sempre em texto corrido**.\n-   **Nunca usar listas**.\n-   **Nunca usar quebras de linha**.\n-   O resumo deve incluir **apenas o que o paciente falou ou perguntou**.\n-   **Ignorar completamente as falas da secretária Larissa**.\n\nO resumo deve incluir quando possível:\n\n-   Nome do paciente\n-   Motivo do contato\n-   Procedimento de interesse\n-   Queixa estética mencionada\n-   Perguntas ou dúvidas feitas pelo paciente\n-   Interesse em avaliação ou agendamento \n\n**Importante:** Nunca invente informações.\n\n## EXEMPLOS DE RESUMO DE CONVERSA\n\n### Exemplo 1:\n\nCarolina Silva entrou em contato perguntando sobre botox, comentou que começou a se incomodar com linhas de expressão na testa e queria entender como funciona o procedimento e quantas sessões são necessárias.\n\n### Exemplo 2:\n\nFernanda Oliveira perguntou sobre tratamento para estrias no abdômen após gravidez. Comentou que nunca fez nenhum procedimento antes e quer saber se a clínica realiza avaliação para indicar o melhor tratamento.\n\n### Exemplo 3:\n\nJuliana Santos entrou em contato perguntando sobre preenchimento labial, disse que deseja aumentar levemente o volume dos lábios e perguntou como funciona o procedimento e se é necessário agendar avaliação antes."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.8,
+      "position": [
+        2944,
+        336
+      ],
+      "id": "74a8ef7f-2afc-4b83-b70e-50a2ef84fb40",
+      "name": "CRM"
+    },
+    {
+      "parameters": {
+        "content": "# Verifica se o usuário existe e cadastra ele no Banco de dados.",
+        "height": 840,
+        "width": 752,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        592,
+        0
+      ],
+      "typeVersion": 1,
+      "id": "1d63d913-1ec8-4b8c-874f-78f734f2baa0",
+      "name": "Sticky Note23"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "32a5f010-2252-4057-acb7-a085648e3a14",
+                    "leftValue": "={{ $json.whatsapp_lead }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "notEmpty",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Existe"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.whatsapp_lead }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "empty",
+                      "singleValue": true
+                    },
+                    "id": "c71b31fe-c16a-4e57-a5b5-7d115351d0ee"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Não existe"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        1008,
+        288
+      ],
+      "id": "2d5bd960-482e-49b7-98a4-a3ef62eee3e7",
+      "name": "Switch4"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "leads",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "whatsapp_lead",
+              "keyValue": "={{ $json.whatsapp_lead }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        720,
+        288
+      ],
+      "id": "19c42f6f-1ca3-42f2-9d96-7295515b0ce2",
+      "name": "PuxarNumeroLead",
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "juhkfWmwyQbFaGjC",
+          "name": "Supabase - Heroic Leap Health"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "leads",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "inicio_atendimento",
+              "fieldValue": "={{ $now }}"
+            },
+            {
+              "fieldId": "whatsapp_lead",
+              "fieldValue": "={{ $('seta_informacoes').item.json.whatsapp_lead }}"
+            },
+            {
+              "fieldId": "id_conta_chatwoot",
+              "fieldValue": "={{ $('seta_informacoes').item.json.id_conta_chatwoot }}"
+            },
+            {
+              "fieldId": "id_conversa_chatwoot",
+              "fieldValue": "={{ $('seta_informacoes').item.json.id_conversa_chatwoot }}"
+            },
+            {
+              "fieldId": "id_lead_chatwoot",
+              "fieldValue": "={{ $('seta_informacoes').item.json.id_lead_chatwoot }}"
+            },
+            {
+              "fieldId": "inbox_id_chatwoot",
+              "fieldValue": "={{ $('seta_informacoes').item.json.inbox_id_chatwoot }}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "iniciou_atendimento"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        912,
+        560
+      ],
+      "id": "6e67ea33-e716-48e2-98fa-c863b314a10d",
+      "name": "CriarUsuario",
+      "credentials": {
+        "supabaseApi": {
+          "id": "juhkfWmwyQbFaGjC",
+          "name": "Supabase - Heroic Leap Health"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        2032,
+        544
+      ],
+      "id": "920f3071-e92e-4c23-8f11-39fe3c3d8c1d",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "content": "# Junta tudo",
+        "height": 560,
+        "width": 400,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1872,
+        288
+      ],
+      "typeVersion": 1,
+      "id": "b6a13a3a-4a23-46f1-9e77-33e450bf05a5",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('seta_informacoes').item.json.whatsapp_lead }}",
+        "contextWindowLength": 40
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [
+        2448,
+        528
+      ],
+      "id": "34a55c20-22b0-4434-a59b-97c33fcb7baa",
+      "name": "memoria",
+      "credentials": {
+        "postgres": {
+          "id": "53gCxC2RPywoGJZS",
+          "name": "Postgres - Supabase - Heroic Leap Health"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "# Atualiza a tabela do CRM",
+        "height": 500,
+        "width": 452,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        3328,
+        160
+      ],
+      "typeVersion": 1,
+      "id": "448c2723-369b-4c9d-9a23-0165f047acce",
+      "name": "Sticky Note11"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d4a8fde9-a2bb-459e-a776-2b28c612446b",
+              "name": "whatsapp_lead",
+              "value": "={{ $json.whatsapp_lead }}",
+              "type": "string"
+            },
+            {
+              "id": "096ada65-4d73-45d9-946f-62d1cb873df4",
+              "name": "id_conta_chatwoot",
+              "value": "={{ $json.id_conta_chatwoot }}",
+              "type": "string"
+            },
+            {
+              "id": "035dc1da-90e1-4bea-bb40-4127c778cab7",
+              "name": "id_conversa_chatwoot",
+              "value": "={{ $json.id_conversa_chatwoot }}",
+              "type": "string"
+            },
+            {
+              "id": "9ab5b8dc-9204-43f0-a097-926264532951",
+              "name": "id_lead_chatwoot",
+              "value": "={{ $json.id_lead_chatwoot }}",
+              "type": "string"
+            },
+            {
+              "id": "72c63547-566e-4cbf-b1b0-eda3af35f3b0",
+              "name": "inbox_id_chatwoot",
+              "value": "={{ $json.inbox_id_chatwoot }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        352,
+        208
+      ],
+      "id": "c8117125-6bda-454c-9250-bb70cb313d72",
+      "name": "seta_informacoes"
+    },
+    {
+      "parameters": {
+        "content": "# Status (precisa ver quais são)\n## - iniciou_atendimento\n## - conversando\n## - agendado\n## - compareceu\n## - cancelou_agendamento\n## - follow_up\n## - abandonou_conversa",
+        "height": 368,
+        "width": 704,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        624,
+        720
+      ],
+      "typeVersion": 1,
+      "id": "b072eb69-d44a-4a39-986d-ebe4b4b56364",
+      "name": "Sticky Note4"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "seta_informacoes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chat Memory Manager1": {
+      "main": [
+        [
+          {
+            "node": "CRM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "atualizaFollowUP": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model3": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "CRM",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "CRM",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CRM": {
+      "main": [
+        [
+          {
+            "node": "atualizarCRM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch4": {
+      "main": [
+        [
+          {
+            "node": "atualizaFollowUP",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "CriarUsuario",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PuxarNumeroLead": {
+      "main": [
+        [
+          {
+            "node": "Switch4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CriarUsuario": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Chat Memory Manager1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "memoria": {
+      "ai_memory": [
+        [
+          {
+            "node": "Chat Memory Manager1",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "seta_informacoes": {
+      "main": [
+        [
+          {
+            "node": "PuxarNumeroLead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "37b381e0-8306-44dc-9ee7-1cf1dd063847",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "cd3f555560da593715f2409944039c2dd529d28b002c9eefb22eeac5fd695ee6"
+  },
+  "id": "1CahhshRwL7V4N4P",
+  "tags": []
+}

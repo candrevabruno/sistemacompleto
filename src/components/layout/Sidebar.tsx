@@ -27,7 +27,7 @@ export function Sidebar() {
     { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { to: '/crm', label: 'CRM', icon: Kanban },
     { to: '/leads', label: 'Leads', icon: Users },
-    { to: '/pacientes', label: 'Pacientes', icon: UserCheck },
+    { to: '/clientes', label: 'Clientes', icon: UserCheck },
     { to: '/agenda', label: 'Agenda', icon: Calendar },
     { to: '/central-agendamentos', label: 'Agendamentos', icon: CalendarCheck },
     ...(user?.role === 'admin' ? [{ to: '/configuracoes', label: 'Configurações', icon: Settings }] : []),

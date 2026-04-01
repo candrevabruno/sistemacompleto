@@ -14,7 +14,8 @@ export function Header() {
     switch (pathname) {
       case '/dashboard': return 'Dashboard';
       case '/crm': return 'CRM — Funil de Atendimento';
-      case '/leads-pacientes': return 'Leads e Pacientes';
+      case '/leads': return 'Leads';
+      case '/clientes': return 'Clientes';
       case '/agenda': return 'Agenda';
       case '/configuracoes': return 'Configurações';
       case '/documentacao-api': return 'Documentação da API';

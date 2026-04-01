@@ -39,7 +39,7 @@ export function Agenda() {
   };
   const [novaAgendaForm, setNovaAgendaForm] = useState({ nome: '', cor: '#E8C97A', horarios: defaultHours });
   const [agendamentoForm, setAgendamentoForm] = useState({ 
-    id: '', lead_id: '', paciente_id: '', nome_livre: '', procedimento_nome: '', 
+    id: '', lead_id: '', cliente_id: '', nome_livre: '', procedimento_nome: '', 
     data: '', hora: '', agenda_id: '', observacoes: '' 
   });
   const [selectedEventInfo, setSelectedEventInfo] = useState<any>(null);
@@ -71,7 +71,7 @@ export function Agenda() {
     // Carrega agendamentos (buscando mais campos como nome do lead p/ exibir no cal)
     const reqAgendamentos = await supabase
       .from('agendamentos')
-      .select('*, leads(nome_lead), pacientes(leads(nome_lead))')
+      .select('*, leads(nome_lead), clientes(leads(nome_lead))')
       .neq('status', 'cancelado');
       
     if (reqAgendamentos.data) setAgendamentos(reqAgendamentos.data);
@@ -143,7 +143,7 @@ export function Agenda() {
     const dataStr = format(info.date, 'yyyy-MM-dd');
     const horaStr = format(info.date, 'HH:mm');
     setAgendamentoForm({
-      id: '', lead_id: '', paciente_id: '', nome_livre: '', procedimento_nome: '', 
+      id: '', lead_id: '', cliente_id: '', nome_livre: '', procedimento_nome: '', 
       data: dataStr, hora: horaStr, agenda_id: agendaId, observacoes: ''
     });
     setOpenAgendamento(true);
@@ -220,7 +220,7 @@ export function Agenda() {
           const events = agendamentos
             .filter(a => a.agenda_id === agenda.id)
             .map(a => {
-              const nome = a.leads?.nome_lead || a.pacientes?.leads?.nome_lead || 'Paciente';
+              const nome = a.leads?.nome_lead || a.clientes?.leads?.nome_lead || 'Cliente';
               return {
                 id: a.id,
                 title: `${nome} - ${a.procedimento_nome || 's/ proc'}`,
@@ -407,9 +407,9 @@ export function Agenda() {
         {selectedEventInfo && (
           <div className="space-y-6">
             <div className="flex flex-col gap-1 items-center bg-[var(--color-primary-light)] p-6 rounded-[12px] text-center border border-[var(--color-border-card)]">
-               <Avatar size="lg" fallback={(selectedEventInfo.leads?.nome_lead || selectedEventInfo.pacientes?.leads?.nome_lead || '?')[0]} className="mb-2" />
+               <Avatar size="lg" fallback={(selectedEventInfo.leads?.nome_lead || selectedEventInfo.clientes?.leads?.nome_lead || '?')[0]} className="mb-2" />
                <h3 className="font-cormorant text-2xl font-bold text-[var(--color-text-main)]">
-                 {selectedEventInfo.leads?.nome_lead || selectedEventInfo.pacientes?.leads?.nome_lead || 'Paciente sem nome'}
+                 {selectedEventInfo.leads?.nome_lead || selectedEventInfo.clientes?.leads?.nome_lead || 'Cliente sem nome'}
                </h3>
                <p className="font-medium text-[var(--color-primary)]">{selectedEventInfo.procedimento_nome || 'Nenhum procedimento informado'}</p>
             </div>

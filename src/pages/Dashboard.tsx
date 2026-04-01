@@ -23,7 +23,7 @@ export function Dashboard() {
   const [customEnd, setCustomEnd] = useState(format(endOfToday(), 'yyyy-MM-dd'));
   
   const [loading, setLoading] = useState(true);
-  const [metrics, setMetrics] = useState({ agendamentos: 0, comparecimentos: 0, leads: 0, pacientes: 0 });
+  const [metrics, setMetrics] = useState({ agendamentos: 0, comparecimentos: 0, leads: 0, clientes: 0 });
   const [clinicHours, setClinicHours] = useState<any[]>([]);
   const [leadsData, setLeadsData] = useState<any[]>([]);
   const [agendamentosData, setAgendamentosData] = useState<any[]>([]);
@@ -73,12 +73,12 @@ export function Dashboard() {
       const startIso = dateRange.start.toISOString();
       const endIso = dateRange.end.toISOString();
 
-      const [agendamentosReq, leadsReq, pacientesReq, upcomingReq] = await Promise.all([
+      const [agendamentosReq, leadsReq, clientesReq, upcomingReq] = await Promise.all([
         supabase.from('agendamentos').select('*').gte('created_at', startIso).lte('created_at', endIso),
         supabase.from('leads').select('*').gte('inicio_atendimento', startIso).lte('inicio_atendimento', endIso),
-        supabase.from('pacientes').select('*').gte('created_at', startIso).lte('created_at', endIso),
+        supabase.from('clientes').select('*').gte('created_at', startIso).lte('created_at', endIso),
         supabase.from('agendamentos')
-          .select('*, leads(nome_lead, whatsapp_lead), pacientes(leads(nome_lead, whatsapp_lead)), agendas(nome, cor)')
+          .select('*, leads(nome_lead, whatsapp_lead), clientes(leads(nome_lead, whatsapp_lead)), agendas(nome, cor)')
           .gte('data_hora_inicio', new Date().toISOString())
           .order('data_hora_inicio', { ascending: true })
           .limit(5)
@@ -86,7 +86,7 @@ export function Dashboard() {
 
       const agendamentos = agendamentosReq.data || [];
       const leads = leadsReq.data || [];
-      const pacientes = pacientesReq.data || [];
+      const clientes = clientesReq.data || [];
 
       setAgendamentosData(agendamentos);
       setLeadsData(leads);
@@ -96,7 +96,7 @@ export function Dashboard() {
         agendamentos: agendamentos.length,
         comparecimentos: agendamentos.filter(a => a.status === 'compareceu').length,
         leads: leads.length,
-        pacientes: pacientes.length
+        clientes: clientes.length
       });
     } catch (error) {
       console.error("Dashboard fetch error:", error);
@@ -186,7 +186,7 @@ export function Dashboard() {
 
   const pctAgendaram = leadsQualificados ? Math.round((leadsAgendados / leadsQualificados) * 100) : 0;
   const pctCompareceram = leadsAgendados ? Math.round((leadsCompareceram / leadsAgendados) * 100) : 0;
-  const pctConverteram = leadsCompareceram ? Math.round((metrics.pacientes / leadsCompareceram) * 100) : 0;
+  const pctConverteram = leadsCompareceram ? Math.round((metrics.clientes / leadsCompareceram) * 100) : 0;
 
   return (
     <div className="space-y-6">
@@ -236,7 +236,7 @@ export function Dashboard() {
           { label: 'Novos leads', value: metrics.leads, icon: Users },
           { label: 'Agendamentos do período', value: metrics.agendamentos, icon: CalendarIcon },
           { label: 'Comparecimentos', value: metrics.comparecimentos, icon: UserCheck },
-          { label: 'Novos pacientes', value: metrics.pacientes, icon: Activity }
+          { label: 'Novos clientes', value: metrics.clientes, icon: Activity }
         ].map((m, i) => (
           <Card key={i}>
             <CardContent className="p-6 flex items-center gap-4">
@@ -400,7 +400,7 @@ export function Dashboard() {
               <div className="flex justify-between items-center gap-2">
                 <span className="font-semibold flex items-center gap-2 text-base truncate"><div className="w-6 h-6 rounded-full bg-black/10 flex items-center justify-center text-xs shrink-0">4</div> <span className="truncate">Conversões</span></span>
                 <div className="text-right flex items-center shrink-0">
-                  <span className="font-bold text-xl">{metrics.pacientes}</span>
+                  <span className="font-bold text-xl">{metrics.clientes}</span>
                   <span className="text-xs font-bold bg-black/10 px-1.5 py-0.5 rounded ml-2 mt-0.5 shrink-0">+{pctConverteram}%</span>
                 </div>
               </div>
@@ -416,7 +416,7 @@ export function Dashboard() {
         <CardContent>
           <div className="space-y-0">
             {upcoming.map((u, i) => {
-              const nome = u.leads?.nome_lead || u.pacientes?.leads?.nome_lead || 'Sem nome';
+              const nome = u.leads?.nome_lead || u.clientes?.leads?.nome_lead || 'Sem nome';
               return (
                 <div key={u.id} className={`flex flex-col sm:flex-row sm:items-center justify-between py-4 gap-4 ${i !== upcoming.length - 1 ? 'border-b border-[var(--color-border-card)]' : ''}`}>
                   <div className="flex items-center gap-3 sm:gap-4 overflow-hidden">

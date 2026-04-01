@@ -256,9 +256,9 @@ export function CentralAgendamentos() {
                     </div>
                   </div>
 
-                  {/* Dados do paciente */}
+                  {/* Dados do cliente */}
                   <div className="flex-1 min-w-0">
-                    <div className="font-semibold text-sm">{ag.nome_lead || 'Paciente não informado'}</div>
+                    <div className="font-semibold text-sm">{ag.nome_lead || 'Cliente não informado'}</div>
                     <div className="flex items-center gap-4 mt-1 flex-wrap">
                       {ag.whatsapp_lead && (
                         <a href={`https://wa.me/${ag.whatsapp_lead.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"
@@ -338,10 +338,10 @@ export function CentralAgendamentos() {
             acaoModal?.acao === 'compareceu' ? 'bg-green-50 border-green-200 text-green-700' :
             'bg-[#7A9E87]/10 border-[#7A9E87]/30 text-[#5f8a6e]'
           }`}>
-            {acaoModal?.acao === 'confirmar' && `Confirmar o agendamento de ${acaoModal?.agendamento?.nome_lead || 'paciente'}?`}
-            {acaoModal?.acao === 'compareceu' && `Marcar que ${acaoModal?.agendamento?.nome_lead || 'o paciente'} compareceu?`}
-            {acaoModal?.acao === 'faltou' && `Marcar que ${acaoModal?.agendamento?.nome_lead || 'o paciente'} faltou? O lead será movido para Follow Up no CRM.`}
-            {acaoModal?.acao === 'cancelar' && `Cancelar o agendamento de ${acaoModal?.agendamento?.nome_lead || 'paciente'}? Isso atualizará o status no CRM também.`}
+            {acaoModal?.acao === 'confirmar' && `Confirmar o agendamento de ${acaoModal?.agendamento?.nome_lead || 'cliente'}?`}
+            {acaoModal?.acao === 'compareceu' && `Marcar que ${acaoModal?.agendamento?.nome_lead || 'o cliente'} compareceu?`}
+            {acaoModal?.acao === 'faltou' && `Marcar que ${acaoModal?.agendamento?.nome_lead || 'o cliente'} faltou? O lead será movido para Follow Up no CRM.`}
+            {acaoModal?.acao === 'cancelar' && `Cancelar o agendamento de ${acaoModal?.agendamento?.nome_lead || 'cliente'}? Isso atualizará o status no CRM também.`}
           </div>
           {acaoModal?.agendamento?.data_hora_inicio && (
             <p className="text-sm text-[var(--color-text-muted)]">
@@ -365,7 +365,7 @@ export function CentralAgendamentos() {
       <Modal isOpen={!!reagendarModal} onClose={() => setReagendar(null)} title="Reagendar Consulta">
         <div className="space-y-4">
           <div className="p-3 bg-amber-50 border border-amber-200 rounded-[8px] text-amber-700 text-sm font-medium">
-            ↻ Reagendando: <strong>{reagendarModal?.nome_lead || 'paciente'}</strong>
+            ↻ Reagendando: <strong>{reagendarModal?.nome_lead || 'cliente'}</strong>
           </div>
           {reagendarModal?.data_hora_inicio && (
             <p className="text-sm text-[var(--color-text-muted)]">

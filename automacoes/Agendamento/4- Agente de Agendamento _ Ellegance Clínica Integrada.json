@@ -1,0 +1,926 @@
+{
+  "name": "4- Agente de Agendamento | Ellegance Clínica Integrada",
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "const days = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];\nconst now = new Date();\nconst pad = (n) => String(n).padStart(2, '0');\n\nlet result = `Hoje é ${days[now.getDay()]} ${pad(now.getDate())}/${pad(now.getMonth()+1)}/${String(now.getFullYear()).slice(2)} às ${pad(now.getHours())}:${pad(now.getMinutes())}\\n`;\n\nfor (let i = 1; i <= 6; i++) {\n  const future = new Date(now);\n  future.setDate(now.getDate() + i);\n\n  let label = '';\n\n  if (i === 1) {\n    label = `Amanhã é ${days[future.getDay()]} ${pad(future.getDate())}/${pad(future.getMonth()+1)}/${String(future.getFullYear()).slice(2)}`;\n  } else if (i === 2) {\n    label = `Depois de amanhã é ${days[future.getDay()]} ${pad(future.getDate())}/${pad(future.getMonth()+1)}/${String(future.getFullYear()).slice(2)}`;\n  } else {\n    label = `A próxima ${days[future.getDay()]} será dia ${pad(future.getDate())}/${pad(future.getMonth()+1)}/${String(future.getFullYear()).slice(2)}`;\n  }\n\n  result += `${label}\\n`;\n}\n\nreturn [\n  {\n    json: {\n      resultado: result.trim()\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1056,
+        464
+      ],
+      "id": "29b1745b-6d46-4c32-adf8-696d1a3e77d5",
+      "name": "proximos_dias"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f6597956-c14a-494e-accd-c32de4101728",
+              "name": "lead_mensagem",
+              "value": "={{ $('agendar').item.json.lead_mensagem }}",
+              "type": "string"
+            },
+            {
+              "id": "14ffa419-a2b5-4193-89b5-9235a08b40df",
+              "name": "whastapp_lead",
+              "value": "={{ $('agendar').item.json.whastapp_lead }}",
+              "type": "string"
+            },
+            {
+              "id": "b55100a5-ad07-4b02-9025-d28e7795e511",
+              "name": "proximos_dias",
+              "value": "={{ $json.resultado }}",
+              "type": "string"
+            },
+            {
+              "id": "0ff2ae8c-8bde-45ce-80e4-ca16197bad0f",
+              "name": "lead_id",
+              "value": "={{ $('puxar_lead').item.json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "fab7581a-31b5-4fec-be2c-8c40ef1d6441",
+              "name": "id_agendamento",
+              "value": "={{ $('puxar_lead').item.json.id_agendamento }}",
+              "type": "string"
+            },
+            {
+              "id": "5068c363-e4d9-4120-9ce3-2a5a79c1b6fa",
+              "name": "id_conta_chatwoot",
+              "value": "={{ $('puxar_lead').item.json.id_conta_chatwoot }}",
+              "type": "string"
+            },
+            {
+              "id": "9531f8bb-1995-4621-88dc-e89eab5066e3",
+              "name": "id_conversa_chatwoot",
+              "value": "={{ $('puxar_lead').item.json.id_conversa_chatwoot }}",
+              "type": "string"
+            },
+            {
+              "id": "f9826e7d-23d2-4df7-bfb8-1aaf9465344b",
+              "name": "url_chatwoot",
+              "value": "={{ $('agendar').item.json.url_chatwoot }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1424,
+        464
+      ],
+      "id": "74e6076d-27b6-424e-85ad-c6ff888d1ebb",
+      "name": "setarInfo"
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "lead_mensagem"
+            },
+            {
+              "name": "whastapp_lead"
+            },
+            {
+              "name": "url_chatwoot"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        288,
+        464
+      ],
+      "id": "3ebe76ea-10d6-40bc-80b1-902cf9597862",
+      "name": "agendar"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.whastapp_lead }}",
+        "contextWindowLength": 40
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [
+        1984,
+        592
+      ],
+      "id": "891b5545-8b77-4c1f-8128-d63012e5cf06",
+      "name": "memoria1",
+      "credentials": {
+        "postgres": {
+          "id": "53gCxC2RPywoGJZS",
+          "name": "Postgres - Supabase - Heroic Leap Health"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "# Agente de IA",
+        "height": 464,
+        "width": 688,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1680,
+        256
+      ],
+      "typeVersion": 1,
+      "id": "12e4fc14-5403-43e8-9e97-5a0791612619",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "3e9dbb98-b2cf-4007-ace0-350d1653f3e7",
+              "name": "response",
+              "value": "={{ $json.output }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2560,
+        464
+      ],
+      "id": "4ec971fe-5928-4733-af82-92fa0e6c6789",
+      "name": "Response"
+    },
+    {
+      "parameters": {
+        "content": "# Profissionais:\n## _Angela: Ela cuida de injetáveis e skincare_\n## _Fernanda: procedimentos faciais_\n## _Kelly: procedimentos corporais_",
+        "height": 1056,
+        "width": 2928,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        0,
+        0
+      ],
+      "typeVersion": 1,
+      "id": "b01bf2b4-a67e-4746-9bb7-8e9cf6887789",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1792,
+        592
+      ],
+      "id": "d1155582-a087-4598-a803-8a5650e53565",
+      "name": "2.5 flash",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "XJlnKWM63U7uIt7j",
+          "name": "Gemini - Heroic Leap"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "# Resposta: ela é devolvida para a secretaria de IA",
+        "height": 464,
+        "width": 368,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        2416,
+        256
+      ],
+      "typeVersion": 1,
+      "id": "dbd16c3c-82f5-4b2d-94f3-1dee916d3840",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "content": "# Seta as datas e as informações",
+        "height": 464,
+        "width": 672,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        976,
+        256
+      ],
+      "typeVersion": 1,
+      "id": "707e6ae8-9e99-45ef-9b1a-12197cbaf526",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "# Ele é acionado através da Secretaria",
+        "height": 464,
+        "width": 384,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        144,
+        256
+      ],
+      "typeVersion": 1,
+      "id": "f4409e2f-48fc-49cd-a93e-18ff5affa1bb",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "leads",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "whatsapp_lead",
+              "keyValue": "={{ $json.whastapp_lead }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        688,
+        464
+      ],
+      "id": "3e375dc2-cccc-4d70-9935-43348cbddbd3",
+      "name": "puxar_lead",
+      "credentials": {
+        "supabaseApi": {
+          "id": "juhkfWmwyQbFaGjC",
+          "name": "Supabase - Heroic Leap Health"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "# Puxa (GET) os dados do lead",
+        "height": 464,
+        "width": 384,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        560,
+        256
+      ],
+      "typeVersion": 1,
+      "id": "2f40c129-139c-4f7e-91a0-c5235940b9b1",
+      "name": "Sticky Note5"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.lead_mensagem }}",
+        "options": {
+          "systemMessage": "=# IDENTIDADE\n\n-  Você é um **agente interno de roteamento de agendamentos** da **Ellegance Clínica Integrada**.  \n-  Seu papel é servir como o **elo de ligação** entre a secretária da clínica e as ferramentas de agendamento das profissionais, direcionando cada solicitação para a pessoa certa.  \n-  Você **não executa agendamentos nem altera mensagens**, apenas identifica o destino correto e encaminha a solicitação recebida.\n\n# SUA FUNÇÃO\n\n-   **Analisar a solicitação recebida** e identificar com clareza **qual profissional** deve ser acionada:\n    -   **Ângela (angelaTool)** → procedimentos de **emagrecimento**\n    -   **Fernanda (fernandaTool)** → procedimentos **faciais**\n    -   **Kelly (kellyTool)** → procedimentos **corporais (não relacionados a emagrecimento)**   \n-   **Encaminhar a mensagem exatamente como recebida**, sem reescrever, ajustar texto ou adicionar informações.\n-   **Acionar apenas uma tool por vez**, correspondente à profissional correta.\n-   **Nunca realizar verificações de horário nem criar agendamentos diretamente** — isso é responsabilidade das tools específicas de cada profissional.  \n-   Garantir que a comunicação siga o fluxo correto, evitando duplicações ou conflitos entre agendas.\n\n## DIAS E HORÁRIOS DISPONÍVEIS\n\nAs três profissionais atendem nos mesmos dias e horários:\n\n-   **Segunda a sexta-feira:** das **09h às 18h**\n-   **Sábado:** das **09h às 14h**\n\nCada procedimento dura **1 hora**. Se o paciente escolher mais de um procedimento, o tempo total deve ser calculado somando **1 hora por procedimento**.\n\n# TOOLS DISPONÍVEIS\n\n## `fernandaTool`\n\n**Responsável por:** procedimentos **faciais**.\n\n**✅ Quando chamar:**\n\n-   Quando o paciente mencionar procedimentos faciais como botox, preenchimento, bioestimulador, microagulhamento, peeling, lipo de papada ou rejuvenescimento facial.\n-   Quando a queixa ou interesse for relacionado ao **rosto, harmonização facial ou colágeno facial**.\n\n**🚫 Quando não chamar:**\n\n-   Se o procedimento for corporal → acionar `kellyTool`.\n-   Se o procedimento for de injetáveis ou skincare → acionar `angelaTool`.\n\n##  `kellyTool`\n\n**Responsável por:** procedimentos **corporais**.\n\n**✅ Quando chamar:**\n\n-   Quando o paciente mencionar procedimentos corporais como criolipólise, drenagem linfática, radiofrequência corporal, ultrassom cavitacional, endermologia, massagem modeladora, harmonização de glúteos ou programa de emagrecimento acompanhado.\n-   Quando o objetivo for **emagrecer, secar, definir, remodelar ou melhorar a aparência corporal** de qualquer forma.\n\n**🚫 Quando não chamar:**\n\n-   Se o procedimento for facial → acionar `fernandaTool`.\n-   Se o procedimento for de injetáveis ou skincare → acionar `angelaTool`.\n\n### `angelaTool`\n\n**Responsável por:** procedimentos de **injetáveis e skincare**.\n\n**✅ Quando chamar:**\n\n-   Quando o paciente mencionar mesoterapia, vitaminas injetáveis, glutationa, vitamina C, tratamento de acne, melasma, manchas ou home care personalizado.\n-   Quando o interesse for **qualidade da pele, hidratação, luminosidade ou manutenção de resultados**.\n\n**🚫 Quando não chamar:**\n\n-   Se o procedimento for facial estético → acionar `fernandaTool`.\n-   Se o procedimento for corporal → acionar `kellyTool`.\n\n## REGRAS GERAIS\n\n-   Responda somente o que foi solicitado, sem saudações ou informações extras.\n-   Se o paciente **não deixar claro o tipo de procedimento**, peça para especificar antes de prosseguir.\n-   Sempre informe datas no formato: **\"terça-feira, dia 12/03, às 15h\"**, sem mencionar o ano.\n-   Quando apresentar opções de horário, ofereça **no máximo 4 alternativas**.\n-   Para **verificar disponibilidade, remarcar ou cancelar**: os dados do agendamento já chegam no contexto da solicitação — **não solicite nenhuma informação adicional ao paciente**.\n-   Se o paciente mencionar **mais de um tipo de procedimento** que envolva profissionais diferentes, crie **um agendamento separado para cada profissional** e **combine os horários para o mesmo dia**, evitando conflitos de agenda.\n-   Se o procedimento mencionado **não se encaixar claramente** em nenhuma das profissionais, não tente adivinhar — pergunte ao paciente mais detalhes sobre o tratamento desejado antes de rotear.\n\n## DATA E HORA ATUALIZADOS\n\nUse estas informações como contexto de data e hora nas conversas:  \n{{ $json.proximos_dias }}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1952,
+        352
+      ],
+      "id": "39aa7a07-b9d2-4758-8b7f-25a664588511",
+      "name": "AI Agent1"
+    },
+    {
+      "parameters": {
+        "description": "Use essa tool somente para marcações na agenda da Angela.",
+        "workflowId": {
+          "__rl": true,
+          "value": "atjWKxprxU6LAlmd",
+          "mode": "id",
+          "cachedResultUrl": "/workflow/atjWKxprxU6LAlmd"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "whatsapp_lead": "={{ $json.whastapp_lead }}",
+            "nome_lead": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('nome_lead', `Coloque aqui SOMENTE o nome do lead. Se tiver o nome dele completo, coloque.`, 'string') }}",
+            "procedimento": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('procedimento', `Coloque aqui SOMENTE o procedimento que o lead deseja. Exemplo: Monjauro`, 'string') }}",
+            "lead_id": "={{ $json.lead_id }}",
+            "id_conta_chatwoot": "={{ $json.id_conta_chatwoot }}",
+            "id_conversa_chatwoot": "={{ $json.id_conversa_chatwoot }}",
+            "id_agendamento": "={{ $json.id_agendamento }}",
+            "url_chatwoot": "={{ $json.url_chatwoot }}",
+            "data_atendimento": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('data_atendimento', `Coloque aqui SOMENTE a data do agendamento que o lead deseja. Exemplo: 2025-03-15`, 'string') }}",
+            "hora_atendimento": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('hora_atendimento', `Coloque aqui SOMENTE a HORA do agendamento que o lead deseja. Exemplo: 10:00`, 'string') }}",
+            "evento": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('evento', `Aqui você precisa preencher qual o tipo de evento. Deve ser uma dessas opções abaixo:\n\"agendar\" = agendamento\n\"reagendar\" = reagendamento\n\"cancelar\" = fazer cancelamento\nVerHorarios= verificar horarios`, 'string') }}",
+            "id_agenda": "ID DA AGENDA DO PROFISSIONAL"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "nome_lead",
+              "displayName": "nome_lead",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "whatsapp_lead",
+              "displayName": "whatsapp_lead",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "evento",
+              "displayName": "evento",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "procedimento",
+              "displayName": "procedimento",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "lead_id",
+              "displayName": "lead_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "data_atendimento",
+              "displayName": "data_atendimento",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "hora_atendimento",
+              "displayName": "hora_atendimento",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "id_agendamento",
+              "displayName": "id_agendamento",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "id_agenda",
+              "displayName": "id_agenda",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "url_chatwoot",
+              "displayName": "url_chatwoot",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "id_conta_chatwoot",
+              "displayName": "id_conta_chatwoot",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "id_conversa_chatwoot",
+              "displayName": "id_conversa_chatwoot",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        2224,
+        880
+      ],
+      "id": "673bc040-f2d1-4c55-8d08-1b4b580eea4d",
+      "name": "angelaTool"
+    },
+    {
+      "parameters": {
+        "content": "## Abrir cada um desses nodes\n## e colocar o ID\n##  correspondente de cada agenda",
+        "height": 240,
+        "width": 864,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1792,
+        784
+      ],
+      "typeVersion": 1,
+      "id": "39184280-ca77-45b1-b47b-71d18399d7fe",
+      "name": "Sticky Note7"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "op2CQiLWWHDUDAPH",
+          "mode": "id",
+          "cachedResultUrl": "/workflow/op2CQiLWWHDUDAPH"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id_agenda": "ID DA AGENDA DO PROFISSIONAL",
+            "nome_lead": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('nome_lead', `Coloque aqui SOMENTE o nome do lead. Se tiver o nome dele completo, coloque.`, 'string') }}",
+            "whatsapp_lead": "={{ $json.whastapp_lead }}",
+            "procedimento": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('procedimento', `Coloque aqui SOMENTE o procedimento que o lead deseja. Exemplo: Botox na testa`, 'string') }}",
+            "evento": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('evento', `Aqui você precisa preencher qual o tipo de evento. Deve ser uma dessas opções abaixo:\n\"agendar\" = agendamento\n\"reagendar\" = reagendamento\n\"cancelar\" = fazer cancelamento\nVerHorarios= verificar horarios`, 'string') }}",
+            "lead_id": "={{ $json.lead_id }}",
+            "data_atendimento": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('data_atendimento', `Coloque aqui SOMENTE a data do agendamento que o lead deseja. Exemplo: 2025-03-15`, 'string') }}",
+            "hora_atendimento": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('hora_atendimento', `Coloque aqui SOMENTE a HORA do agendamento que o lead deseja. Exemplo: 10:00`, 'string') }}",
+            "id_agendamento": "={{ $json.id_agendamento }}",
+            "url_chatwoot": "={{ $json.url_chatwoot }}",
+            "id_conta_chatwoot": "={{ $json.id_conta_chatwoot }}",
+            "id_conversa_chatwoot": "={{ $json.id_conversa_chatwoot }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "nome_lead",
+              "displayName": "nome_lead",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "whatsapp_lead",
+              "displayName": "whatsapp_lead",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "evento",
+              "displayName": "evento",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "procedimento",
+              "displayName": "procedimento",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "lead_id",
+              "displayName": "lead_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "data_atendimento",
+              "displayName": "data_atendimento",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "hora_atendimento",
+              "displayName": "hora_atendimento",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "id_agendamento",
+              "displayName": "id_agendamento",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "id_agenda",
+              "displayName": "id_agenda",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "url_chatwoot",
+              "displayName": "url_chatwoot",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "id_conta_chatwoot",
+              "displayName": "id_conta_chatwoot",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "id_conversa_chatwoot",
+              "displayName": "id_conversa_chatwoot",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        2368,
+        880
+      ],
+      "id": "9b7a98f0-c9d5-4af3-ad12-ca31dd11a270",
+      "name": "fernandaTool"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "PyLRLPuioQCcFpNJ",
+          "mode": "id",
+          "cachedResultUrl": "/workflow/PyLRLPuioQCcFpNJ"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "whatsapp_lead": "={{ $json.whastapp_lead }}",
+            "nome_lead": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('nome_lead', `Coloque aqui SOMENTE o nome do lead. Se tiver o nome dele completo, coloque.`, 'string') }}",
+            "procedimento": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('procedimento', `Coloque aqui SOMENTE o procedimento que o lead deseja. Exemplo: Monjauro`, 'string') }}",
+            "lead_id": "={{ $json.lead_id }}",
+            "id_conta_chatwoot": "={{ $json.id_conta_chatwoot }}",
+            "id_conversa_chatwoot": "={{ $json.id_conversa_chatwoot }}",
+            "id_agendamento": "={{ $json.id_agendamento }}",
+            "url_chatwoot": "={{ $json.url_chatwoot }}",
+            "data_atendimento": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('data_atendimento', `Coloque aqui SOMENTE a data do agendamento que o lead deseja. Exemplo: 2025-03-15`, 'string') }}",
+            "hora_atendimento": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('hora_atendimento', `Coloque aqui SOMENTE a HORA do agendamento que o lead deseja. Exemplo: 10:00`, 'string') }}",
+            "evento": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('evento', `Aqui você precisa preencher qual o tipo de evento. Deve ser uma dessas opções abaixo:\n\"agendar\" = agendamento\n\"reagendar\" = reagendamento\n\"cancelar\" = fazer cancelamento\nVerHorarios= verificar horarios`, 'string') }}",
+            "id_agenda": "ID DA AGENDA DO PROFISSIONAL"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "nome_lead",
+              "displayName": "nome_lead",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "whatsapp_lead",
+              "displayName": "whatsapp_lead",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "evento",
+              "displayName": "evento",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "procedimento",
+              "displayName": "procedimento",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "lead_id",
+              "displayName": "lead_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "data_atendimento",
+              "displayName": "data_atendimento",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "hora_atendimento",
+              "displayName": "hora_atendimento",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "id_agendamento",
+              "displayName": "id_agendamento",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "id_agenda",
+              "displayName": "id_agenda",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "url_chatwoot",
+              "displayName": "url_chatwoot",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "id_conta_chatwoot",
+              "displayName": "id_conta_chatwoot",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "id_conversa_chatwoot",
+              "displayName": "id_conversa_chatwoot",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        2512,
+        880
+      ],
+      "id": "887ab293-11e6-4d00-b297-fd5457284dd0",
+      "name": "kellyTool"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "proximos_dias": {
+      "main": [
+        [
+          {
+            "node": "setarInfo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "setarInfo": {
+      "main": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "agendar": {
+      "main": [
+        [
+          {
+            "node": "puxar_lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "memoria1": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2.5 flash": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "puxar_lead": {
+      "main": [
+        [
+          {
+            "node": "proximos_dias",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1": {
+      "main": [
+        [
+          {
+            "node": "Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "angelaTool": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "fernandaTool": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "kellyTool": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "timezone": "America/Sao_Paulo",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "a135e488-cc9f-4565-b33d-236efc6a9220",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "cd3f555560da593715f2409944039c2dd529d28b002c9eefb22eeac5fd695ee6"
+  },
+  "id": "Alj1cPQwAqtsFJl9",
+  "tags": []
+}

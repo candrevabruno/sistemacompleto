@@ -15,6 +15,6 @@ function PlaceholderPage({ title }: { title: string }) {
 
 export const Dashboard = () => <PlaceholderPage title="Dashboard" />;
 export const CRM = () => <PlaceholderPage title="CRM de Leads" />;
-export const LeadsPacientes = () => <PlaceholderPage title="Gestão de Leads e Pacientes" />;
+export const LeadsClientes = () => <PlaceholderPage title="Gestão de Leads e Clientes" />;
 export const Agenda = () => <PlaceholderPage title="Agenda de Consultas" />;
 export const DocumentacaoAPI = () => <PlaceholderPage title="Documentação da API" />;

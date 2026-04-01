@@ -82,7 +82,7 @@ export function DocumentacaoAPI() {
     const highlight = (str: string) => {
       if (language === 'bash') {
         return str
-          .replace(/(\{TOKEN\}|\{AGENDA_ID\}|\{BASE_URL\}|UUID_DO_LEAD|UUID_DO_PACIENTE|ID_DO_AGENDAMENTO|2025-03-\d\d|14:00|10:00)/g, '<span class="text-amber-400 border-b border-dotted pb-0.5 cursor-help" title="Substitua pelo valor real text-amber-500">$1</span>')
+          .replace(/(\{TOKEN\}|\{AGENDA_ID\}|\{BASE_URL\}|UUID_DO_LEAD|UUID_DO_CLIENTE|ID_DO_AGENDAMENTO|2025-03-\d\d|14:00|10:00)/g, '<span class="text-amber-400 border-b border-dotted pb-0.5 cursor-help" title="Substitua pelo valor real text-amber-500">$1</span>')
           .replace(/("[^"]*")/g, '<span class="text-[var(--color-primary-light)]">$1</span>')
           .replace(/(curl|-X|-H|-d|GET|POST|PUT|DELETE)/g, '<span class="text-purple-400">$1</span>');
       }
@@ -202,7 +202,7 @@ export function DocumentacaoAPI() {
               <h2 className="font-cormorant text-3xl font-bold">Marcar Agendamento</h2>
             </div>
             <p className="text-[var(--color-text-main)] mb-6 text-lg leading-relaxed">
-              Cria um novo agendamento na agenda informada para um lead ou paciente existente no sistema. Duração fixa de 60 minutos.
+              Cria um novo agendamento na agenda informada para um lead ou cliente existente no sistema. Duração fixa de 60 minutos.
             </p>
             
             <h3 className="font-semibold text-lg mb-3">Parâmetros</h3>
@@ -213,8 +213,8 @@ export function DocumentacaoAPI() {
                 </thead>
                 <tbody className="divide-y divide-[var(--color-border-card)] bg-white">
                   <tr><td className="px-4 py-3 font-mono">agenda_id</td><td className="px-4 py-3 text-gray-500">UUID</td><td className="px-4 py-3 text-center"><Badge variant="compareceu">SIM</Badge></td><td className="px-4 py-3">ID da agenda — preenchido automaticamente acima</td></tr>
-                  <tr><td className="px-4 py-3 font-mono">lead_id</td><td className="px-4 py-3 text-gray-500">UUID</td><td className="px-4 py-3 text-center"><Badge variant="agendado">COND</Badge></td><td className="px-4 py-3">Obrigatório se não informar paciente_id</td></tr>
-                  <tr><td className="px-4 py-3 font-mono">paciente_id</td><td className="px-4 py-3 text-gray-500">UUID</td><td className="px-4 py-3 text-center"><Badge variant="agendado">COND</Badge></td><td className="px-4 py-3">Obrigatório se não informar lead_id</td></tr>
+                  <tr><td className="px-4 py-3 font-mono">lead_id</td><td className="px-4 py-3 text-gray-500">UUID</td><td className="px-4 py-3 text-center"><Badge variant="agendado">COND</Badge></td><td className="px-4 py-3">Obrigatório se não informar cliente_id</td></tr>
+                  <tr><td className="px-4 py-3 font-mono">cliente_id</td><td className="px-4 py-3 text-gray-500">UUID</td><td className="px-4 py-3 text-center"><Badge variant="agendado">COND</Badge></td><td className="px-4 py-3">Obrigatório se não informar lead_id</td></tr>
                   <tr><td className="px-4 py-3 font-mono">data</td><td className="px-4 py-3 text-gray-500">String</td><td className="px-4 py-3 text-center"><Badge variant="compareceu">SIM</Badge></td><td className="px-4 py-3 font-mono bg-gray-50 p-1 rounded inline-block">YYYY-MM-DD</td></tr>
                   <tr><td className="px-4 py-3 font-mono">hora</td><td className="px-4 py-3 text-gray-500">String</td><td className="px-4 py-3 text-center"><Badge variant="compareceu">SIM</Badge></td><td className="px-4 py-3 font-mono bg-gray-50 p-1 rounded inline-block">HH:MM</td></tr>
                   <tr><td className="px-4 py-3 font-mono">procedimento_nome</td><td className="px-4 py-3 text-gray-500">String</td><td className="px-4 py-3 text-center"><Badge variant="default">NÃO</Badge></td><td className="px-4 py-3">Nome do procedimento (texto livre)</td></tr>
@@ -248,7 +248,7 @@ export function DocumentacaoAPI() {
     "id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
     "agenda_id": "3d94b8e2-1c7a-4f9d-b123-456789abcdef",
     "lead_id": "a1b2c3d4-1234-5678-abcd-ef0123456789",
-    "paciente_id": null,
+    "cliente_id": null,
     "procedimento_nome": "Limpeza de Pele",
     "nome_lead": "Maria Silva",
     "whatsapp_lead": "5548999999999",

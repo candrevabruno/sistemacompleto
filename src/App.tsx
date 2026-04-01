@@ -8,7 +8,7 @@ import { Dashboard } from './pages/Dashboard';
 import { CRM } from './pages/CRM';
 import { Agenda } from './pages/Agenda';
 import { CentralAgendamentos } from './pages/CentralAgendamentos';
-import { LeadsPacientes } from './pages/LeadsPacientes';
+import { LeadsClientes } from './pages/LeadsClientes';
 import { DocumentacaoAPI } from './pages/DocumentacaoAPI';
 import { Configuracoes } from './pages/Configuracoes';
 
@@ -31,8 +31,8 @@ export function App() {
               <Route element={<PrivateRoute><Layout /></PrivateRoute>}>
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/crm" element={<CRM />} />
-                <Route path="/leads" element={<LeadsPacientes mode="leads" />} />
-                <Route path="/pacientes" element={<LeadsPacientes mode="pacientes" />} />
+                <Route path="/leads" element={<LeadsClientes mode="leads" />} />
+                <Route path="/clientes" element={<LeadsClientes mode="clientes" />} />
                 <Route path="/agenda" element={<Agenda />} />
                 <Route path="/central-agendamentos" element={<CentralAgendamentos />} />
                 <Route path="/documentacao-api" element={<DocumentacaoAPI />} />

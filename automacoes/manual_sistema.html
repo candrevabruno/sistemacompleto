@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Manual do Sistema — Heroic Leap Health</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Cormorant+Garamond:wght@600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    line-height: 1.7;
+    color: #2d2d2d;
+    background: #fff;
+  }
+
+  .cover {
+    height: 100vh;
+    background: linear-gradient(135deg, #C47E7E 0%, #8b5e5e 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    text-align: center;
+    page-break-after: always;
+  }
+
+  .cover h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 48px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    letter-spacing: -0.5px;
+  }
+
+  .cover .subtitle {
+    font-size: 18px;
+    opacity: 0.85;
+    font-weight: 400;
+    margin-bottom: 40px;
+  }
+
+  .cover .meta {
+    font-size: 13px;
+    opacity: 0.65;
+    margin-top: 20px;
+  }
+
+  .cover .badge {
+    background: rgba(255,255,255,0.2);
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 20px;
+    padding: 8px 20px;
+    font-size: 13px;
+    margin: 8px;
+    display: inline-block;
+  }
+
+  .page {
+    padding: 50px 60px;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  h1.section-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 32px;
+    color: #C47E7E;
+    border-bottom: 2px solid #C47E7E;
+    padding-bottom: 8px;
+    margin-bottom: 24px;
+    margin-top: 40px;
+  }
+
+  h2 {
+    font-size: 16px;
+    font-weight: 700;
+    color: #3d3d3d;
+    margin: 28px 0 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  h3 {
+    font-size: 14px;
+    font-weight: 600;
+    color: #5d4e4e;
+    margin: 20px 0 8px;
+  }
+
+  p { margin-bottom: 10px; color: #444; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 14px 0 20px;
+    font-size: 12.5px;
+  }
+
+  th {
+    background: #C47E7E;
+    color: white;
+    padding: 10px 14px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 12px;
+  }
+
+  td {
+    padding: 9px 14px;
+    border-bottom: 1px solid #f0e8e8;
+    vertical-align: top;
+  }
+
+  tr:nth-child(even) td { background: #fdf8f8; }
+
+  .alert {
+    border-left: 4px solid;
+    padding: 12px 16px;
+    margin: 14px 0;
+    border-radius: 0 8px 8px 0;
+    font-size: 12.5px;
+  }
+
+  .alert-important { border-color: #C47E7E; background: #fdf0f0; color: #7a3535; }
+  .alert-warning    { border-color: #e8a87c; background: #fef6ef; color: #7a4d1a; }
+  .alert-note       { border-color: #7a9e87; background: #f0f7f4; color: #2d5e42; }
+
+  .alert strong { font-weight: 700; display: block; margin-bottom: 4px; }
+
+  .flow-box {
+    background: #fdf8f8;
+    border: 1px solid #e8d5d5;
+    border-radius: 12px;
+    padding: 20px 24px;
+    font-family: 'Courier New', monospace;
+    font-size: 11.5px;
+    line-height: 1.8;
+    color: #4a2e2e;
+    margin: 16px 0;
+    white-space: pre-line;
+  }
+
+  .tag {
+    display: inline-block;
+    background: #f0e8e8;
+    color: #7a4040;
+    border-radius: 4px;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    margin: 2px;
+  }
+
+  .tag-green   { background: #e8f5ed; color: #2d6e47; }
+  .tag-blue    { background: #e8ecf5; color: #2d4a7a; }
+  .tag-orange  { background: #fef1e8; color: #7a4a1a; }
+
+  .module-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin: 16px 0;
+  }
+
+  .module-card {
+    border: 1px solid #e8d5d5;
+    border-radius: 10px;
+    padding: 14px 16px;
+    background: #fdf8f8;
+  }
+
+  .module-card .icon { font-size: 22px; margin-bottom: 6px; }
+  .module-card .name { font-weight: 700; font-size: 13px; color: #5d3535; margin-bottom: 4px; }
+  .module-card .desc { font-size: 11.5px; color: #888; line-height: 1.5; }
+
+  .page-break { page-break-before: always; padding-top: 40px; }
+
+  .header-bar {
+    background: linear-gradient(90deg, #C47E7E, #e8a87c);
+    height: 4px;
+    border-radius: 2px;
+    margin-bottom: 40px;
+  }
+
+  ul { padding-left: 20px; margin: 8px 0; }
+  ul li { margin-bottom: 5px; color: #555; }
+
+  .toc-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 6px 0;
+    border-bottom: 1px dotted #e0d0d0;
+    font-size: 13px;
+  }
+
+  .toc-item .num { color: #C47E7E; font-weight: 700; margin-right: 10px; }
+
+  .footer {
+    margin-top: 60px;
+    padding-top: 20px;
+    border-top: 1px solid #f0e0e0;
+    text-align: center;
+    font-size: 11px;
+    color: #aaa;
+  }
+</style>
+</head>
+<body>
+
+<!-- CAPA -->
+<div class="cover">
+  <div style="font-size:60px;margin-bottom:20px;">🏥</div>
+  <h1>Manual do Sistema</h1>
+  <div class="subtitle">Heroic Leap Health — Plataforma de Gestão + Automação IA</div>
+  <div>
+    <span class="badge">📋 Time Comercial</span>
+    <span class="badge">🔧 Time Operacional</span>
+  </div>
+  <div class="meta">Versão 1.0 &nbsp;|&nbsp; Março 2026</div>
+</div>
+
+<!-- SUMÁRIO -->
+<div class="page">
+  <div class="header-bar"></div>
+  <h1 class="section-title" style="margin-top:0">Sumário</h1>
+
+  <div class="toc-item"><span><span class="num">1.</span> Visão Geral do Sistema</span></div>
+  <div class="toc-item"><span><span class="num">2.</span> O Que o Sistema Tem</span></div>
+  <div class="toc-item"><span><span class="num">3.</span> Como Funciona — Visão Completa</span></div>
+  <div class="toc-item"><span><span class="num">4.</span> O Que é Automático (Agente de IA)</span></div>
+  <div class="toc-item" style="padding-left:20px"><span>4.1 Atendimento via WhatsApp</span></div>
+  <div class="toc-item" style="padding-left:20px"><span>4.2 Consulta à Base de Conhecimento</span></div>
+  <div class="toc-item" style="padding-left:20px"><span>4.3 Agendamento Automático</span></div>
+  <div class="toc-item" style="padding-left:20px"><span>4.4 Atualização do CRM</span></div>
+  <div class="toc-item" style="padding-left:20px"><span>4.5 Follow-ups em 3 Níveis</span></div>
+  <div class="toc-item" style="padding-left:20px"><span>4.6 Promoção Automática: Lead → Paciente</span></div>
+  <div class="toc-item"><span><span class="num">5.</span> O Que é Manual</span></div>
+  <div class="toc-item"><span><span class="num">6.</span> Fluxo Completo — Exemplo Real</span></div>
+  <div class="toc-item"><span><span class="num">7.</span> Banco de Dados</span></div>
+  <div class="toc-item"><span><span class="num">8.</span> Pontos de Atenção</span></div>
+  <div class="toc-item"><span><span class="num">9.</span> Para o Time Comercial — Diferenciais</span></div>
+  <div class="toc-item"><span><span class="num">10.</span> Para o Time de Suporte — Troubleshooting</span></div>
+</div>
+
+<!-- SEÇÃO 1 -->
+<div class="page page-break">
+  <div class="header-bar"></div>
+  <h1 class="section-title" style="margin-top:0">1. Visão Geral do Sistema</h1>
+
+  <p>O <strong>Heroic Leap Health</strong> é uma plataforma completa de gestão de clínicas com automação integrada de atendimento via WhatsApp. Ele combina dois componentes principais que funcionam em sincronia:</p>
+
+  <table>
+    <tr><th>Componente</th><th>O que é</th><th>Para quem</th></tr>
+    <tr><td><strong>Sistema Web</strong></td><td>Painel de gestão online (CRM, Agenda, Dashboard, etc.)</td><td>Secretária e gestores</td></tr>
+    <tr><td><strong>Agente de IA</strong></td><td>Atendimento automático via WhatsApp 24h/7dias</td><td>Clientes da clínica</td></tr>
+  </table>
+
+  <p>Os dois se comunicam em tempo real através de um banco de dados centralizado (Supabase). O que o agente de IA faz no WhatsApp aparece automaticamente no sistema — e o que a secretária faz no sistema pode ser visto pela automação.</p>
+
+  <div class="alert alert-note">
+    <strong>✅ Princípio central</strong>
+    90% do processo é automático. A equipe humana foca no atendimento presencial e gestão — não em digitar dados ou perseguir leads.
+  </div>
+</div>
+
+<!-- SEÇÃO 2 -->
+<div class="page page-break">
+  <div class="header-bar"></div>
+  <h1 class="section-title" style="margin-top:0">2. O Que o Sistema Tem</h1>
+
+  <div class="module-grid">
+    <div class="module-card">
+      <div class="icon">📊</div>
+      <div class="name">Dashboard</div>
+      <div class="desc">Visão executiva: leads, agendamentos, funil de vendas, gráficos por período selecionável</div>
+    </div>
+    <div class="module-card">
+      <div class="icon">📋</div>
+      <div class="name">CRM — Kanban</div>
+      <div class="desc">Acompanhamento visual de cada lead pelo funil de atendimento com drag & drop</div>
+    </div>
+    <div class="module-card">
+      <div class="icon">👥</div>
+      <div class="name">Leads / Pacientes</div>
+      <div class="desc">Lista completa de todos os leads e pacientes convertidos com histórico</div>
+    </div>
+    <div class="module-card">
+      <div class="icon">📅</div>
+      <div class="name">Agenda</div>
+      <div class="desc">Calendário visual por profissional para criar e visualizar agendamentos</div>
+    </div>
+    <div class="module-card">
+      <div class="icon">✅</div>
+      <div class="name">Central de Agendamentos</div>
+      <div class="desc">Gestão operacional diária: confirmar, faltou, reagendar e cancelar por profissional</div>
+    </div>
+    <div class="module-card">
+      <div class="icon">⚙️</div>
+      <div class="name">Configurações</div>
+      <div class="desc">Nome, logo, horários de funcionamento e gestão de agendas por profissional</div>
+    </div>
+  </div>
+</div>
+
+<!-- SEÇÃO 3 -->
+<div class="page page-break">
+  <div class="header-bar"></div>
+  <h1 class="section-title" style="margin-top:0">3. Como Funciona — Visão Completa</h1>
+
+  <p>A jornada completa de um lead, do primeiro contato até virar paciente:</p>
+
+  <div class="flow-box">WhatsApp do cliente
+        │
+        ▼
+[Agente de IA recebe a mensagem]
+        │
+        ├─ Responde dúvidas sobre serviços (base de conhecimento)
+        ├─ Verifica disponibilidade na agenda
+        ├─ Marca o agendamento
+        └─ Atualiza o CRM automaticamente
+        │
+        ▼
+[Sistema Web — CRM Kanban]
+  ┌──────────┬─────────────┬──────────┬─────────────┬──────────┐
+  │  Iniciou │ Conversando │ Agendado │ Compareceu  │ Follow Up│
+  └──────────┴─────────────┴──────────┴─────────────┴──────────┘
+        │
+        ▼ (ao marcar "Compareceu")
+[Paciente criado automaticamente no banco]
+        │
+        ▼
+[Aba Leads / Pacientes → aba Pacientes ✅]</div>
+</div>
+
+<!-- SEÇÃO 4 -->
+<div class="page page-break">
+  <div class="header-bar"></div>
+  <h1 class="section-title" style="margin-top:0">4. O Que é Automático</h1>
+  <p style="color:#C47E7E;font-weight:600;margin-bottom:20px;">O agente de IA (via N8N) cuida de 90% do processo sem intervenção humana.</p>
+
+  <h2>4.1 Recepção e Atendimento (Secretária IA)</h2>
+  <ul>
+    <li>Recebe mensagens de texto, áudio (transcreve) e imagem (interpreta)</li>
+    <li>Responde como um atendente humano com o nome e persona configurados</li>
+    <li>Agrupa mensagens enviadas em sequência antes de responder (sem respostas fragmentadas)</li>
+    <li>Ignora mensagens enviadas pela própria equipe — não interfere em atendimento humano</li>
+  </ul>
+  <div class="alert alert-note"><strong>Por que é automático</strong>Atendimento 24h sem custo adicional. Nenhum lead fica sem resposta, mesmo à meia-noite ou aos fins de semana.</div>
+
+  <h2>4.2 Consulta à Base de Conhecimento</h2>
+  <ul>
+    <li>Quando o cliente pergunta sobre procedimentos, preços ou informações da clínica, o agente consulta a base de dados configurada</li>
+    <li><strong>Nunca inventa informações.</strong> Se não encontrar, informa que vai verificar</li>
+  </ul>
+
+  <h2>4.3 Agendamento via WhatsApp</h2>
+  <p>O processo de agendamento tem sempre duas etapas obrigatórias:</p>
+  <table>
+    <tr><th>Etapa</th><th>O que acontece</th></tr>
+    <tr><td><strong>1. Verificar disponibilidade</strong></td><td>Antes de confirmar qualquer horário, o sistema verifica se o slot está realmente disponível na agenda</td></tr>
+    <tr><td><strong>2. Efetivar o agendamento</strong></td><td>Somente após o cliente confirmar interesse, o sistema realiza a marcação e atualiza o banco</td></tr>
+  </table>
+  <div class="alert alert-important"><strong>⚠️ Regra crítica</strong>O agente NUNCA confirma um horário sem antes verificar a disponibilidade. Isso evita conflitos de agenda.</div>
+
+  <h2>4.4 Atualização do CRM (após cada mensagem)</h2>
+  <p>Após cada resposta do agente, o sistema extrai automaticamente da conversa:</p>
+  <p>
+    <span class="tag">Nome do cliente</span>
+    <span class="tag">Motivo do contato</span>
+    <span class="tag">Procedimento de interesse</span>
+    <span class="tag">Resumo da conversa</span>
+    <span class="tag">Timestamp última mensagem</span>
+  </p>
+  <p>Se for o primeiro contato, o lead é criado automaticamente no banco.</p>
+</div>
+
+<!-- SEÇÃO 4 continuação -->
+<div class="page page-break">
+  <div class="header-bar"></div>
+
+  <h2 style="margin-top:0">4.5 Follow-ups Automáticos (3 Níveis)</h2>
+  <p>Verifica periodicamente quais leads pararam de responder e envia mensagens humanizadas de reativação.</p>
+  <table>
+    <tr><th>Nível</th><th>Quando dispara</th><th>Objetivo</th></tr>
+    <tr><td><strong>Follow-up 1</strong></td><td>Após X horas sem resposta</td><td>Retomar conversa com leveza</td></tr>
+    <tr><td><strong>Follow-up 2</strong></td><td>Depois do FU-1 sem resposta</td><td>Segunda tentativa, mensagem diferente</td></tr>
+    <tr><td><strong>Follow-up 3</strong></td><td>Depois do FU-2 sem resposta</td><td>Última tentativa antes de encerrar</td></tr>
+  </table>
+
+  <p><strong>Regras dos follow-ups:</strong></p>
+  <ul>
+    <li>❌ Não são enviados para leads já <strong>Agendados</strong> ou <strong>Compareceu</strong> (convertidos)</li>
+    <li>❌ O mesmo nível nunca é enviado duas vezes para o mesmo lead</li>
+    <li>✅ Cada nível é marcado no banco quando enviado — controle total de envios</li>
+  </ul>
+
+  <div class="alert alert-note"><strong>💡 Impacto esperado</strong>Follow-ups automáticos recuperam leads esquecidos sem esforço da equipe. Estatisticamente, aumentam a conversão em 20–40%.</div>
+
+  <h2>4.6 Promoção Automática: Lead → Paciente</h2>
+  <p>Quando um lead é marcado como <strong>"Compareceu"</strong> (seja pelo agente IA ou manualmente), o sistema automaticamente:</p>
+  <ul>
+    <li>Cria o registro na tabela de <strong>Pacientes</strong></li>
+    <li>O lead continua visível no CRM com status "Compareceu"</li>
+    <li>É <strong>bidirecional</strong>: se o status for alterado por engano, o paciente é removido automaticamente</li>
+  </ul>
+  <div class="alert alert-note"><strong>Por que é automático</strong>Elimina trabalho manual de cadastro de pacientes. Só vira paciente quem realmente compareceu — sem risco de dados incorretos.</div>
+</div>
+
+<!-- SEÇÃO 5 -->
+<div class="page page-break">
+  <div class="header-bar"></div>
+  <h1 class="section-title" style="margin-top:0">5. O Que é Manual</h1>
+  <p style="color:#888;margin-bottom:20px;">Ações que exigem julgamento humano ou intervenção da secretária.</p>
+
+  <h2>5.1 Criar Lead Manualmente (CRM → "+ Novo lead")</h2>
+  <p><strong>Quando usar:</strong> Lead chegou por telefone, indicação ou presencialmente — não pelo WhatsApp automatizado.</p>
+  <p>Campos: WhatsApp (obrigatório), nome, procedimento de interesse, motivo do contato.</p>
+
+  <h2>5.2 Mover Cards no Kanban</h2>
+  <p>Colunas do CRM Kanban e seus significados:</p>
+  <table>
+    <tr><th>Coluna</th><th>Significa</th><th>Observação</th></tr>
+    <tr><td>Iniciou</td><td>Primeiro contato recebido</td><td>—</td></tr>
+    <tr><td>Conversando</td><td>Em diálogo ativo</td><td>—</td></tr>
+    <tr><td>Agendado</td><td>Agendamento marcado</td><td>⚠️ Abre formulário de agendamento</td></tr>
+    <tr><td>Compareceu</td><td>Veio à clínica</td><td>⚠️ Cria Paciente automaticamente</td></tr>
+    <tr><td>Faltou</td><td>Não compareceu sem avisar</td><td>Lead vai para Follow Up</td></tr>
+    <tr><td>Cancelou Agendamento</td><td>Cancelou com aviso</td><td>—</td></tr>
+    <tr><td>Follow Up</td><td>Aguardando reativação</td><td>N8N envia mensagens automáticas</td></tr>
+    <tr><td>Abandonou</td><td>Encerrou sem conversão</td><td>—</td></tr>
+  </table>
+
+  <h2>5.3 Central de Agendamentos — Ações Diárias</h2>
+  <p>É aqui que a secretária trabalha no dia a dia. Filtros por profissional, período e status.</p>
+  <table>
+    <tr><th>Ação</th><th>O que faz</th><th>Atualiza</th></tr>
+    <tr><td>✓ Confirmar</td><td>Paciente confirmou que virá</td><td>Agendamento → confirmado</td></tr>
+    <tr><td>✓✓ Compareceu</td><td>Paciente chegou à clínica</td><td>Agendamento + CRM → cria Paciente</td></tr>
+    <tr><td>↻ Reagendar</td><td>Define nova data e hora</td><td>Agendamento + data no lead</td></tr>
+    <tr><td>✕ Faltou</td><td>Não veio sem avisar</td><td>Agendamento → faltou | Lead → Follow Up</td></tr>
+    <tr><td>✕ Cancelar</td><td>Cancelou com aviso</td><td>Agendamento + Lead → Cancelou</td></tr>
+  </table>
+
+  <h2>5.4 Configurações (somente Admin)</h2>
+  <ul>
+    <li>Nome e logo da clínica</li>
+    <li>Horários de funcionamento (impacta o Dashboard e a automação)</li>
+    <li>Agendas por profissional/sala com cores e horários próprios</li>
+  </ul>
+  <div class="alert alert-warning"><strong>⚠️ Atenção</strong>Os horários das agendas são usados pelo agente de IA para verificar disponibilidade. Manter sempre atualizado quando houver mudanças de horário ou folgas.</div>
+</div>
+
+<!-- SEÇÃO 6 -->
+<div class="page page-break">
+  <div class="header-bar"></div>
+  <h1 class="section-title" style="margin-top:0">6. Fluxo Completo — Exemplo Real</h1>
+
+  <div class="flow-box">1. Cliente envia "Oi" no WhatsApp às 22h (fora do horário comercial)
+
+2. Agente de IA responde imediatamente com saudação personalizada
+   └─ CRM: Lead criado automaticamente → status "Iniciou"
+
+3. Cliente pergunta sobre Botox
+   └─ Agente consulta base de conhecimento → responde com detalhes e preço
+   └─ CRM: procedimento_interesse = "Botox"
+
+4. Cliente quer agendar
+   └─ Agente verifica agenda do profissional → oferece horários disponíveis
+   └─ Cliente escolhe: "quinta às 14h"
+   └─ Agente confirma e cria o agendamento no sistema
+   └─ CRM: status = "Agendado" | data_agendamento = qui 14h
+   └─ Central de Agendamentos: novo card na lista do profissional
+
+5. No dia anterior, agente envia lembrete automático pelo WhatsApp
+   └─ Cliente confirma: "sim, estarei lá"
+   └─ Central: status do agendamento → "Confirmado"
+
+6. Paciente chega à clínica na quinta-feira
+   └─ Secretária clica "Compareceu" na Central de Agendamentos
+   └─ CRM: lead vai para status "Compareceu"
+   └─ Banco: novo registro criado em Pacientes automaticamente ✅
+
+7. Dashboard (qualquer período que inclua a quinta-feira):
+   └─ Funil de Vendas: +1 em Agendamentos, +1 em Confirmados, +1 em Conversões
+   └─ Novos pacientes: +1</div>
+
+  <div class="alert alert-note"><strong>💡 Nota importante</strong>Do passo 1 ao passo 5, NENHUMA intervenção humana foi necessária. A secretária só entrou no passo 6 para marcar o comparecimento presencial.</div>
+</div>
+
+<!-- SEÇÃO 7 -->
+<div class="page page-break">
+  <div class="header-bar"></div>
+  <h1 class="section-title" style="margin-top:0">7. Banco de Dados — Estrutura</h1>
+  <p>Para o time de suporte entender o que existe por baixo do sistema:</p>
+
+  <table>
+    <tr><th>Tabela</th><th>O que guarda</th><th>Quem escreve</th></tr>
+    <tr><td><strong>leads</strong></td><td>Todos os contatos recebidos</td><td>N8N (automático) + secretária (manual)</td></tr>
+    <tr><td><strong>pacientes</strong></td><td>Leads que compareceram</td><td>Trigger automático do banco</td></tr>
+    <tr><td><strong>agendamentos</strong></td><td>Todos os agendamentos</td><td>N8N + secretária (manual)</td></tr>
+    <tr><td><strong>agendas</strong></td><td>Profissionais/salas agendáveis</td><td>Admin via Configurações</td></tr>
+    <tr><td><strong>clinic_config</strong></td><td>Nome e logo da clínica</td><td>Admin via Configurações</td></tr>
+    <tr><td><strong>clinic_hours</strong></td><td>Horários de funcionamento</td><td>Admin via Configurações</td></tr>
+    <tr><td><strong>v_leads</strong></td><td>View com <code>minutos_ultima_mensagem</code></td><td>Calculada em tempo real — uso exclusivo N8N</td></tr>
+    <tr><td><strong>api_tokens</strong></td><td>Tokens de acesso para integrações</td><td>Admin via Doc. API</td></tr>
+  </table>
+</div>
+
+<!-- SEÇÃO 8 -->
+<div class="page page-break">
+  <div class="header-bar"></div>
+  <h1 class="section-title" style="margin-top:0">8. Pontos de Atenção</h1>
+
+  <div class="alert alert-important">
+    <strong>🔴 CRÍTICO — Marcar "Compareceu" sem confirmação real</strong>
+    Nunca marque um lead como "Compareceu" sem que o paciente tenha realmente vindo à clínica. Isso cria um registro de Paciente automaticamente e distorce todos os relatórios e métricas de conversão.
+  </div>
+
+  <div class="alert alert-warning">
+    <strong>🟡 ATENÇÃO — Horários das agendas desatualizados</strong>
+    Se um profissional mudar de horário ou tirar folga e o sistema não for atualizado, o agente de IA continuará oferecendo horários indisponíveis aos clientes. Atualizar em Configurações → Agendas imediatamente.
+  </div>
+
+  <div class="alert alert-warning">
+    <strong>🟡 ATENÇÃO — Campo v_leads para o N8N</strong>
+    O N8N deve usar a view <code>v_leads</code> (não a tabela <code>leads</code>) para acessar o campo <code>minutos_ultima_mensagem</code>, que determina quando enviar follow-ups. Usar a tabela direta não retorna esse campo.
+  </div>
+
+  <div class="alert alert-important">
+    <strong>🔴 NUNCA EXIBIR — Campos Chatwoot</strong>
+    Os campos <code>id_conversa_chatwoot</code>, <code>id_lead_chatwoot</code>, etc. existem no banco mas são de uso exclusivo do N8N. Nunca devem aparecer para o usuário final no sistema.
+  </div>
+
+  <div class="alert alert-note">
+    <strong>ℹ️ NOTA — Atendimento humano vs. IA</strong>
+    Se uma conversa for marcada como "atendimento humano" no Chatwoot, o agente de IA para de responder automaticamente. Isso existe para que a secretária possa assumir sem interferência da IA.
+  </div>
+</div>
+
+<!-- SEÇÃO 9 -->
+<div class="page page-break">
+  <div class="header-bar"></div>
+  <h1 class="section-title" style="margin-top:0">9. Para o Time Comercial — Diferenciais</h1>
+
+  <h2>🤖 Atendimento 24/7 sem operador humano</h2>
+  <p>O agente de IA atende no WhatsApp a qualquer hora — domingos, feriados, madrugada. Nenhum lead fica sem resposta. Para a clínica, isso significa capturar clientes que normalmente seriam perdidos fora do horário comercial.</p>
+
+  <h2>📅 Agendamento 100% automático pelo WhatsApp</h2>
+  <p>O cliente agenda pelo WhatsApp sem precisar ligar, esperar ou interagir com um humano. A agenda da clínica atualiza em tempo real. Sem conflitos, sem erros humanos.</p>
+
+  <h2>🔄 CRM 100% preenchido pela IA</h2>
+  <p>Nome, procedimento de interesse, motivo do contato e resumo da conversa — tudo extraído automaticamente. A secretária herda dados completos sem digitar nada.</p>
+
+  <h2>💬 Follow-up automático em 3 níveis</h2>
+  <p>Leads que somem são reativados automaticamente com mensagens humanizadas e diferentes em cada tentativa. A clínica não perde oportunidades por falta de acompanhamento — mesmo sem uma equipe dedicada a isso.</p>
+
+  <h2>📊 Dashboard com funil de conversão real</h2>
+  <p>Visualização clara de quantos leads viraram agendamentos, quantos compareceram e quantos viraram pacientes — por período personalizado. Dados reais, sem planilhas manuais.</p>
+
+  <h2>⚙️ Configurável para qualquer clínica</h2>
+  <p>O que muda de uma clínica para outra é apenas a configuração: nome do atendente, serviços, profissionais, horários e tom de voz. A estrutura é sempre a mesma — implantação rápida.</p>
+
+  <h2>🔗 Integração N8N + Chatwoot + Supabase</h2>
+  <p>Stack profissional e robusta. O sistema não depende de uma única plataforma — cada componente pode ser substituído ou atualizado de forma independente.</p>
+</div>
+
+<!-- SEÇÃO 10 -->
+<div class="page page-break">
+  <div class="header-bar"></div>
+  <h1 class="section-title" style="margin-top:0">10. Para o Time de Suporte — Troubleshooting</h1>
+
+  <table>
+    <tr><th>Problema</th><th>Causa provável</th><th>Solução</th></tr>
+    <tr>
+      <td>Lead não aparece no CRM após conversa no WhatsApp</td>
+      <td>N8N não está rodando ou erro no nó de CRM</td>
+      <td>Verificar logs no N8N e status da conexão Supabase</td>
+    </tr>
+    <tr>
+      <td>Agendamento não criado após confirmação no WhatsApp</td>
+      <td>Nó executor de agenda com erro</td>
+      <td>Verificar logs do workflow de agendamento no N8N</td>
+    </tr>
+    <tr>
+      <td>Paciente não criado ao marcar "Compareceu"</td>
+      <td>Trigger <code>on_lead_status_changed</code> inativo</td>
+      <td>Verificar no Supabase → Database → Triggers se o trigger existe e aponta para <code>converter_lead_em_paciente()</code></td>
+    </tr>
+    <tr>
+      <td>Follow-up sendo enviado para lead já agendado</td>
+      <td>Condição de status no N8N mal configurada</td>
+      <td>Verificar filtro de status no workflow de follow-up — deve excluir "agendado" e "compareceu"</td>
+    </tr>
+    <tr>
+      <td>Campo <code>minutos_ultima_mensagem</code> não aparece no N8N</td>
+      <td>Query apontando para tabela <code>leads</code> em vez de <code>v_leads</code></td>
+      <td>Alterar a query no N8N para usar <code>v_leads</code></td>
+    </tr>
+    <tr>
+      <td>Agendamento não reflete na Central de Agendamentos</td>
+      <td>Filtro de data ou profissional incorreto</td>
+      <td>Verificar período e agenda selecionados nos filtros da Central</td>
+    </tr>
+    <tr>
+      <td>Horários disponíveis incorretos no WhatsApp</td>
+      <td>Agenda desatualizada no sistema</td>
+      <td>Atualizar em Configurações → Agendas</td>
+    </tr>
+    <tr>
+      <td>Dashboard mostrando 0 em todos os campos</td>
+      <td>Filtro de período incompatível com as datas dos dados</td>
+      <td>Verificar se os leads têm <code>inicio_atendimento</code> preenchido e compatível com o período selecionado</td>
+    </tr>
+    <tr>
+      <td>Erro ao arrastar card no CRM</td>
+      <td>Política RLS no Supabase ou erro na API</td>
+      <td>Verificar se o usuário está autenticado e se as políticas de UPDATE estão ativas na tabela <code>leads</code></td>
+    </tr>
+  </table>
+
+  <div class="footer">
+    Manual do Sistema — Heroic Leap Health &nbsp;|&nbsp; Versão 1.0 &nbsp;|&nbsp; Março 2026<br>
+    Gerado automaticamente pelo sistema de documentação
+  </div>
+</div>
+
+</body>
+</html>

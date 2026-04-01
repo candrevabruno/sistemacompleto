@@ -40,6 +40,11 @@ export function CRM() {
   // Compareceu Confirmation
   const [confirmCompareceu, setConfirmCompareceu] = useState<{ leadId: string, sourceCol: string } | null>(null);
 
+  // Reagendado Modal
+  const [confirmReagendado, setConfirmReagendado] = useState<{ leadId: string, sourceCol: string, lead: any } | null>(null);
+  const [reagendadoForm, setReagendadoForm] = useState({ dataHora: '', agendaId: '' });
+  const [savingReagendado, setSavingReagendado] = useState(false);
+
   // Lead Details
   const [selectedLead, setSelectedLead] = useState<any>(null);
   const [openLeadDetails, setOpenLeadDetails] = useState(false);
@@ -59,6 +64,23 @@ export function CRM() {
   useEffect(() => {
     fetchLeads();
     fetchAgendas();
+
+    // Sincronização em Tempo Real (Supabase Realtime)
+    const leadsChannel = supabase
+      .channel('crm-leads-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'leads' },
+        (payload) => {
+          console.log('Mudança detectada no banco:', payload);
+          fetchLeads(); // Recarrega para garantir consistência total
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(leadsChannel);
+    };
   }, []);
 
   const handleDragEnd = async (result: DropResult) => {
@@ -70,12 +92,20 @@ export function CRM() {
     const oldStatus = source.droppableId;
     const newStatus = destination.droppableId;
 
+    console.log(`Movendo lead ${leadId} de ${oldStatus} para ${newStatus}`);
+
+    const lead = leads.find(l => l.id === leadId);
+    if (!lead) {
+      console.error("Lead não encontrado no estado local!");
+      alert("Erro crítico: Lead não encontrado. Por favor, recarregue a página.");
+      return;
+    }
+
     // Agendado: abre modal para coletar dados do agendamento
     if (newStatus === 'agendado' && oldStatus !== 'agendado') {
-      const lead = leads.find(l => l.id === leadId);
       setAgendadoForm({
         dataHora: '',
-        procedimento: lead?.procedimento_interesse || '',
+        procedimento: lead.procedimento_interesse || '',
         agendaId: agendas[0]?.id || ''
       });
       setConfirmAgendado({ leadId, sourceCol: oldStatus, lead });
@@ -88,13 +118,24 @@ export function CRM() {
       return;
     }
 
+    // Reagendado: abre modal para nova data e sincroniza agendamento
+    if (newStatus === 'reagendado') {
+      const currentIso = lead.data_agendamento || null;
+      setReagendadoForm({
+        dataHora: currentIso ? format(parseISO(currentIso), "yyyy-MM-dd'T'HH:mm") : '',
+        agendaId: agendas[0]?.id || ''
+      });
+      setConfirmReagendado({ leadId, sourceCol: oldStatus, lead });
+      return;
+    }
+
     // Demais colunas: update simples
     updateLeadState(leadId, newStatus);
     const { error } = await supabase.from('leads').update({ status: newStatus }).eq('id', leadId);
     if (error) {
-       console.error('Erro ao mover lead:', error);
+       console.error('Erro ao mover lead no Supabase:', error);
        updateLeadState(leadId, oldStatus);
-       alert(`Erro ao mover lead para ${newStatus}. Verifique o console para detalhes.`);
+       alert(`Erro ao salvar status: ${error.message}`);
     }
   };
 
@@ -177,6 +218,81 @@ export function CRM() {
 
   const cancelCompareceuAction = () => {
     setConfirmCompareceu(null);
+  };
+
+  // ── REAGENDADO ──────────────────────────────────────────────────────────
+  const confirmReagendadoAction = async () => {
+    if (!confirmReagendado || !reagendadoForm.dataHora) {
+      alert("Por favor, informe a nova data e horário.");
+      return;
+    }
+    const { leadId, sourceCol, lead } = confirmReagendado;
+    setSavingReagendado(true);
+
+    try {
+      const novaData = new Date(reagendadoForm.dataHora).toISOString();
+
+      // 1. Atualizar o Agendamento vinculado
+      // Se tiver id_agendamento, usamos ele. Se não tiver, buscamos pelo lead_id com status ativo
+      let agId = lead.id_agendamento;
+      if (!agId) {
+        console.log("Buscando agendamento vinculado para o lead:", leadId);
+        const { data: searchAg, error: searchError } = await supabase
+          .from('agendamentos')
+          .select('id')
+          .eq('lead_id', leadId)
+          .in('status', ['agendado', 'confirmado']) // Aceita ambos os status ativos
+          .order('created_at', { ascending: false })
+          .limit(1);
+        
+        if (searchError) console.error("Erro na busca de agendamento:", searchError);
+        if (searchAg && searchAg.length > 0) {
+          agId = searchAg[0].id;
+          console.log("Agendamento encontrado:", agId);
+        }
+      }
+
+      if (agId) {
+        const { error: agUpdateError } = await supabase
+          .from('agendamentos')
+          .update({ 
+            data_hora_inicio: novaData,
+            status: 'reagendado'
+          })
+          .eq('id', agId);
+        
+        if (agUpdateError) {
+          console.error("Erro ao atualizar agendamento:", agUpdateError);
+          // Opcional: decidimos se paramos aqui ou continuamos apenas no CRM
+        }
+      } else {
+        console.warn("Nenhum agendamento vinculado encontrado para este lead. O status no CRM será atualizado sozinho.");
+      }
+
+      // 2. Atualizar o Lead
+      const { error } = await supabase
+        .from('leads')
+        .update({
+          status: 'reagendado',
+          data_agendamento: novaData,
+          id_agendamento: agId || lead.id_agendamento // Mantém o vínculo se acabamos de descobrir o ID
+        })
+        .eq('id', leadId);
+
+      if (error) {
+        alert(`Erro ao reagendar no CRM: ${error.message}`);
+        return;
+      }
+
+      updateLeadState(leadId, 'reagendado');
+      setConfirmReagendado(null);
+      fetchLeads();
+    } catch (err: any) {
+      console.error("Erro interno ao reagendar:", err);
+      alert("Ocorreu um erro interno ao processar o reagendamento.");
+    } finally {
+      setSavingReagendado(false);
+    }
   };
 
   // ── NOVO LEAD ─────────────────────────────────────────────────────────────
@@ -362,10 +478,38 @@ export function CRM() {
           <div className="p-4 bg-[var(--color-success)]/10 border border-[var(--color-success)] rounded-[8px] text-[var(--color-success)] font-medium">
             Confirmar que este lead compareceu à clínica?
           </div>
-          <p className="text-sm text-[var(--color-text-muted)]">Ao confirmar, o sistema promoverá este lead automaticamente para a base de <strong>Pacientes</strong>.</p>
+          <p className="text-sm text-[var(--color-text-muted)]">Ao confirmar, o sistema promoverá este lead automaticamente para a base de <strong>Clientes</strong>.</p>
           <div className="flex gap-3 justify-end mt-4">
             <Button variant="secondary" onClick={cancelCompareceuAction}>Cancelar</Button>
             <Button className="bg-[var(--color-success)] text-white hover:bg-green-700 border-none" onClick={confirmCompareceuAction}>Confirmar Comparecimento</Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* MODAL REAGENDAR */}
+      <Modal isOpen={!!confirmReagendado} onClose={() => setConfirmReagendado(null)} title="Reagendar Lead">
+        <div className="space-y-4">
+          <div className="p-3 bg-amber-50 border border-amber-200 rounded-[8px] text-amber-700 text-sm font-medium">
+            📅 Selecione a nova data para <strong>{confirmReagendado?.lead?.nome_lead || confirmReagendado?.lead?.whatsapp_lead}</strong>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-[var(--color-text-main)] mb-1">Nova Data e Horário <span className="text-red-500">*</span></label>
+            <input
+              type="datetime-local"
+              value={reagendadoForm.dataHora}
+              onChange={e => setReagendadoForm({...reagendadoForm, dataHora: e.target.value})}
+              className="w-full border border-[var(--color-border-card)] rounded-[8px] px-3 py-2 text-sm bg-[var(--color-bg-base)] text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+            />
+          </div>
+          <div className="flex gap-3 justify-end mt-4">
+            <Button variant="secondary" onClick={() => setConfirmReagendado(null)}>Cancelar</Button>
+            <Button
+              className="bg-amber-500 text-white hover:bg-amber-600 border-none"
+              onClick={confirmReagendadoAction}
+              disabled={!reagendadoForm.dataHora || savingReagendado}
+            >
+              {savingReagendado ? 'Salvando...' : 'Confirmar Reagendamento'}
+            </Button>
           </div>
         </div>
       </Modal>

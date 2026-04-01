@@ -54,7 +54,7 @@ export type Database = {
           lead_id: string | null
           nome_lead: string | null
           observacoes: string | null
-          paciente_id: string | null
+          cliente_id: string | null
           procedimento_nome: string | null
           status: Database["public"]["Enums"]["agendamento_status"]
           whatsapp_lead: string | null
@@ -68,7 +68,7 @@ export type Database = {
           lead_id?: string | null
           nome_lead?: string | null
           observacoes?: string | null
-          paciente_id?: string | null
+          cliente_id?: string | null
           procedimento_nome?: string | null
           status?: Database["public"]["Enums"]["agendamento_status"]
           whatsapp_lead?: string | null
@@ -82,7 +82,7 @@ export type Database = {
           lead_id?: string | null
           nome_lead?: string | null
           observacoes?: string | null
-          paciente_id?: string | null
+          cliente_id?: string | null
           procedimento_nome?: string | null
           status?: Database["public"]["Enums"]["agendamento_status"]
           whatsapp_lead?: string | null
@@ -97,9 +97,9 @@ export type Database = {
           },
           {
             foreignKeyName: "agendamentos_estetica_cliente_id_fkey"
-            columns: ["paciente_id"]
+            columns: ["cliente_id"]
             isOneToOne: false
-            referencedRelation: "pacientes"
+            referencedRelation: "clientes"
             referencedColumns: ["id"]
           },
           {
@@ -293,7 +293,7 @@ export type Database = {
         }
         Relationships: []
       }
-      pacientes: {
+      clientes: {
         Row: {
           created_at: string
           data_primeira_visita: string
