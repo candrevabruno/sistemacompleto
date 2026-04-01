@@ -335,7 +335,7 @@ export function Login() {
 
           <div className="hl-eyebrow">Acesso seguro</div>
           <h1 className="hl-title">Bem-vindo(a) de volta!</h1>
-          <p className="hl-subtitle">Menos burocracia. Mais tempo para seus pacientes.</p>
+          <p className="hl-subtitle">Simplicidade para quem não pode desperdiçar tempo.</p>
 
           <form onSubmit={handleLogin}>
             {/* E-mail */}
