@@ -19,7 +19,7 @@ export function Header() {
       case '/agenda': return 'Agenda';
       case '/configuracoes': return 'Configurações';
       case '/documentacao-api': return 'Documentação da API';
-      default: return config?.nome || 'Heroic Leap Health';
+      default: return config?.nome || 'Heroic Leap';
     }
   };
 

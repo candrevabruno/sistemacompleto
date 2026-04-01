@@ -116,7 +116,7 @@ export function DocumentacaoAPI() {
           Documentação da API
         </h1>
         <p className="text-[var(--color-text-muted)] mt-2 max-w-2xl text-lg">
-          Use os endpoints abaixo para integrar seu agente de IA e N8N com o Heroic Leap Health.
+          Use os endpoints abaixo para integrar seu agente de IA e N8N com o Heroic Leap.
         </p>
       </div>
 

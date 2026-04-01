@@ -14,7 +14,7 @@
 ALTER DATABASE postgres SET timezone TO 'America/Sao_Paulo';
 
 -- PASSO 1 — ENUMs
-DO $$ BEGIN CREATE TYPE lead_status AS ENUM ('iniciou_atendimento','conversando','agendado','compareceu','cancelou_agendamento','follow_up','abandonou_conversa'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN CREATE TYPE lead_status AS ENUM ('iniciou_atendimento','conversando','agendado','reagendado','compareceu','cancelou_agendamento','follow_up','abandonou_conversa'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN CREATE TYPE agendamento_status AS ENUM ('agendado','confirmado','compareceu','faltou','cancelado'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN CREATE TYPE dia_semana AS ENUM ('domingo','segunda','terca','quarta','quinta','sexta','sabado'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN CREATE TYPE user_role AS ENUM ('admin','user'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;

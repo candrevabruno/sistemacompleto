@@ -44,7 +44,7 @@ export function Configuracoes() {
 
 function AbaGeral() {
   const { config, refreshConfig } = useClinic();
-  const [nome, setNome] = useState(config?.nome || 'Heroic Leap Health');
+  const [nome, setNome] = useState(config?.nome || 'Heroic Leap');
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
@@ -52,7 +52,7 @@ function AbaGeral() {
   const [loadingHours, setLoadingHours] = useState(false);
 
   useEffect(() => {
-    setNome(config?.nome || 'Heroic Leap Health');
+    setNome(config?.nome || 'Heroic Leap');
   }, [config]);
 
   useEffect(() => {
@@ -405,6 +405,7 @@ function AbaKanban() {
     { kanban: 'Iniciou o Atendimento', db: 'iniciou_atendimento' },
     { kanban: 'Conversando', db: 'conversando' },
     { kanban: 'Agendado', db: 'agendado' },
+    { kanban: 'Reagendado', db: 'reagendado' },
     { kanban: 'Compareceu', db: 'compareceu' },
     { kanban: 'Cancelou o Agendamento', db: 'cancelou_agendamento' },
     { kanban: 'Follow Up', db: 'follow_up' },

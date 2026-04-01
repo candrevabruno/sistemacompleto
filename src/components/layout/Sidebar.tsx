@@ -49,7 +49,7 @@ export function Sidebar() {
           </div>
         )}
         <h2 className="font-cormorant text-center text-[18px] font-semibold text-[var(--color-primary)]">
-          {config?.nome || 'Heroic Leap Health'}
+          {config?.nome || 'Heroic Leap'}
         </h2>
       </div>
 

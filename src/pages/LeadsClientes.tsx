@@ -189,7 +189,7 @@ export function LeadsClientes({ mode }: { mode?: 'leads' | 'clientes' }) {
       head,
       body,
       theme: 'striped',
-      headStyles: { fillColor: [142, 98, 98] }, // Cor base da paleta Heroic Leap Health
+      headStyles: { fillColor: [142, 98, 98] }, // Cor base da paleta Heroic Leap
       styles: { fontSize: 9 }
     });
 
