@@ -228,10 +228,10 @@ export function CRM() {
               {COLUMNS.map(col => {
                 const colCards = cardsByCol[col.id] || [];
                 return (
-                  <div key={col.id} className={`flex flex-col flex-shrink-0 w-[300px] h-full max-h-full bg-[var(--color-bg-sidebar)] rounded-[12px] border border-[var(--color-border-card)] border-t-4 shadow-sm ${col.colorClass}`}>
-                    <div className="p-3 font-semibold text-[var(--color-text-main)] flex justify-between items-center bg-white/50 border-b border-[var(--color-border-card)] rounded-t-[10px]">
-                      <span className="truncate pr-2">{col.title}</span>
-                      <span className="bg-white border rounded-full px-2 py-0.5 text-xs text-[var(--color-text-muted)] font-mono">{colCards.length}</span>
+                  <div key={col.id} className={`flex flex-col flex-shrink-0 w-[300px] h-full max-h-full bg-white rounded-[12px] border border-[var(--color-border-card)] border-t-4 shadow-sm transition-all ${col.colorClass}`}>
+                    <div className="p-3 font-semibold text-[var(--color-text-main)] flex justify-between items-center bg-gray-50/50 border-b border-[var(--color-border-card)] rounded-t-[10px]">
+                      <span className="truncate pr-2 font-cormorant text-lg">{col.title}</span>
+                      <span className="bg-white border border-[var(--color-border-card)] rounded-full px-2 py-0.5 text-[10px] text-[var(--color-text-muted)] font-mono">{colCards.length}</span>
                     </div>
 
                     <Droppable droppableId={col.id}>
@@ -239,7 +239,7 @@ export function CRM() {
                         <div
                           ref={provided.innerRef}
                           {...provided.droppableProps}
-                          className={`flex-1 overflow-y-auto p-2 space-y-2 transition-colors ${snapshot.isDraggingOver ? 'bg-[var(--color-primary-light)]/50' : ''}`}
+                          className={`flex-1 overflow-y-auto p-2 space-y-3 transition-colors bg-[#F9FAFB]/80 ${snapshot.isDraggingOver ? 'bg-[var(--color-primary-light)]/40' : ''}`}
                         >
                           {colCards.map((card, index) => (
                             <Draggable key={card.id} draggableId={card.id} index={index}>
@@ -250,7 +250,7 @@ export function CRM() {
                                   {...provided.dragHandleProps}
                                   onClick={() => openDrawer(card)}
                                   style={provided.draggableProps.style}
-                                  className={`bg-[var(--color-bg-card)] p-3 rounded-[8px] border-2 shadow-[var(--shadow-card)] cursor-grab hover:border-[var(--color-primary)] transition-colors ${col.colorClass} ${snapshot.isDragging ? 'opacity-90 scale-[1.02] shadow-lg ring-2 ring-[var(--color-primary)]' : ''}`}
+                                  className={`bg-white p-4 rounded-[12px] border-l-4 shadow-[0_2px_12px_-3px_rgba(0,0,0,0.06)] cursor-grab hover:shadow-md hover:-translate-y-0.5 transition-all ${col.colorClass} ${snapshot.isDragging ? 'opacity-90 scale-[1.02] shadow-xl ring-1 ring-[var(--color-primary)]/20' : ''}`}
                                 >
                                   <div className="font-semibold text-sm line-clamp-1 mb-1">{card.nome_lead || 'Lead sem nome'}</div>
                                   <div className="text-xs text-[var(--color-text-muted)] mb-3">{card.whatsapp_lead}</div>
