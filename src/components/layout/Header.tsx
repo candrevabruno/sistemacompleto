@@ -13,7 +13,7 @@ export function Header() {
   const getPageTitle = (pathname: string) => {
     switch (pathname) {
       case '/dashboard': return 'Dashboard';
-      case '/crm': return 'CRM';
+      case '/crm': return 'CRM — Funil de Atendimento';
       case '/leads-pacientes': return 'Leads e Pacientes';
       case '/agenda': return 'Agenda';
       case '/configuracoes': return 'Configurações';
