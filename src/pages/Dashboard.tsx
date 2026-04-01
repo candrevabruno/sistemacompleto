@@ -299,11 +299,11 @@ export function Dashboard() {
                 <XAxis dataKey="name" axisLine={false} tickLine={false} />
                 <YAxis axisLine={false} tickLine={false} />
                 <Tooltip 
-                  cursor={{ fill: 'var(--color-primary-light)', opacity: 0.4 }} 
+                  cursor={{ fill: 'var(--color-bg-base)', opacity: 0.1 }} 
                   contentStyle={{ color: 'var(--color-text-main)', borderRadius: '8px', border: '1px solid var(--color-border-card)', boxShadow: 'var(--shadow-dropdown)', background: 'var(--color-bg-base)' }}
-                  itemStyle={{ color: 'var(--color-primary)' }}
+                  itemStyle={{ color: 'var(--color-text-main)' }}
                 />
-                <Bar dataKey="valor" fill="var(--color-primary-light)" radius={[4, 4, 0, 0]} label={{ position: 'top', fill: 'var(--color-primary)', fontSize: 13, fontWeight: 'bold' }} />
+                <Bar dataKey="valor" fill="var(--color-primary)" radius={[4, 4, 0, 0]} barSize={24} label={{ position: 'top', fill: 'var(--color-primary)', fontSize: 13, fontWeight: 'bold' }} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
