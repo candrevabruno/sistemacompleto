@@ -395,13 +395,13 @@ export function Dashboard() {
             </div>
 
             {/* Conversao */}
-            <div className="bg-[var(--color-primary)] text-white p-3 sm:p-4 rounded-lg w-[85%] sm:w-[calc(100%-4.5rem)] ml-auto shadow-sm relative max-w-[450px]">
-              <div className="hidden sm:block absolute -left-[25px] top-[-16px] w-[25px] h-[40px] border-l-2 border-b-2 border-white/20 rounded-bl-lg z-[0]"></div>
+            <div className="bg-[var(--color-primary)] text-[var(--color-text-main)] p-3 sm:p-4 rounded-lg w-[85%] sm:w-[calc(100%-4.5rem)] ml-auto shadow-sm relative max-w-[450px]">
+              <div className="hidden sm:block absolute -left-[25px] top-[-16px] w-[25px] h-[40px] border-l-2 border-b-2 border-black/10 rounded-bl-lg z-[0]"></div>
               <div className="flex justify-between items-center gap-2">
-                <span className="font-semibold flex items-center gap-2 text-base truncate"><div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center text-xs shrink-0">4</div> <span className="truncate">Conversões</span></span>
+                <span className="font-semibold flex items-center gap-2 text-base truncate"><div className="w-6 h-6 rounded-full bg-black/10 flex items-center justify-center text-xs shrink-0">4</div> <span className="truncate">Conversões</span></span>
                 <div className="text-right flex items-center shrink-0">
                   <span className="font-bold text-xl">{metrics.pacientes}</span>
-                  <span className="text-xs font-bold bg-white/20 px-1.5 py-0.5 rounded ml-2 mt-0.5 shrink-0">+{pctConverteram}%</span>
+                  <span className="text-xs font-bold bg-black/10 px-1.5 py-0.5 rounded ml-2 mt-0.5 shrink-0">+{pctConverteram}%</span>
                 </div>
               </div>
             </div>
