@@ -24,22 +24,22 @@ export interface BadgeProps extends React.HTMLAttributes<HTMLDivElement> {
 export const Badge = React.forwardRef<HTMLDivElement, BadgeProps>(
   ({ className, variant = 'default', children, ...props }, ref) => {
     const variants: Record<string, string> = {
-      default: 'bg-[var(--color-primary-light)] text-[var(--color-primary)]',
-      success: 'bg-[#EAF3DE] text-[#3B6D11] dark:bg-[rgba(122,158,135,0.2)]',
-      warning: 'bg-[#F7F3E8] text-[#C9A84C] dark:bg-[rgba(232,168,124,0.2)]',
-      error: 'bg-[#FCEEEE] text-[var(--color-error)] dark:bg-[rgba(196,126,126,0.2)]',
-      info: 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400',
+      default: 'bg-[#FDF6E3] text-[#856404] font-semibold',
+      success: 'bg-[#DEF2D7] text-[#1E4620]',
+      warning: 'bg-[#FFF4E5] text-[#8C5E00]',
+      error: 'bg-[#FEE2E2] text-[#991B1B]',
+      info: 'bg-[#E0F2FE] text-[#0369A1]',
       
-      agendado: 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400',
-      confirmado: 'bg-[#EAF3DE] text-[#3B6D11]',
-      compareceu: 'bg-[#EAF3DE] text-[#3B6D11]',
-      faltou: 'bg-slate-100 text-slate-600',
-      cancelado: 'bg-rose-50 text-rose-700',
-      follow_up: 'bg-sky-50 text-sky-700',
-      cancelou_agendamento: 'bg-rose-50 text-rose-700',
-      abandonou_conversa: 'bg-gray-100 text-gray-500',
-      conversando: 'bg-[var(--color-primary-light)] text-[var(--color-primary)]',
-      reagendado: 'bg-amber-50 text-amber-700 border-amber-200/50',
+      agendado: 'bg-[#E0E7FF] text-[#3730A3] font-medium shadow-sm',
+      confirmado: 'bg-[#DEF2D7] text-[#1E4620]',
+      compareceu: 'bg-[#DEF2D7] text-[#1E4620]',
+      faltou: 'bg-slate-100 text-slate-700',
+      cancelado: 'bg-rose-100 text-rose-800',
+      follow_up: 'bg-[#E0F2FE] text-[#0369A1]',
+      cancelou_agendamento: 'bg-rose-100 text-rose-800',
+      abandonou_conversa: 'bg-slate-200 text-slate-700',
+      conversando: 'bg-[#FDF6E3] text-[#856404] font-semibold',
+      reagendado: 'bg-[#FFF4E5] text-[#8C5E00] border-amber-200/50 font-medium shadow-sm',
     };
 
     return (
