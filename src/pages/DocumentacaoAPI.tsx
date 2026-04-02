@@ -82,21 +82,21 @@ export function DocumentacaoAPI() {
     const highlight = (str: string) => {
       if (language === 'bash') {
         return str
-          .replace(/(\{TOKEN\}|\{AGENDA_ID\}|\{BASE_URL\}|UUID_DO_LEAD|UUID_DO_CLIENTE|ID_DO_AGENDAMENTO|2025-03-\d\d|14:00|10:00)/g, '<span class="text-amber-400 border-b border-dotted pb-0.5 cursor-help" title="Substitua pelo valor real text-amber-500">$1</span>')
-          .replace(/("[^"]*")/g, '<span class="text-[var(--color-primary-light)]">$1</span>')
-          .replace(/(curl|-X|-H|-d|GET|POST|PUT|DELETE)/g, '<span class="text-purple-400">$1</span>');
+          .replace(/(\{TOKEN\}|\{AGENDA_ID\}|\{BASE_URL\}|UUID_DO_LEAD|UUID_DO_CLIENTE|ID_DO_AGENDAMENTO|2025-03-\d\d|14:00|10:00)/g, '<span class="text-amber-400 border-b border-dotted pb-0.5 cursor-help" title="Substitua pelo valor real">$1</span>')
+          .replace(/(curl|-X|-H|-d|GET|POST|PUT|DELETE)/g, '<span class="text-purple-300">$1</span>')
+          .replace(/("[^"]*")/g, '<span class="text-emerald-300">$1</span>');
       }
       return str
-        .replace(/("[^"]*")(\s*:)/g, '<span class="text-white">$1</span>$2')
-        .replace(/:\s*("[^"]*")/g, ': <span class="text-[var(--color-primary-light)]">$1</span>')
-        .replace(/:\s*(true|false|null)/g, ': <span class="text-blue-400">$1</span>')
-        .replace(/:\s*([0-9.-]+)/g, ': <span class="text-orange-400">$1</span>');
+        .replace(/("[^"]*")(\s*:)/g, '<span class="text-slate-300">$1</span>$2')
+        .replace(/:\s*("[^"]*")/g, ': <span class="text-emerald-300">$1</span>')
+        .replace(/:\s*(true|false|null)/g, ': <span class="text-blue-300">$1</span>')
+        .replace(/:\s*([0-9.-]+)/g, ': <span class="text-orange-300">$1</span>');
     };
 
     return (
       <div className="relative group dark:bg-[#0D0A0B] bg-[#1A1218] rounded-[8px] overflow-hidden my-4 border border-[var(--color-border-card)] border-opacity-20 shadow-lg">
         <CopyButton text={code} />
-        <pre className="p-4 overflow-x-auto text-[13px] font-mono leading-relaxed" style={{ fontFamily: "'Fira Code', 'Cascadia Code', monospace" }}>
+        <pre className="p-4 overflow-x-auto text-[13px] font-mono leading-relaxed text-slate-100" style={{ fontFamily: "'Fira Code', 'Cascadia Code', monospace" }}>
           <code dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(highlight(code)) }} />
         </pre>
       </div>
@@ -163,6 +163,37 @@ export function DocumentacaoAPI() {
                 />
                 <button onClick={() => navigator.clipboard.writeText(baseUrl)} className="absolute right-2 top-1.5 p-1 text-gray-400 hover:text-[var(--color-primary)] transition-colors"><Copy className="w-4 h-4"/></button>
               </div>
+            </div>
+          </div>
+          
+          <div className="mt-8 pt-6 border-t border-[var(--color-border-card)] grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="space-y-3">
+              <h4 className="text-sm font-bold uppercase tracking-wider text-[var(--color-primary)]">Conceitos Rápidos</h4>
+              <ul className="space-y-4">
+                <li className="flex gap-3">
+                  <div className="bg-[var(--color-primary)] text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] shrink-0 mt-0.5">1</div>
+                  <p className="text-sm text-[var(--color-text-main)]"><span className="font-bold">A URL Principal:</span> Para qualquer ação no calendário, use a <span className="font-mono bg-white px-1 border rounded text-xs select-all">Base URL + /agendamentos</span>. Já para consultar horários, use <span className="font-mono bg-white px-1 border rounded text-xs select-all">/agendamentos/horarios</span>.</p>
+                </li>
+                <li className="flex gap-3">
+                  <div className="bg-[var(--color-primary)] text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] shrink-0 mt-0.5">2</div>
+                  <p className="text-sm text-[var(--color-text-main)]"><span className="font-bold">Múltiplas Agendas:</span> Se você tem vários profissionais ou salas, a <span className="underline decoration-dotted">URL é a mesma</span> para todos. O que diferencia quem será agendado é o campo <span className="font-mono bg-white px-1 border rounded text-xs">agenda_id</span> enviado no JSON.</p>
+                </li>
+              </ul>
+            </div>
+
+            <div className="space-y-3">
+              <h4 className="text-sm font-bold uppercase tracking-wider text-[var(--color-primary)]">Autenticação</h4>
+              <ul className="space-y-4">
+                <li className="flex gap-3">
+                  <div className="bg-[var(--color-primary)] text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] shrink-0 mt-0.5">3</div>
+                  <p className="text-sm text-[var(--color-text-main)]"><span className="font-bold">Bearer Token:</span> Use o token gerado em configurações no Header <span className="font-mono bg-white px-1 border rounded text-xs">Authorization: Bearer {`{SEU_TOKEN}`}</span>.</p>
+                </li>
+                <li className="flex gap-3 text-amber-700 bg-amber-50 p-2 rounded border border-amber-200">
+                  <p className="text-[11px] leading-relaxed">
+                    <span className="font-bold block mb-1">DICA PARA N8N:</span> Ao usar o nó de <strong>HTTP Request</strong>, selecione o método correspondente à ação (POST, PUT, DELETE) e insira a URL completa informada abaixo.
+                  </p>
+                </li>
+              </ul>
             </div>
           </div>
         </CardContent>
