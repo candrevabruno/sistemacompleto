@@ -1,4 +1,4 @@
-# Automações N8N — Heroic Leap Health
+# Automações N8N — Heroic Leap
 
 Coloque os arquivos `.json` exportados do N8N aqui.
 

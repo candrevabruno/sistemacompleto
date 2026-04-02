@@ -26,7 +26,7 @@ export function DocumentacaoAPI() {
   useEffect(() => {
     const fetchData = async () => {
       const [resTokens, resAgendas] = await Promise.all([
-        supabase.from('api_tokens').select('id, name').eq('ativo', true),
+        supabase.from('api_tokens').select('id, label').eq('ativo', true),
         supabase.from('agendas').select('id, nome').eq('ativo', true)
       ]);
       if (resTokens.data) setTokens(resTokens.data);
@@ -134,7 +134,7 @@ export function DocumentacaoAPI() {
                 onChange={e => setSelectedToken(e.target.value)}
               >
                 <option value="">Selecione um token...</option>
-                {tokens.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                {tokens.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
               </select>
               {!tokens.length && <p className="text-xs text-red-500 mt-1 mt-2 font-medium">Nenhum token ativo encontrado. Crie um em Configurações.</p>}
               {selectedToken && <p className="text-xs text-[var(--color-text-muted)] mt-2 italic border-l-2 p-1 border-[var(--color-primary)] bg-white/40">O token real não é exibido por segurança. Copie o cURL e substitua pelo token completo original.</p>}

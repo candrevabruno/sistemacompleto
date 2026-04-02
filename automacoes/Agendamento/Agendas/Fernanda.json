@@ -1,5 +1,5 @@
 {
-  "name": "Angela | Ellegance Clínica Integrada",
+  "name": "Fernanda | Heroic Leap",
   "nodes": [
     {
       "parameters": {
@@ -119,7 +119,7 @@
     },
     {
       "parameters": {
-        "content": "# Etiquetar a conversa como \"consulta_marcada\"",
+        "content": "# Etiquetar a conversa como \"agendamento_realizado\"",
         "height": 336,
         "width": 464
       },
@@ -146,7 +146,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "{\n  \"labels\": [\n    \"consulta_marcada\"\n  ]\n}",
+        "jsonBody": "{\n  \"labels\": [\n    \"agendamento_realizado\"\n  ]\n}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -156,11 +156,11 @@
         192
       ],
       "id": "bb4f872a-0465-421c-9851-482339f89699",
-      "name": "etiqueta_reuniao_marcada",
+      "name": "etiqueta_agendamento_realizado",
       "credentials": {
         "httpHeaderAuth": {
           "id": "voEs24CcUUXw3ksP",
-          "name": "Chatwoot - Heroic Leap Health"
+          "name": "Chatwoot - Heroic Leap"
         }
       }
     },
@@ -219,7 +219,7 @@
         384
       ],
       "id": "cf0078b8-86e9-4c74-938c-35d29ce74c1a",
-      "name": "agendar_consulta"
+      "name": "realizar_agendamento"
     },
     {
       "parameters": {
@@ -290,7 +290,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        112,
+        293,
         1584
       ],
       "id": "d1a626f3-6b26-4401-acf0-6ed7078a0a70",
@@ -305,7 +305,7 @@
             {
               "id": "51bd4896-17e9-484b-b08a-b6854225ccb3",
               "name": "response",
-              "value": "Consulta marcada com sucesso",
+              "value": "Agendamento realizado com sucesso",
               "type": "string"
             }
           ]
@@ -502,7 +502,7 @@
             {
               "id": "51bd4896-17e9-484b-b08a-b6854225ccb3",
               "name": "response",
-              "value": "Aconteceu um problema e não foi possível agendar",
+              "value": "Aconteceu um problema e não foi possível realizar o agendamento",
               "type": "string"
             }
           ]
@@ -559,7 +559,7 @@
       "credentials": {
         "supabaseApi": {
           "id": "juhkfWmwyQbFaGjC",
-          "name": "Supabase - Heroic Leap Health"
+          "name": "Supabase - Heroic Leap"
         }
       }
     },
@@ -652,7 +652,7 @@
     },
     {
       "parameters": {
-        "content": "# Etiquetar a conversa como \"cancelou_consulta\"",
+        "content": "# Etiquetar a conversa como \"cancelou_agendamento\"",
         "height": 320,
         "width": 464
       },
@@ -679,7 +679,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "{\n  \"labels\": [\n    \"cancelou_consulta\"\n  ]\n}",
+        "jsonBody": "{\n  \"labels\": [\n    \"cancelou_agendamento\"\n  ]\n}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -689,11 +689,11 @@
         1424
       ],
       "id": "c7e564aa-0c7b-4c47-bac7-75d263eada27",
-      "name": "etiqueta_cancelou_consulta",
+      "name": "etiqueta_cancelou_agendamento",
       "credentials": {
         "httpHeaderAuth": {
           "id": "voEs24CcUUXw3ksP",
-          "name": "Chatwoot - Heroic Leap Health"
+          "name": "Chatwoot - Heroic Leap"
         }
       }
     },
@@ -761,7 +761,7 @@
       "credentials": {
         "supabaseApi": {
           "id": "juhkfWmwyQbFaGjC",
-          "name": "Supabase - Heroic Leap Health"
+          "name": "Supabase - Heroic Leap"
         }
       }
     },
@@ -808,136 +808,8 @@
         480,
         960
       ],
-      "id": "cfa4650c-3981-464f-b9fc-09b32c17558b",
+      "id": "33b1e7b2-32a5-4eb8-b97c-9aa9696b9948",
       "name": "response6"
-    },
-    {
-      "parameters": {
-        "operation": "update",
-        "tableId": "leads",
-        "filters": {
-          "conditions": [
-            {
-              "keyName": "whatsapp_lead",
-              "condition": "eq",
-              "keyValue": "={{ $('setar_informacoes').first().json.whatsapp_lead }}"
-            }
-          ]
-        },
-        "fieldsUi": {
-          "fieldValues": [
-            {
-              "fieldId": "data_agendamento",
-              "fieldValue": "="
-            },
-            {
-              "fieldId": "agendamento_criado_em",
-              "fieldValue": "={{ null }}"
-            }
-          ]
-        }
-      },
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
-      "position": [
-        480,
-        768
-      ],
-      "id": "6384e5a7-1926-4713-868f-d8241d07d908",
-      "name": "atualizar_banco_dados3",
-      "credentials": {
-        "supabaseApi": {
-          "id": "juhkfWmwyQbFaGjC",
-          "name": "Supabase - Heroic Leap Health"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "content": "# AGENDAMENTO",
-        "height": 592,
-        "width": 1696,
-        "color": 4
-      },
-      "type": "n8n-nodes-base.stickyNote",
-      "position": [
-        0,
-        0
-      ],
-      "typeVersion": 1,
-      "id": "a3158b25-f7e8-4885-97e2-728f7b1c34ca",
-      "name": "Sticky Note1"
-    },
-    {
-      "parameters": {
-        "content": "# REAGENDAMENTO",
-        "height": 464,
-        "width": 1072,
-        "color": 6
-      },
-      "type": "n8n-nodes-base.stickyNote",
-      "position": [
-        0,
-        672
-      ],
-      "typeVersion": 1,
-      "id": "41f48020-f8a9-47d2-b172-6f59990f1070",
-      "name": "Sticky Note2"
-    },
-    {
-      "parameters": {
-        "content": "# CANCELAMENTO",
-        "height": 576,
-        "width": 1520,
-        "color": 3
-      },
-      "type": "n8n-nodes-base.stickyNote",
-      "position": [
-        0,
-        1248
-      ],
-      "typeVersion": 1,
-      "id": "052ca678-502b-4647-89d7-23737e1c1e93",
-      "name": "Sticky Note3"
-    },
-    {
-      "parameters": {
-        "content": "# VERIFICAR HORÁRIOS",
-        "height": 512,
-        "width": 832,
-        "color": 7
-      },
-      "type": "n8n-nodes-base.stickyNote",
-      "position": [
-        0,
-        1920
-      ],
-      "typeVersion": 1,
-      "id": "dfe3824f-7eaa-4ac3-8d82-34ef5292c826",
-      "name": "Sticky Note4"
-    },
-    {
-      "parameters": {
-        "assignments": {
-          "assignments": [
-            {
-              "id": "51bd4896-17e9-484b-b08a-b6854225ccb3",
-              "name": "response",
-              "value": "Aconteceu um problema e não foi possível verificar horários",
-              "type": "string"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [
-        400,
-        2256
-      ],
-      "id": "edbea737-36a6-4933-bfee-b0456b79b1a1",
-      "name": "response7"
     }
   ],
   "pinData": {},
@@ -946,7 +818,7 @@
       "main": [
         [
           {
-            "node": "agendar_consulta",
+            "node": "realizar_agendamento",
             "type": "main",
             "index": 0
           }
@@ -974,7 +846,7 @@
         ]
       ]
     },
-    "etiqueta_reuniao_marcada": {
+    "etiqueta_agendamento_realizado": {
       "main": [
         [
           {
@@ -985,11 +857,65 @@
         ]
       ]
     },
-    "agendar_consulta": {
+    "realizar_agendamento": {
       "main": [
         [
           {
             "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "reagendar": {
+      "main": [
+        [
+          {
+            "node": "response4",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "response6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "cancelar": {
+      "main": [
+        [
+          {
+            "node": "atualizar_banco_dados2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "response5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "atualizar_banco_dados",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "response1",
             "type": "main",
             "index": 0
           }
@@ -1018,29 +944,11 @@
         ]
       ]
     },
-    "If": {
-      "main": [
-        [
-          {
-            "node": "atualizar_banco_dados",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "response1",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "atualizar_banco_dados": {
       "main": [
         [
           {
-            "node": "etiqueta_reuniao_marcada",
+            "node": "etiqueta_agendamento_realizado",
             "type": "main",
             "index": 0
           }
@@ -1055,35 +963,10 @@
             "type": "main",
             "index": 0
           }
-        ],
-        [
-          {
-            "node": "response7",
-            "type": "main",
-            "index": 0
-          }
         ]
       ]
     },
-    "cancelar": {
-      "main": [
-        [
-          {
-            "node": "atualizar_banco_dados2",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "response5",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "etiqueta_cancelou_consulta": {
+    "etiqueta_cancelou_agendamento": {
       "main": [
         [
           {
@@ -1098,36 +981,7 @@
       "main": [
         [
           {
-            "node": "etiqueta_cancelou_consulta",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "reagendar": {
-      "main": [
-        [
-          {
-            "node": "atualizar_banco_dados3",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "response6",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "atualizar_banco_dados3": {
-      "main": [
-        [
-          {
-            "node": "response4",
+            "node": "etiqueta_cancelou_agendamento",
             "type": "main",
             "index": 0
           }
@@ -1135,7 +989,7 @@
       ]
     }
   },
-  "active": false,
+  "active": true,
   "settings": {
     "executionOrder": "v1",
     "binaryMode": "separate",
@@ -1144,11 +998,11 @@
     "timezone": "America/Sao_Paulo",
     "callerPolicy": "workflowsFromSameOwner"
   },
-  "versionId": "79f79686-e549-4def-af0a-3f5ba5a25d8a",
+  "versionId": "698c9cd0-0255-46fd-ab8a-b85bc88e1465",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "cd3f555560da593715f2409944039c2dd529d28b002c9eefb22eeac5fd695ee6"
   },
-  "id": "atjWKxprxU6LAlmd",
+  "id": "op2CQiLWWHDUDAPH",
   "tags": []
 }

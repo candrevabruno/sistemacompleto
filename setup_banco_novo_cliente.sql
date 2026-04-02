@@ -81,7 +81,7 @@ CREATE TABLE IF NOT EXISTS public.leads (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS public.pacientes (
+CREATE TABLE IF NOT EXISTS public.clientes (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   lead_id UUID NOT NULL UNIQUE REFERENCES public.leads(id) ON DELETE SET NULL,
   data_primeira_visita DATE NOT NULL DEFAULT CURRENT_DATE,
@@ -92,7 +92,7 @@ CREATE TABLE IF NOT EXISTS public.agendamentos (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   agenda_id UUID REFERENCES public.agendas(id) ON DELETE SET NULL,
   lead_id UUID REFERENCES public.leads(id) ON DELETE SET NULL,
-  paciente_id UUID REFERENCES public.pacientes(id) ON DELETE CASCADE,
+  cliente_id UUID REFERENCES public.clientes(id) ON DELETE CASCADE,
   procedimento_nome TEXT,
   nome_lead TEXT,
   whatsapp_lead TEXT,
@@ -172,20 +172,20 @@ $$ LANGUAGE plpgsql;
 DROP TRIGGER IF EXISTS on_agenda_created ON public.agendas;
 CREATE TRIGGER on_agenda_created AFTER INSERT ON public.agendas FOR EACH ROW EXECUTE FUNCTION public.criar_agenda_hours();
 
-CREATE OR REPLACE FUNCTION public.converter_lead_em_paciente()
+CREATE OR REPLACE FUNCTION public.converter_lead_em_cliente()
 RETURNS TRIGGER AS $$
 BEGIN
   IF NEW.status = 'compareceu' AND (OLD.status IS NULL OR OLD.status != 'compareceu') THEN
-    INSERT INTO public.pacientes (lead_id, data_primeira_visita) VALUES (NEW.id, CURRENT_DATE) ON CONFLICT (lead_id) DO NOTHING;
+    INSERT INTO public.clientes (lead_id, data_primeira_visita) VALUES (NEW.id, CURRENT_DATE) ON CONFLICT (lead_id) DO NOTHING;
   END IF;
   IF OLD.status = 'compareceu' AND NEW.status != 'compareceu' THEN
-    DELETE FROM public.pacientes WHERE lead_id = NEW.id;
+    DELETE FROM public.clientes WHERE lead_id = NEW.id;
   END IF;
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 DROP TRIGGER IF EXISTS on_lead_status_changed ON public.leads;
-CREATE TRIGGER on_lead_status_changed AFTER UPDATE OF status ON public.leads FOR EACH ROW EXECUTE FUNCTION public.converter_lead_em_paciente();
+CREATE TRIGGER on_lead_status_changed AFTER UPDATE OF status ON public.leads FOR EACH ROW EXECUTE FUNCTION public.converter_lead_em_cliente();
 
 -- PASSO 6 — SEGURANÇA (RLS)
 ALTER TABLE public.users         ENABLE ROW LEVEL SECURITY;
@@ -194,7 +194,7 @@ ALTER TABLE public.clinic_hours  ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.agendas       ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.agenda_hours  ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.leads         ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.pacientes     ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.clientes     ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.agendamentos  ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.api_tokens    ENABLE ROW LEVEL SECURITY;
 

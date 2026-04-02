@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Manual do Sistema — Heroic Leap Health</title>
+<title>Manual do Sistema — Heroic Leap</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Cormorant+Garamond:wght@600;700&display=swap');
 
@@ -215,9 +215,9 @@
 
 <!-- CAPA -->
 <div class="cover">
-  <div style="font-size:60px;margin-bottom:20px;">🏥</div>
+  <div style="font-size:60px;margin-bottom:20px;">💼</div>
   <h1>Manual do Sistema</h1>
-  <div class="subtitle">Heroic Leap Health — Plataforma de Gestão + Automação IA</div>
+  <div class="subtitle">Heroic Leap — Plataforma de Gestão + Automação IA</div>
   <div>
     <span class="badge">📋 Time Comercial</span>
     <span class="badge">🔧 Time Operacional</span>
@@ -239,7 +239,7 @@
   <div class="toc-item" style="padding-left:20px"><span>4.3 Agendamento Automático</span></div>
   <div class="toc-item" style="padding-left:20px"><span>4.4 Atualização do CRM</span></div>
   <div class="toc-item" style="padding-left:20px"><span>4.5 Follow-ups em 3 Níveis</span></div>
-  <div class="toc-item" style="padding-left:20px"><span>4.6 Promoção Automática: Lead → Paciente</span></div>
+  <div class="toc-item" style="padding-left:20px"><span>4.6 Promoção Automática: Lead → Cliente</span></div>
   <div class="toc-item"><span><span class="num">5.</span> O Que é Manual</span></div>
   <div class="toc-item"><span><span class="num">6.</span> Fluxo Completo — Exemplo Real</span></div>
   <div class="toc-item"><span><span class="num">7.</span> Banco de Dados</span></div>
@@ -287,8 +287,8 @@
     </div>
     <div class="module-card">
       <div class="icon">👥</div>
-      <div class="name">Leads / Pacientes</div>
-      <div class="desc">Lista completa de todos os leads e pacientes convertidos com histórico</div>
+      <div class="name">Leads / Clientes</div>
+      <div class="desc">Lista completa de todos os leads e clientes convertidos com histórico</div>
     </div>
     <div class="module-card">
       <div class="icon">📅</div>
@@ -313,7 +313,7 @@
   <div class="header-bar"></div>
   <h1 class="section-title" style="margin-top:0">3. Como Funciona — Visão Completa</h1>
 
-  <p>A jornada completa de um lead, do primeiro contato até virar paciente:</p>
+  <p>A jornada completa de um lead, do primeiro contato até virar cliente:</p>
 
   <div class="flow-box">WhatsApp do cliente
         │
@@ -332,10 +332,10 @@
   └──────────┴─────────────┴──────────┴─────────────┴──────────┘
         │
         ▼ (ao marcar "Compareceu")
-[Paciente criado automaticamente no banco]
+[Cliente criado automaticamente no banco]
         │
         ▼
-[Aba Leads / Pacientes → aba Pacientes ✅]</div>
+[Aba Leads / Clientes → aba Clientes ✅]</div>
 </div>
 
 <!-- SEÇÃO 4 -->
@@ -402,14 +402,14 @@
 
   <div class="alert alert-note"><strong>💡 Impacto esperado</strong>Follow-ups automáticos recuperam leads esquecidos sem esforço da equipe. Estatisticamente, aumentam a conversão em 20–40%.</div>
 
-  <h2>4.6 Promoção Automática: Lead → Paciente</h2>
+  <h2>4.6 Promoção Automática: Lead → Cliente</h2>
   <p>Quando um lead é marcado como <strong>"Compareceu"</strong> (seja pelo agente IA ou manualmente), o sistema automaticamente:</p>
   <ul>
-    <li>Cria o registro na tabela de <strong>Pacientes</strong></li>
+    <li>Cria o registro na tabela de <strong>Clientes</strong></li>
     <li>O lead continua visível no CRM com status "Compareceu"</li>
-    <li>É <strong>bidirecional</strong>: se o status for alterado por engano, o paciente é removido automaticamente</li>
+    <li>É <strong>bidirecional</strong>: se o status for alterado por engano, o cliente é removido automaticamente</li>
   </ul>
-  <div class="alert alert-note"><strong>Por que é automático</strong>Elimina trabalho manual de cadastro de pacientes. Só vira paciente quem realmente compareceu — sem risco de dados incorretos.</div>
+  <div class="alert alert-note"><strong>Por que é automático</strong>Elimina trabalho manual de cadastro de clientes. Só vira cliente quem realmente compareceu — sem risco de dados incorretos.</div>
 </div>
 
 <!-- SEÇÃO 5 -->
@@ -502,7 +502,7 @@
   <table>
     <tr><th>Tabela</th><th>O que guarda</th><th>Quem escreve</th></tr>
     <tr><td><strong>leads</strong></td><td>Todos os contatos recebidos</td><td>N8N (automático) + secretária (manual)</td></tr>
-    <tr><td><strong>pacientes</strong></td><td>Leads que compareceram</td><td>Trigger automático do banco</td></tr>
+    <tr><td><strong>clientes</strong></td><td>Leads que compareceram</td><td>Trigger automático do banco</td></tr>
     <tr><td><strong>agendamentos</strong></td><td>Todos os agendamentos</td><td>N8N + secretária (manual)</td></tr>
     <tr><td><strong>agendas</strong></td><td>Profissionais/salas agendáveis</td><td>Admin via Configurações</td></tr>
     <tr><td><strong>clinic_config</strong></td><td>Nome e logo da clínica</td><td>Admin via Configurações</td></tr>
@@ -519,7 +519,7 @@
 
   <div class="alert alert-important">
     <strong>🔴 CRÍTICO — Marcar "Compareceu" sem confirmação real</strong>
-    Nunca marque um lead como "Compareceu" sem que o paciente tenha realmente vindo à clínica. Isso cria um registro de Paciente automaticamente e distorce todos os relatórios e métricas de conversão.
+    Nunca marque um lead como "Compareceu" sem que o cliente tenha realmente vindo à clínica. Isso cria um registro de Cliente automaticamente e distorce todos os relatórios e métricas de conversão.
   </div>
 
   <div class="alert alert-warning">
@@ -561,7 +561,7 @@
   <p>Leads que somem são reativados automaticamente com mensagens humanizadas e diferentes em cada tentativa. A clínica não perde oportunidades por falta de acompanhamento — mesmo sem uma equipe dedicada a isso.</p>
 
   <h2>📊 Dashboard com funil de conversão real</h2>
-  <p>Visualização clara de quantos leads viraram agendamentos, quantos compareceram e quantos viraram pacientes — por período personalizado. Dados reais, sem planilhas manuais.</p>
+  <p>Visualização clara de quantos leads viraram agendamentos, quantos compareceram e quantos viraram clientes — por período personalizado. Dados reais, sem planilhas manuais.</p>
 
   <h2>⚙️ Configurável para qualquer clínica</h2>
   <p>O que muda de uma clínica para outra é apenas a configuração: nome do atendente, serviços, profissionais, horários e tom de voz. A estrutura é sempre a mesma — implantação rápida.</p>
@@ -588,9 +588,9 @@
       <td>Verificar logs do workflow de agendamento no N8N</td>
     </tr>
     <tr>
-      <td>Paciente não criado ao marcar "Compareceu"</td>
+      <td>Cliente não criado ao marcar "Compareceu"</td>
       <td>Trigger <code>on_lead_status_changed</code> inativo</td>
-      <td>Verificar no Supabase → Database → Triggers se o trigger existe e aponta para <code>converter_lead_em_paciente()</code></td>
+      <td>Verificar no Supabase → Database → Triggers se o trigger existe e aponta para <code>converter_lead_em_cliente()</code></td>
     </tr>
     <tr>
       <td>Follow-up sendo enviado para lead já agendado</td>

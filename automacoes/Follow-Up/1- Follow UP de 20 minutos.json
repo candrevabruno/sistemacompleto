@@ -1,5 +1,5 @@
 {
-  "name": "3- Follow UP de 36 horas | Ellegance Clínica Integrada",
+  "name": "1- Follow UP de 20 minutos | Heroic Leap",
   "nodes": [
     {
       "parameters": {
@@ -11,7 +11,7 @@
         1072,
         640
       ],
-      "id": "fb0c844c-2257-4e12-82a9-5e7a0618b63e",
+      "id": "13a5f2d2-d2d3-47db-a28e-125a65f41040",
       "name": "OpenAI Chat Model3"
     },
     {
@@ -31,7 +31,7 @@
         -2064,
         416
       ],
-      "id": "9bebb390-4a38-4d00-86d4-46ebcb4b3de7",
+      "id": "911eab33-cd03-4b11-9563-3645549491f4",
       "name": "Schedule Trigger1"
     },
     {
@@ -44,7 +44,7 @@
         704,
         400
       ],
-      "id": "2db876c8-68d1-48bd-850a-5c4961d559ad",
+      "id": "06cd9832-f8d2-486b-bc00-6ea1c00a834a",
       "name": "Chat Memory Manager"
     },
     {
@@ -57,7 +57,7 @@
         400,
         384
       ],
-      "id": "fedd6baf-10b7-4066-ac43-c92788574312",
+      "id": "8d6ac81c-7d87-4768-aeba-e4afed1be41c",
       "name": "Loop"
     },
     {
@@ -87,12 +87,12 @@
         1472,
         400
       ],
-      "id": "731e3b87-0fc4-4c26-a584-8ac3eacb475d",
+      "id": "55d2327f-9d86-4e79-a701-6931fa200f90",
       "name": "enviarMsgLead",
       "credentials": {
         "httpHeaderAuth": {
           "id": "voEs24CcUUXw3ksP",
-          "name": "Chatwoot - Heroic Leap Health"
+          "name": "Chatwoot - Heroic Leap"
         }
       }
     },
@@ -106,7 +106,7 @@
         1984,
         400
       ],
-      "id": "26d0be1c-df12-41ee-a81b-a5afb89be299",
+      "id": "81239b08-8d95-4493-acd6-88b192b14353",
       "name": "Wait",
       "webhookId": "b6f37c6e-976c-467d-be46-f84c38c324fa"
     },
@@ -122,7 +122,7 @@
         704,
         640
       ],
-      "id": "4abaf41b-6fae-4851-a903-e04b0b32bdc0",
+      "id": "17f670cb-0e91-427c-a8c2-0e1f4648e961",
       "name": "memoriaLead"
     },
     {
@@ -189,7 +189,7 @@
         -560,
         352
       ],
-      "id": "84aae1ec-ab73-443f-8369-f572b7305cf8",
+      "id": "ff142eb7-de03-4036-9b98-a752ba9cf4c3",
       "name": "verificarChatWoot"
     },
     {
@@ -200,12 +200,12 @@
         -272,
         512
       ],
-      "id": "824c770c-3fb0-4d4b-abf0-2588e2f269cf",
+      "id": "25c082f1-2a25-4a7f-8c6f-654db42b906d",
       "name": "não fazer nada"
     },
     {
       "parameters": {
-        "content": "# Aciona a cada 1 hora",
+        "content": "# Aciona a cada 10 minutos",
         "height": 480,
         "width": 340,
         "color": 5
@@ -216,7 +216,7 @@
         192
       ],
       "typeVersion": 1,
-      "id": "241a9adf-352d-45db-b83c-475a406d3392",
+      "id": "de53c368-afb2-4a2a-b388-f74659abf88e",
       "name": "Sticky Note2"
     },
     {
@@ -269,7 +269,7 @@
         80,
         384
       ],
-      "id": "68578b88-9ead-4027-97c1-594fb7f1d624",
+      "id": "ddc48c41-0f15-4716-ab6b-b25a6fbaa98c",
       "name": "setarInformacoes"
     },
     {
@@ -282,7 +282,7 @@
             {
               "keyName": "minutos_ultima_mensagem",
               "condition": "gte",
-              "keyValue": "2160"
+              "keyValue": "10"
             }
           ]
         }
@@ -293,9 +293,26 @@
         -1712,
         416
       ],
-      "id": "603021af-5d88-4bb0-9333-4d022a4f4e97",
+      "id": "8b75127f-af58-44f3-9f20-a1565f8ff2ec",
       "name": "PuxarDadosLead",
       "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Histórico de conversa: {{ JSON.stringify($json.messages, null, 2) }}",
+        "options": {
+          "systemMessage": "=## IDENTIDADE\n\nVocê é uma **secretária virtual** de uma empresa.  \nVocê é especialista em follow-up natural e leve para retomar conversas no WhatsApp.\n\n## FUNÇÃO\n\n-   Ler as últimas mensagens trocadas entre você e o cliente.\n-   Entender em que ponto a conversa parou.\n-   Criar **uma mensagem única, humanizada e natural** para retomar o diálogo.\n-   Estimular o cliente a responder sem pressão.\n\n## REGRAS DE MENSAGEM\n\n-   Nunca se apresente, nunca peça nome ou dados já informados.\n-   Seja breve, como uma conversa normal no WhatsApp.\n-   Use o nome do cliente, se estiver disponível.\n-   Não pressione, não cobre retorno e não mencione tempo de ausência.\n-   Nunca repita a última pergunta ou informação enviada.\n-   Se a sua última mensagem tinha link, instrução ou orientações específicas, não repita.\n-   Retome o assunto de forma simpática e profissional, com naturalidade.\n-   Emojis só se fizer sentido e sempre de maneira moderada.\n-   Passe segurança e disponibilidade para ajudar.\n-   Data e hora de agora: {{ $now }}\n\n## EXEMPLOS DE MENSAGENS\nExemplo 1:\n\"Oi! Você chegou a ver minha última mensagem?\"\n\nExemplo 2:\n\"Ficou alguma dúvida que eu possa esclarecer pra você?\"\n\nExemplo 3:\n\"Oi! Você chegou a ver minha última mensagem?\"\n\nExemplo 4:\n\"Olá, esta ai ainda?\"\n\nExemplo 5:\n\"Oi! Você chegou a ver minha última mensagem?\"\n\nExemplo 6:\n\"Olá, chegou a ver o que te mandei?\""
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.8,
+      "position": [
+        1120,
+        400
+      ],
+      "id": "b6a5d8c5-dad6-4e78-a5cc-136759cfcb3f",
+      "name": "Follow UP 1"
     },
     {
       "parameters": {
@@ -310,7 +327,7 @@
             {
               "id": "8d68f79e-5b79-4cb3-b19d-0accbd6cd8ad",
               "leftValue": "={{ $json.status }}",
-              "rightValue": "consulta_agendada",
+              "rightValue": "agendado",
               "operator": {
                 "type": "string",
                 "operation": "notEquals"
@@ -327,7 +344,7 @@
         -1328,
         480
       ],
-      "id": "8c317a3b-2f1d-42dd-b9a1-b64a545d3211",
+      "id": "3de124e0-f196-4c0e-a6f8-53e64aab85e4",
       "name": "Filter"
     },
     {
@@ -361,7 +378,7 @@
         -976,
         480
       ],
-      "id": "86bb2740-44af-4f76-8ccc-1ad34c8af388",
+      "id": "6214f2f5-6d80-421e-a138-759cb45dab44",
       "name": "If"
     },
     {
@@ -377,7 +394,7 @@
         192
       ],
       "typeVersion": 1,
-      "id": "e2c63ca2-ab33-44a3-b8d0-3117ce0c0d28",
+      "id": "35c4354d-c19b-46fa-b162-a63529cbfa4c",
       "name": "Sticky Note9"
     },
     {
@@ -393,7 +410,7 @@
         192
       ],
       "typeVersion": 1,
-      "id": "14123e23-6107-4029-ac5d-1c17b8e2a96a",
+      "id": "2412f14e-56f0-42c2-b959-b44c0e773359",
       "name": "Sticky Note3"
     },
     {
@@ -409,7 +426,7 @@
         192
       ],
       "typeVersion": 1,
-      "id": "30d01553-e711-4a23-ad6c-16d2e6d5f7a9",
+      "id": "24fcbe2c-a06a-45f2-b42a-2b45561a5f55",
       "name": "Sticky Note"
     },
     {
@@ -424,7 +441,7 @@
         192
       ],
       "typeVersion": 1,
-      "id": "643c458c-5989-45c6-8058-1014a0a81462",
+      "id": "4c0b11ec-ccc1-4c9c-8b10-37bc0009973b",
       "name": "Sticky Note4"
     },
     {
@@ -440,7 +457,7 @@
         192
       ],
       "typeVersion": 1,
-      "id": "72e5b2af-9d62-4715-bd56-0a77f27bbced",
+      "id": "9e17be30-b992-43c8-b21d-f203724b0405",
       "name": "Sticky Note5"
     },
     {
@@ -456,7 +473,7 @@
         192
       ],
       "typeVersion": 1,
-      "id": "1b7722b7-390e-41f2-8384-9906813ae566",
+      "id": "5011b887-9350-45ca-97bf-9739d112b22f",
       "name": "Sticky Note58"
     },
     {
@@ -471,13 +488,13 @@
         1280,
         656
       ],
-      "id": "ba1b7803-a872-4a21-95fd-6746bcf9b9fb",
+      "id": "d445046a-c137-4080-a6fc-79174f9d29f0",
       "name": "memoriaLead1"
     },
     {
       "parameters": {
         "operation": "update",
-        "tableId": "leads_adv",
+        "tableId": "leads",
         "matchType": "allFilters",
         "filters": {
           "conditions": [
@@ -507,7 +524,7 @@
         1744,
         400
       ],
-      "id": "ae571d7b-87a4-4c6b-b6d8-19354f0a0085",
+      "id": "fcb203f6-173b-401c-a392-b8c764f5ffdd",
       "name": "marcar_follow_up",
       "alwaysOutputData": false
     },
@@ -524,25 +541,8 @@
         0
       ],
       "typeVersion": 1,
-      "id": "fba2dce2-ce89-43db-9ee7-dbd6910ce287",
+      "id": "2d2868d9-3080-4445-a9c6-081cde4db923",
       "name": "Sticky Note1"
-    },
-    {
-      "parameters": {
-        "promptType": "define",
-        "text": "=Histórico de conversa: {{ JSON.stringify($json.messages, null, 2) }}",
-        "options": {
-          "systemMessage": "=## IDENTIDADE\n\nVocê é **Camila**, secretária de um escritório de advocacia.  \nVocê é especialista em follow-up natural e leve para retomar conversas no WhatsApp.\n\n## FUNÇÃO\n\n-   Ler as últimas mensagens trocadas entre você e o cliente.\n-   Entender em que ponto a conversa parou.\n-   Criar **uma mensagem única, humanizada e natural** para retomar o diálogo.\n-   Estimular o cliente a responder sem pressão.\n\n## REGRAS DE MENSAGEM\n\n-   Nunca se apresente, nunca peça nome ou dados já informados.\n-   Seja breve, como uma conversa normal no WhatsApp.\n-   Use o nome do cliente, se estiver disponível.\n-   Não pressione, não cobre retorno e não mencione tempo de ausência.\n-   Nunca repita a última pergunta ou informação enviada.\n-   Se a sua última mensagem tinha link, instrução ou orientação jurídica, não repita.\n-   Retome o assunto de forma simpática e profissional, com naturalidade.\n-   Emojis só se fizer sentido e sempre de maneira moderada.\n-   Passe segurança e disponibilidade para ajudar.\n-   Data e hora de agora: {{ $now }}\n\n## EXEMPLOS DE MENSAGENS\nExemplo 1:\n\"Oi! Você chegou a ver minha última mensagem?\"\n\nExemplo 2:\n\"Ficou alguma dúvida que eu possa esclarecer pra você?\"\n\nExemplo 3:\n\"Oi! Você chegou a ver minha última mensagem?\"\n\nExemplo 4:\n\"Olá, esta ai ainda?\"\n\nExemplo 5:\n\"Oi! Você chegou a ver minha última mensagem?\"\n\nExemplo 6:\n\"Olá, chegou a ver o que te mandei?\""
-        }
-      },
-      "type": "@n8n/n8n-nodes-langchain.agent",
-      "typeVersion": 1.8,
-      "position": [
-        1120,
-        400
-      ],
-      "id": "b88faabc-376a-4bae-9312-f1ab9a016fa0",
-      "name": "Follow UP 3"
     }
   ],
   "pinData": {},
@@ -551,7 +551,7 @@
       "ai_languageModel": [
         [
           {
-            "node": "Follow UP 3",
+            "node": "Follow UP 1",
             "type": "ai_languageModel",
             "index": 0
           }
@@ -573,7 +573,7 @@
       "main": [
         [
           {
-            "node": "Follow UP 3",
+            "node": "Follow UP 1",
             "type": "main",
             "index": 0
           }
@@ -665,6 +665,17 @@
         ]
       ]
     },
+    "Follow UP 1": {
+      "main": [
+        [
+          {
+            "node": "enviarMsgLead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "Filter": {
       "main": [
         [
@@ -687,33 +698,11 @@
         ]
       ]
     },
-    "memoriaLead1": {
-      "ai_memory": [
-        [
-          {
-            "node": "Follow UP 3",
-            "type": "ai_memory",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "marcar_follow_up": {
       "main": [
         [
           {
             "node": "Wait",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Follow UP 3": {
-      "main": [
-        [
-          {
-            "node": "enviarMsgLead",
             "type": "main",
             "index": 0
           }
@@ -725,15 +714,12 @@
   "settings": {
     "executionOrder": "v1",
     "binaryMode": "separate",
-    "availableInMCP": false,
-    "timeSavedMode": "fixed",
-    "timezone": "America/Sao_Paulo",
-    "callerPolicy": "workflowsFromSameOwner"
+    "availableInMCP": false
   },
-  "versionId": "6b4dac14-3468-4e6b-9e68-cc645b138b89",
+  "versionId": "9a04998d-7cf6-4694-a3a3-2b3a7ed2eba5",
   "meta": {
     "instanceId": "cd3f555560da593715f2409944039c2dd529d28b002c9eefb22eeac5fd695ee6"
   },
-  "id": "lwPJcsFYIU8KOTeS",
+  "id": "EgeWoNHIrHsWu4y5",
   "tags": []
 }
