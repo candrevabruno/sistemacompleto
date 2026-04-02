@@ -173,13 +173,25 @@ export function DocumentacaoAPI() {
               <div className="flex gap-4 bg-white/40 p-4 rounded-lg border border-dashed border-[var(--color-primary)]/30">
                 <div className="bg-[var(--color-primary)] text-white w-6 h-6 rounded-full flex items-center justify-center text-xs shrink-0 font-bold">1</div>
                 <div>
-                  <p className="text-sm text-[var(--color-text-main)] font-bold mb-1">A URL Principal:</p>
-                  <p className="text-sm text-[var(--color-text-muted)] leading-relaxed">Para qualquer ação no calendário, use a <span className="font-mono bg-white px-1.5 py-0.5 border rounded text-xs select-all text-[var(--color-primary)]">Base URL + /agendamentos</span>. Para consultar horários disponíveis, utilize o sufixo <span className="font-mono bg-white px-1.5 py-0.5 border rounded text-xs select-all text-[var(--color-primary)]">/agendamentos/horarios</span>.</p>
+                  <p className="text-sm text-[var(--color-text-main)] font-bold mb-1">Criar ou Consultar (URL Padrão):</p>
+                  <p className="text-sm text-[var(--color-text-muted)] leading-relaxed">
+                    Para <span className="font-bold text-[var(--color-text-main)]">Marcar</span>, use a <span className="font-mono bg-white px-1.5 py-0.5 border rounded text-xs select-all text-[var(--color-primary)]">Base URL + /agendamentos</span>. <br/>
+                    Para <span className="font-bold text-[var(--color-text-main)]">Ver Horários</span>, use <span className="font-mono bg-white px-1.5 py-0.5 border rounded text-xs select-all text-[var(--color-primary)]">/agendamentos/horarios</span>.
+                  </p>
                 </div>
               </div>
 
               <div className="flex gap-4 bg-white/40 p-4 rounded-lg border border-dashed border-[var(--color-primary)]/30">
                 <div className="bg-[var(--color-primary)] text-white w-6 h-6 rounded-full flex items-center justify-center text-xs shrink-0 font-bold">2</div>
+                <div>
+                  <p className="text-sm text-[var(--color-text-main)] font-bold mb-1">Reagendar ou Cancelar (URL com ID):</p>
+                  <p className="text-sm text-[var(--color-text-muted)] leading-relaxed">Para <span className="font-bold text-[var(--color-text-main)]">Alterar</span> ou <span className="font-bold text-[var(--color-text-main)]">Remover</span>, você deve "colar" o ID do agendamento no final da URL: <br/>
+                  <span className="font-mono bg-white px-1.5 py-0.5 border rounded text-xs text-[var(--color-primary)]">/agendamentos/ID_DO_AGENDAMENTO</span></p>
+                </div>
+              </div>
+
+              <div className="flex gap-4 bg-white/40 p-4 rounded-lg border border-dashed border-[var(--color-primary)]/30">
+                <div className="bg-[var(--color-primary)] text-white w-6 h-6 rounded-full flex items-center justify-center text-xs shrink-0 font-bold">3</div>
                 <div>
                   <p className="text-sm text-[var(--color-text-main)] font-bold mb-1">Múltiplas Agendas:</p>
                   <p className="text-sm text-[var(--color-text-muted)] leading-relaxed">Se você tem vários profissionais ou salas, a <span className="underline decoration-dotted font-medium">URL é exatamente a mesma para todos</span>. O que diferencia quem será agendado é o campo <span className="font-mono bg-white px-1.5 py-0.5 border rounded text-xs text-[var(--color-primary)]">agenda_id</span> enviado dentro do seu JSON.</p>
@@ -187,7 +199,7 @@ export function DocumentacaoAPI() {
               </div>
 
               <div className="flex gap-4 bg-white/40 p-4 rounded-lg border border-dashed border-[var(--color-primary)]/30">
-                <div className="bg-[var(--color-primary)] text-white w-6 h-6 rounded-full flex items-center justify-center text-xs shrink-0 font-bold">3</div>
+                <div className="bg-[var(--color-primary)] text-white w-6 h-6 rounded-full flex items-center justify-center text-xs shrink-0 font-bold">4</div>
                 <div>
                   <p className="text-sm text-[var(--color-text-main)] font-bold mb-1">Autenticação (Segurança):</p>
                   <p className="text-sm text-[var(--color-text-muted)] leading-relaxed">Insira o token gerado anteriormente no Header da sua requisição: <span className="font-mono bg-white px-1.5 py-0.5 border rounded text-xs text-[var(--color-primary)]">Authorization: Bearer {`{SEU_TOKEN}`}</span>.</p>
