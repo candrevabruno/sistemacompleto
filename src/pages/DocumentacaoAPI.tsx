@@ -206,11 +206,11 @@ export function DocumentacaoAPI() {
                 </div>
               </div>
 
-              <div className="flex gap-4 text-amber-950 bg-amber-100 p-4 rounded-lg border border-amber-300 shadow-sm">
+              <div className="flex gap-4 text-black bg-amber-100 p-4 rounded-lg border border-amber-300 shadow-sm">
                 <div className="bg-amber-600 text-white w-6 h-6 rounded flex items-center justify-center text-[10px] shrink-0 font-bold shadow-sm">!</div>
                 <p className="text-sm leading-relaxed">
                   <span className="font-bold block mb-1 uppercase tracking-tight text-amber-900">Configuração no N8N:</span>
-                  Ao usar o nó de <span className="font-bold italic text-amber-900 border-b-2 border-amber-400">HTTP Request</span>, lembre-se de selecionar o método correspondente (<span className="font-bold">POST, PUT ou DELETE</span>) e utilizar a URL completa gerada somando a Base URL com o endpoint desejado.
+                  Ao usar o nó de <span className="font-bold italic text-black border-b-2 border-amber-400">HTTP Request</span>, lembre-se de selecionar o método correspondente (<span className="font-bold">POST, PUT ou DELETE</span>) e utilizar a URL completa gerada somando a Base URL com o endpoint desejado.
                 </p>
               </div>
             </div>
