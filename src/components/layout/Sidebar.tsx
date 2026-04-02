@@ -40,7 +40,7 @@ export function Sidebar() {
         {config?.logo_url ? (
           <img
             src={config.logo_url}
-            alt="Logo da Clínica"
+            alt="Sua Logo"
             className="mb-4 max-h-[80px] object-contain"
           />
         ) : (

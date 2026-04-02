@@ -205,7 +205,7 @@ export function LeadsClientes({ mode }: { mode?: 'leads' | 'clientes' }) {
              <div className="p-3 bg-[var(--color-primary-light)] text-[var(--color-primary)] rounded-full shrink-0"><UserSearch className="w-5 h-5"/></div>
              <div>
                <h3 className="font-semibold text-lg">Lead</h3>
-               <p className="text-sm text-[var(--color-text-muted)]">Pessoa que entrou em contato com a clínica, mas ainda não compareceu presencialmente.</p>
+               <p className="text-sm text-[var(--color-text-muted)]">Pessoa que entrou em contato com a empresa, mas ainda não realizou o serviço presencialmente.</p>
              </div>
            </CardContent>
          </Card>
@@ -214,7 +214,7 @@ export function LeadsClientes({ mode }: { mode?: 'leads' | 'clientes' }) {
              <div className="p-3 bg-green-100 text-[var(--color-success)] rounded-full shrink-0"><UserCheck className="w-5 h-5"/></div>
              <div>
                <h3 className="font-semibold text-lg">Cliente</h3>
-               <p className="text-sm text-[var(--color-text-muted)]">Pessoa que agendou e compareceu à clínica pelo menos uma vez.</p>
+               <p className="text-sm text-[var(--color-text-muted)]">Pessoa que agendou e compareceu à empresa pelo menos uma vez.</p>
              </div>
            </CardContent>
          </Card>
@@ -384,7 +384,7 @@ export function LeadsClientes({ mode }: { mode?: 'leads' | 'clientes' }) {
         )}
       </Modal>
 
-      <Modal isOpen={openClienteDetails} onClose={() => setOpenClienteDetails(false)} title="Detalhes Ficha Clínica do Cliente">
+      <Modal isOpen={openClienteDetails} onClose={() => setOpenClienteDetails(false)} title="Detalhes do Perfil do Cliente">
         {selectedCliente && (
           <div className="space-y-6 max-h-[70vh] overflow-y-auto">
             <div className="flex justify-between items-center bg-[var(--color-primary-light)] p-5 border border-[var(--color-border-card)] rounded-[12px]">
@@ -418,7 +418,7 @@ export function LeadsClientes({ mode }: { mode?: 'leads' | 'clientes' }) {
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div><span className="text-gray-500 block text-xs">Data de nascimento:</span> {selectedCliente.data_nascimento || '-'}</div>
                 <div><span className="text-gray-500 block text-xs">Gênero:</span> {selectedCliente.genero || '-'}</div>
-                <div className="col-span-2"><span className="text-gray-500 block text-xs">Observações Médicas:</span> {selectedCliente.observacoes || 'Nenhuma observação cadastrada.'}</div>
+                <div className="col-span-2"><span className="text-gray-500 block text-xs">Observações Internas:</span> {selectedCliente.observacoes || 'Nenhuma observação cadastrada.'}</div>
               </div>
             </div>
           </div>

@@ -1,20 +1,20 @@
-# Sistema de Gestão para Profissionais de Saúde ⚕️
+# Heroic Leap | Sistema de CRM & Gestão White-Label 🚀
 
-Sistema completo para gestão de clínicas, consultórios e profissionais de saúde, focado em alta conversão, segurança (LGPD) e experiência do usuário premium.
+Plataforma completa para gestão de clientes, leads e agendamentos, focada em alta conversão, segurança e experiência do usuário premium. Desenvolvida para agências que buscam escalar a entrega de valor para seus clientes com uma infraestrutura robusta e personalizada.
 
-## 🚀 Funcionalidades Principais
+## 🌟 Funcionalidades Principais
 
-- **Dashboard Inteligente**: Visão geral de atendimentos, conversão de leads e novos clientes.
-- **Agenda Dinâmica**: Calendário interativo para gestão de horários e procedimentos.
-- **CRM Completo**: Funil de vendas (Kanban) para acompanhamento de leads.
-- **Gestão de Pacientes**: Cadastro detalhado e histórico de atendimentos.
-- **Documentação de API**: Portal interativo para desenvolvedores com exemplos em tempo real.
-- **Segurança Robusta**: Proteção via Row Level Security (RLS) no Supabase e sanitização contra XSS.
+- **Dashboard Inteligente**: Visão geral de atendimentos, conversão de leads e novos clientes em tempo real.
+- **Agenda Dinâmica**: Calendário interativo para gestão de horários e serviços.
+- **CRM Completo**: Funil de vendas (Kanban) para acompanhamento e automação de leads.
+- **Gestão de Clientes**: Cadastro detalhado, histórico de interações e acompanhamento de funil.
+- **Documentação de API**: Portal interativo para integração com automações (N8N, Make, Agentes IA).
+- **Segurança Robusta**: Proteção via Row Level Security (RLS) no Supabase e isolamento multi-tenant.
 
 ## 🛠️ Tecnologias Utilizadas
 
 - **Frontend**: React 19 + TypeScript + Vite
-- **Estilização**: Tailwind CSS v4 + Vanilla CSS
+- **Estilização**: CSS Moderno + Tailwind CSS v4
 - **Banco de Dados & Auth**: Supabase (PostgreSQL)
 - **Ícones**: Lucide React
 - **Gráficos**: Recharts
@@ -25,8 +25,8 @@ Sistema completo para gestão de clínicas, consultórios e profissionais de sa�
 
 1.  **Clonar o repositório:**
     ```bash
-    git clone https://github.com/heroicleaphealth/heroicleaphealth.git
-    cd heroicleaphealth
+    git clone https://github.com/candrevabruno/sistemacompleto.git
+    cd sistemacompleto
     ```
 
 2.  **Instalar dependências:**
@@ -43,13 +43,12 @@ Sistema completo para gestão de clínicas, consultórios e profissionais de sa�
     npm run dev
     ```
 
-## 🔒 Segurança e Privacidade (LGPD)
+## 🔒 Segurança e Privacidade
 
-O projeto foi auditado para conformidade com as melhores práticas de segurança:
-- **Zero Secrets**: Nenhuma chave privada ou secreta está exposta no código-fonte.
+O projeto foi auditado para conformidade com as melhores práticas de mercado:
+- **Modelo Multi-Tenant**: Isolamento completo de dados por projeto e ambiente.
 - **Proteção de Dados**: O acesso aos dados é restrito via RLS, garantindo que apenas usuários autenticados acessem as informações.
-- **Sanitização**: Uso de `DOMPurify` em áreas sensíveis para prever ataques de injeção.
+- **Sanitização**: Uso de bibliotecas modernas para prevenção de injeção e ataques XSS.
 
 ---
-Desenvolvido com foco em excelência técnica e médica.
-
+Desenvolvido com foco em escalabilidade e performance pela **Heroic Leap**.
