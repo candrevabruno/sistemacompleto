@@ -170,47 +170,48 @@ export function DocumentacaoAPI() {
             <div className="space-y-4">
               <h4 className="text-sm font-bold uppercase tracking-wider text-[var(--color-primary)]">Guia de Integração</h4>
               
-              <div className="flex gap-4 bg-white/40 p-4 rounded-lg border border-dashed border-[var(--color-primary)]/30">
-                <div className="bg-[var(--color-primary)] text-white w-6 h-6 rounded-full flex items-center justify-center text-xs shrink-0 font-bold">1</div>
+              <div className="flex gap-4 bg-white p-4 rounded-xl border border-[var(--color-primary)]/15 shadow-sm">
+                <div className="bg-[var(--color-primary)] text-white w-7 h-7 rounded-full flex items-center justify-center text-sm shrink-0 font-bold shadow-sm">1</div>
                 <div>
-                  <p className="text-sm text-[var(--color-text-main)] font-bold mb-1">Criar ou Consultar (URL Padrão):</p>
-                  <p className="text-sm text-[var(--color-text-muted)] leading-relaxed">
-                    Para <span className="font-bold text-[var(--color-text-main)]">Marcar</span>, use a <span className="font-mono bg-white px-1.5 py-0.5 border rounded text-xs select-all text-[var(--color-primary)]">Base URL + /agendamentos</span>. <br/>
-                    Para <span className="font-bold text-[var(--color-text-main)]">Ver Horários</span>, use <span className="font-mono bg-white px-1.5 py-0.5 border rounded text-xs select-all text-[var(--color-primary)]">/agendamentos/horarios</span>.
+                  <p className="text-base text-slate-900 font-bold mb-1">Criar ou Consultar (URL Padrão):</p>
+                  <p className="text-sm text-slate-800 leading-relaxed">
+                    Para <span className="font-bold text-black bg-amber-50 px-1 rounded">Marcar</span>, use a <span className="font-mono bg-white px-2 py-0.5 border-2 border-[var(--color-primary)]/20 rounded text-xs select-all text-black font-bold">Base URL + /agendamentos</span>. <br/>
+                    Para <span className="font-bold text-black bg-amber-50 px-1 rounded">Ver Horários</span>, use <span className="font-mono bg-white px-2 py-0.5 border-2 border-[var(--color-primary)]/20 rounded text-xs select-all text-black font-bold">/agendamentos/horarios</span>.
                   </p>
                 </div>
               </div>
 
-              <div className="flex gap-4 bg-white/40 p-4 rounded-lg border border-dashed border-[var(--color-primary)]/30">
-                <div className="bg-[var(--color-primary)] text-white w-6 h-6 rounded-full flex items-center justify-center text-xs shrink-0 font-bold">2</div>
+              <div className="flex gap-4 bg-white p-4 rounded-xl border border-[var(--color-primary)]/15 shadow-sm">
+                <div className="bg-[var(--color-primary)] text-white w-7 h-7 rounded-full flex items-center justify-center text-sm shrink-0 font-bold shadow-sm">2</div>
                 <div>
-                  <p className="text-sm text-[var(--color-text-main)] font-bold mb-1">Reagendar ou Cancelar (URL com ID):</p>
-                  <p className="text-sm text-[var(--color-text-muted)] leading-relaxed">Para <span className="font-bold text-[var(--color-text-main)]">Alterar</span> ou <span className="font-bold text-[var(--color-text-main)]">Remover</span>, você deve "colar" o ID do agendamento no final da URL: <br/>
-                  <span className="font-mono bg-white px-1.5 py-0.5 border rounded text-xs text-[var(--color-primary)]">/agendamentos/ID_DO_AGENDAMENTO</span></p>
+                  <p className="text-base text-slate-900 font-bold mb-1">Reagendar ou Cancelar (URL com ID):</p>
+                  <p className="text-sm text-slate-800 leading-relaxed">Para <span className="font-bold text-black bg-amber-50 px-1 rounded">Alterar</span> ou <span className="font-bold text-black bg-amber-50 px-1 rounded">Remover</span>, você deve "colar" o ID do agendamento no final da URL: <br/>
+                  <span className="font-mono bg-white px-2 py-0.5 border-2 border-[var(--color-primary)]/20 rounded text-xs text-black font-bold">/agendamentos/ID_DO_AGENDAMENTO</span></p>
                 </div>
               </div>
 
-              <div className="flex gap-4 bg-white/40 p-4 rounded-lg border border-dashed border-[var(--color-primary)]/30">
-                <div className="bg-[var(--color-primary)] text-white w-6 h-6 rounded-full flex items-center justify-center text-xs shrink-0 font-bold">3</div>
+              <div className="flex gap-4 bg-white p-4 rounded-xl border border-[var(--color-primary)]/15 shadow-sm">
+                <div className="bg-[var(--color-primary)] text-white w-7 h-7 rounded-full flex items-center justify-center text-sm shrink-0 font-bold shadow-sm">3</div>
                 <div>
-                  <p className="text-sm text-[var(--color-text-main)] font-bold mb-1">Múltiplas Agendas:</p>
-                  <p className="text-sm text-[var(--color-text-muted)] leading-relaxed">Se você tem vários profissionais ou salas, a <span className="underline decoration-dotted font-medium">URL é exatamente a mesma para todos</span>. O que diferencia quem será agendado é o campo <span className="font-mono bg-white px-1.5 py-0.5 border rounded text-xs text-[var(--color-primary)]">agenda_id</span> enviado dentro do seu JSON.</p>
+                  <p className="text-base text-slate-900 font-bold mb-1">Múltiplas Agendas:</p>
+                  <p className="text-sm text-slate-800 leading-relaxed font-medium">Se você tem vários profissionais ou salas, a <span className="underline decoration-[var(--color-primary)] decoration-2 underline-offset-4 text-black font-bold">URL é exatamente a mesma para todos</span>. O que diferencia quem será agendado é o campo <span className="font-mono bg-white px-2 py-0.5 border-2 border-[var(--color-primary)]/20 rounded text-xs text-black font-bold">agenda_id</span> enviado dentro do seu JSON.</p>
                 </div>
               </div>
 
-              <div className="flex gap-4 bg-white/40 p-4 rounded-lg border border-dashed border-[var(--color-primary)]/30">
-                <div className="bg-[var(--color-primary)] text-white w-6 h-6 rounded-full flex items-center justify-center text-xs shrink-0 font-bold">4</div>
+              <div className="flex gap-4 bg-white p-4 rounded-xl border border-[var(--color-primary)]/15 shadow-sm">
+                <div className="bg-[var(--color-primary)] text-white w-7 h-7 rounded-full flex items-center justify-center text-sm shrink-0 font-bold shadow-sm">4</div>
                 <div>
-                  <p className="text-sm text-[var(--color-text-main)] font-bold mb-1">Autenticação (Segurança):</p>
-                  <p className="text-sm text-[var(--color-text-muted)] leading-relaxed">Insira o token gerado anteriormente no Header da sua requisição: <span className="font-mono bg-white px-1.5 py-0.5 border rounded text-xs text-[var(--color-primary)]">Authorization: Bearer {`{SEU_TOKEN}`}</span>.</p>
+                  <p className="text-base text-slate-900 font-bold mb-1">Autenticação (Segurança):</p>
+                  <p className="text-sm text-slate-800 leading-relaxed font-medium">Insira o token gerado anteriormente no Header da sua requisição: <br/>
+                  <span className="font-mono bg-white px-2 py-1 border-2 border-[var(--color-primary)]/20 rounded text-xs text-black font-bold">Authorization: Bearer {`{SEU_TOKEN}`}</span>.</p>
                 </div>
               </div>
 
-              <div className="flex gap-4 text-black bg-amber-100 p-4 rounded-lg border border-amber-300 shadow-sm">
-                <div className="bg-amber-600 text-white w-6 h-6 rounded flex items-center justify-center text-[10px] shrink-0 font-bold shadow-sm">!</div>
+              <div className="flex gap-4 text-slate-900 bg-amber-100 p-5 rounded-xl border-2 border-amber-300 shadow-md">
+                <div className="bg-amber-600 text-white w-7 h-7 rounded-lg flex items-center justify-center text-xs shrink-0 font-extrabold shadow-sm">!</div>
                 <p className="text-sm leading-relaxed">
-                  <span className="font-bold block mb-1 uppercase tracking-tight text-amber-900">Configuração no N8N:</span>
-                  Ao usar o nó de <span className="font-bold italic text-black border-b-2 border-amber-400">HTTP Request</span>, lembre-se de selecionar o método correspondente (<span className="font-bold">POST, PUT ou DELETE</span>) e utilizar a URL completa gerada somando a Base URL com o endpoint desejado.
+                  <span className="font-extrabold block mb-2 uppercase tracking-wider text-amber-900">Configuração Crucial no N8N:</span>
+                  Ao usar o nó de <span className="font-bold italic text-black border-b-2 border-amber-500 bg-white/40 px-1">HTTP Request</span>, lembre-se de selecionar o método correspondente (<span className="font-bold text-amber-900">POST, PUT ou DELETE</span>) e utilizar a URL completa gerada somando a Base URL com o endpoint desejado.
                 </p>
               </div>
             </div>
