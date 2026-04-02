@@ -166,34 +166,34 @@ export function DocumentacaoAPI() {
             </div>
           </div>
           
-          <div className="mt-8 pt-6 border-t border-[var(--color-border-card)] grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="space-y-3">
+          <div className="mt-8 pt-6 border-t border-[var(--color-border-card)] space-y-8">
+            <div className="space-y-4">
               <h4 className="text-sm font-bold uppercase tracking-wider text-[var(--color-primary)]">Conceitos Rápidos</h4>
-              <ul className="space-y-4">
-                <li className="flex gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="flex gap-3 bg-white/40 p-3 rounded-lg border border-dashed border-[var(--color-primary)]/30">
                   <div className="bg-[var(--color-primary)] text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] shrink-0 mt-0.5">1</div>
                   <p className="text-sm text-[var(--color-text-main)]"><span className="font-bold">A URL Principal:</span> Para qualquer ação no calendário, use a <span className="font-mono bg-white px-1 border rounded text-xs select-all">Base URL + /agendamentos</span>. Já para consultar horários, use <span className="font-mono bg-white px-1 border rounded text-xs select-all">/agendamentos/horarios</span>.</p>
-                </li>
-                <li className="flex gap-3">
+                </div>
+                <div className="flex gap-3 bg-white/40 p-3 rounded-lg border border-dashed border-[var(--color-primary)]/30">
                   <div className="bg-[var(--color-primary)] text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] shrink-0 mt-0.5">2</div>
                   <p className="text-sm text-[var(--color-text-main)]"><span className="font-bold">Múltiplas Agendas:</span> Se você tem vários profissionais ou salas, a <span className="underline decoration-dotted">URL é a mesma</span> para todos. O que diferencia quem será agendado é o campo <span className="font-mono bg-white px-1 border rounded text-xs">agenda_id</span> enviado no JSON.</p>
-                </li>
-              </ul>
+                </div>
+              </div>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-4">
               <h4 className="text-sm font-bold uppercase tracking-wider text-[var(--color-primary)]">Autenticação</h4>
-              <ul className="space-y-4">
-                <li className="flex gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="flex gap-3 items-start">
                   <div className="bg-[var(--color-primary)] text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] shrink-0 mt-0.5">3</div>
                   <p className="text-sm text-[var(--color-text-main)]"><span className="font-bold">Bearer Token:</span> Use o token gerado em configurações no Header <span className="font-mono bg-white px-1 border rounded text-xs">Authorization: Bearer {`{SEU_TOKEN}`}</span>.</p>
-                </li>
-                <li className="flex gap-3 text-amber-700 bg-amber-50 p-2 rounded border border-amber-200">
-                  <p className="text-[11px] leading-relaxed">
+                </div>
+                <div className="flex gap-3 text-amber-700 bg-amber-50 p-3 rounded-lg border border-amber-200">
+                  <p className="text-[12px] leading-relaxed">
                     <span className="font-bold block mb-1">DICA PARA N8N:</span> Ao usar o nó de <strong>HTTP Request</strong>, selecione o método correspondente à ação (POST, PUT, DELETE) e insira a URL completa informada abaixo.
                   </p>
-                </li>
-              </ul>
+                </div>
+              </div>
             </div>
           </div>
         </CardContent>
