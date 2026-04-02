@@ -175,8 +175,8 @@ export function DocumentacaoAPI() {
                 <div>
                   <p className="text-base text-slate-900 font-bold mb-1">Criar ou Consultar (URL Padrão):</p>
                   <p className="text-sm text-slate-800 leading-relaxed">
-                    Para <span className="font-bold text-black bg-amber-50 px-1 rounded">Marcar</span>, use a <span className="font-mono bg-white px-2 py-0.5 border-2 border-[var(--color-primary)]/20 rounded text-xs select-all text-black font-bold">Base URL + /agendamentos</span>. <br/>
-                    Para <span className="font-bold text-black bg-amber-50 px-1 rounded">Ver Horários</span>, use <span className="font-mono bg-white px-2 py-0.5 border-2 border-[var(--color-primary)]/20 rounded text-xs select-all text-black font-bold">/agendamentos/horarios</span>.
+                    Para <span className="font-bold text-black bg-amber-50 px-1 rounded">Marcar</span> Agora: Use o método <span className="px-1.5 py-0.5 bg-green-100 text-green-800 rounded font-bold text-xs border border-green-200">POST</span> na URL <span className="font-mono bg-white px-2 py-0.5 border-2 border-[var(--color-primary)]/20 rounded text-xs select-all text-black font-bold">Base URL + /agendamentos</span>. <br/>
+                    Para <span className="font-bold text-black bg-amber-50 px-1 rounded">Ver Horários</span>: Use o método <span className="px-1.5 py-0.5 bg-blue-100 text-blue-800 rounded font-bold text-xs border border-blue-200">GET</span> na URL <span className="font-mono bg-white px-2 py-0.5 border-2 border-[var(--color-primary)]/20 rounded text-xs select-all text-black font-bold">/agendamentos/horarios</span>.
                   </p>
                 </div>
               </div>
@@ -185,8 +185,11 @@ export function DocumentacaoAPI() {
                 <div className="bg-[var(--color-primary)] text-white w-7 h-7 rounded-full flex items-center justify-center text-sm shrink-0 font-bold shadow-sm">2</div>
                 <div>
                   <p className="text-base text-slate-900 font-bold mb-1">Reagendar ou Cancelar (URL com ID):</p>
-                  <p className="text-sm text-slate-800 leading-relaxed">Para <span className="font-bold text-black bg-amber-50 px-1 rounded">Alterar</span> ou <span className="font-bold text-black bg-amber-50 px-1 rounded">Remover</span>, você deve "colar" o ID do agendamento no final da URL: <br/>
-                  <span className="font-mono bg-white px-2 py-0.5 border-2 border-[var(--color-primary)]/20 rounded text-xs text-black font-bold">/agendamentos/ID_DO_AGENDAMENTO</span></p>
+                  <p className="text-sm text-slate-800 leading-relaxed">
+                    Para <span className="font-bold text-black bg-amber-50 px-1 rounded">Alterar</span>: Use o método <span className="px-1.5 py-0.5 bg-indigo-100 text-indigo-800 rounded font-bold text-xs border border-indigo-200">PUT</span> enviando o ID no final da URL: <br/>
+                    <span className="font-mono bg-white px-2 py-0.5 border-2 border-[var(--color-primary)]/20 rounded text-xs text-black font-bold">/agendamentos/ID_DO_AGENDAMENTO</span> <br/>
+                    Para <span className="font-bold text-black bg-amber-50 px-1 rounded">Remover</span>: Use o método <span className="px-1.5 py-0.5 bg-red-100 text-red-800 rounded font-bold text-xs border border-red-200">DELETE</span> enviando o ID no final da URL.
+                  </p>
                 </div>
               </div>
 
