@@ -1,7 +1,8 @@
 // Login — HeroicLeap v9
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
 
 export function Login() {
   const [email, setEmail] = useState('');
@@ -10,6 +11,13 @@ export function Login() {
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
+  const { user } = useAuth();
+
+  useEffect(() => {
+    if (user) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [user, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,9 +35,10 @@ export function Login() {
     if (signInError) {
       setError('Email ou senha incorretos.');
       setLoading(false);
-    } else {
-      navigate('/dashboard');
     }
+    // Se logou com sucesso, não faz o navigate manual aqui.
+    // O onAuthStateChange no AuthContext vai preencher o "user"
+    // e o useEffect que colocamos lá em cima fará o redirect blindado.
   };
 
   return (
