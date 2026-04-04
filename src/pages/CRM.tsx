@@ -486,29 +486,38 @@ export function CRM() {
         </div>
       </Modal>
 
-      {/* MODAL REAGENDAR */}
-      <Modal isOpen={!!confirmReagendado} onClose={() => setConfirmReagendado(null)} title="Reagendar Lead">
+      {/* MODAL REAGENDAR / CAL.COM AVISO */}
+      <Modal isOpen={!!confirmReagendado} onClose={() => {
+        if(confirmReagendado?.leadId) updateLeadState(confirmReagendado.leadId, confirmReagendado.sourceCol);
+        setConfirmReagendado(null);
+      }} title="Reagendar Lead (Cal.com)">
         <div className="space-y-4">
-          <div className="p-3 bg-amber-50 border border-amber-200 rounded-[8px] text-amber-700 text-sm font-medium">
-            📅 Selecione a nova data para <strong>{confirmReagendado?.lead?.nome_lead || confirmReagendado?.lead?.whatsapp_lead}</strong>
+          <div className="p-4 bg-amber-50 border border-amber-200 rounded-[8px] text-amber-800 text-sm font-medium">
+             <h4 className="font-bold flex items-center gap-2 mb-2">Opção Bloqueada no CRM</h4>
+             <p>A gestão do calendário central agora é do Cal.com.</p>
+             <p className="mt-2 text-xs">⚠️ Para mover <strong>{confirmReagendado?.lead?.nome_lead || confirmReagendado?.lead?.whatsapp_lead}</strong> para "Reagendado", primeiro remarque o horário diretamente no App/Painel do Cal.com.</p>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-[var(--color-text-main)] mb-1">Nova Data e Horário <span className="text-red-500">*</span></label>
-            <input
-              type="datetime-local"
-              value={reagendadoForm.dataHora}
-              onChange={e => setReagendadoForm({...reagendadoForm, dataHora: e.target.value})}
-              className="w-full border border-[var(--color-border-card)] rounded-[8px] px-3 py-2 text-sm bg-[var(--color-bg-base)] text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
-            />
-          </div>
+          
+          <p className="text-xs text-[var(--color-text-muted)] text-center my-2">Se você já remarcou no Cal.com, aprove apenas o status no card abaixo.</p>
+          
           <div className="flex gap-3 justify-end mt-4">
-            <Button variant="secondary" onClick={() => setConfirmReagendado(null)}>Cancelar</Button>
+            <Button variant="secondary" onClick={() => {
+               if(confirmReagendado?.leadId) updateLeadState(confirmReagendado.leadId, confirmReagendado.sourceCol);
+               setConfirmReagendado(null);
+            }}>Cancelar</Button>
             <Button
               className="bg-amber-500 text-white hover:bg-amber-600 border-none"
-              onClick={confirmReagendadoAction}
-              disabled={!reagendadoForm.dataHora || savingReagendado}
+              onClick={async () => {
+                if(!confirmReagendado?.leadId) return;
+                setSavingReagendado(true);
+                await supabase.from('leads').update({ status: 'reagendado' }).eq('id', confirmReagendado.leadId);
+                updateLeadState(confirmReagendado.leadId, 'reagendado');
+                setSavingReagendado(false);
+                setConfirmReagendado(null);
+              }}
+              disabled={savingReagendado}
             >
-              {savingReagendado ? 'Salvando...' : 'Confirmar Reagendamento'}
+              {savingReagendado ? 'Aprovando...' : 'Aprovar Status Reagendado'}
             </Button>
           </div>
         </div>

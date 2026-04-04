@@ -87,8 +87,26 @@ export function CentralAgendamentos() {
   };
 
   useEffect(() => { fetchAgendas(); }, []);
-  useEffect(() => { fetchAgendamentos(); }, [filtro, agendaFiltro, statusFiltro, customStart, customEnd]);
+  
+  useEffect(() => { 
+    fetchAgendamentos(); 
+    
+    // ─── REALTIME SYNC (Ouça as alterações da I.A.) ───────────────────────
+    const channel = supabase
+      .channel('schema-db-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'agendamentos' },
+        () => {
+          fetchAgendamentos(); // Atualiza a tela instantaneamente
+        }
+      )
+      .subscribe();
 
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [filtro, agendaFiltro, statusFiltro, customStart, customEnd]);
   // ─── AÇÕES ────────────────────────────────────────────────────────────────
 
   const executarAcao = async () => {
@@ -128,27 +146,8 @@ export function CentralAgendamentos() {
   };
 
   const reagendar = async () => {
-    if (!reagendarModal || !novaDataHora) return;
-    setSalvandoReagendar(true);
-
-    const novaData = new Date(novaDataHora).toISOString();
-
-    const { error } = await supabase
-      .from('agendamentos')
-      .update({ data_hora_inicio: novaData, status: 'reagendado' })
-      .eq('id', reagendarModal.id);
-
-    if (error) { alert(`Erro: ${error.message}`); setSalvandoReagendar(false); return; }
-
-    // Sincroniza data no lead
-    if (reagendarModal.lead_id) {
-      await supabase.from('leads').update({ data_agendamento: novaData, status: 'reagendado' }).eq('id', reagendarModal.lead_id);
-    }
-
+    // FUNÇÃO DESATIVADA: O gerenciamento de datas passa a ser do Cal.com
     setReagendar(null);
-    setNovaDataHora('');
-    setSalvandoReagendar(false);
-    fetchAgendamentos();
   };
 
   // ─── RENDER ──────────────────────────────────────────────────────────────
@@ -361,35 +360,30 @@ export function CentralAgendamentos() {
         </div>
       </Modal>
 
-      {/* MODAL REAGENDAR */}
-      <Modal isOpen={!!reagendarModal} onClose={() => setReagendar(null)} title="Reagendar Consulta">
+      {/* MODAL REAGENDAR / CAL.COM AVISO */}
+      <Modal isOpen={!!reagendarModal} onClose={() => setReagendar(null)} title="Gestão de Datas (Cal.com)">
         <div className="space-y-4">
-          <div className="p-3 bg-amber-50 border border-amber-200 rounded-[8px] text-amber-700 text-sm font-medium">
-            ↻ Reagendando: <strong>{reagendarModal?.nome_lead || 'cliente'}</strong>
+          <div className="p-4 bg-amber-50 border border-amber-200 rounded-[8px] text-amber-800 text-sm font-medium">
+            <h4 className="font-bold flex items-center gap-2 mb-2">Opção Bloqueada no CRM</h4>
+            <p>
+              A gestão de agendamentos oficiais de <strong>{reagendarModal?.nome_lead || 'cliente'}</strong> passou para o aplicativo principal do Cal.com. 
+            </p>
+            <p className="mt-2 text-xs">
+              ⚠️ Cancelamentos e remarcações manuais devem ser feitos diretamente no painel ou App do Cal.com (sob o controle da secretária) para evitar conflitos de horários.
+            </p>
           </div>
           {reagendarModal?.data_hora_inicio && (
-            <p className="text-sm text-[var(--color-text-muted)]">
-              Horário atual: {format(parseISO(reagendarModal.data_hora_inicio), "dd/MM/yyyy 'às' HH:mm")}
+            <p className="text-sm text-[var(--color-text-muted)] font-mono text-center bg-[var(--color-bg-base)] py-2 rounded">
+              Gatilho atual: {format(parseISO(reagendarModal.data_hora_inicio), "dd/MM/yyyy 'às' HH:mm")}
             </p>
           )}
-          <div>
-            <label className="block text-sm font-medium text-[var(--color-text-main)] mb-1">Novo horário <span className="text-red-500">*</span></label>
-            <input
-              type="datetime-local"
-              value={novaDataHora}
-              onChange={e => setNovaDataHora(e.target.value)}
-              className="w-full border border-[var(--color-border-card)] rounded-[8px] px-3 py-2 text-sm bg-[var(--color-bg-base)] text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
-            />
-          </div>
-          <p className="text-xs text-[var(--color-text-muted)]">O status voltará para "Agendado" e a data no CRM será atualizada automaticamente.</p>
-          <div className="flex gap-3 justify-end">
-            <Button variant="secondary" onClick={() => setReagendar(null)} disabled={salvandoReagendar}>Cancelar</Button>
+
+          <div className="flex gap-3 justify-end mt-4">
             <Button
-              className="bg-amber-500 text-white hover:bg-amber-600 border-none"
-              onClick={reagendar}
-              disabled={!novaDataHora || salvandoReagendar}
+              className="bg-amber-500 text-white hover:bg-amber-600 border-none w-full"
+              onClick={() => setReagendar(null)}
             >
-              {salvandoReagendar ? 'Salvando...' : 'Confirmar Reagendamento'}
+              Entendido
             </Button>
           </div>
         </div>
