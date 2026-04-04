@@ -28,10 +28,8 @@ export function Sidebar() {
     { to: '/crm', label: 'CRM', icon: Kanban },
     { to: '/leads', label: 'Leads', icon: Users },
     { to: '/clientes', label: 'Clientes', icon: UserCheck },
-    { to: '/agenda', label: 'Agenda', icon: Calendar },
     { to: '/central-agendamentos', label: 'Agendamentos', icon: CalendarCheck },
     ...(user?.role === 'admin' ? [{ to: '/configuracoes', label: 'Configurações', icon: Settings }] : []),
-    { to: '/documentacao-api', label: 'Doc. API', icon: Code },
   ];
 
   const sidebarContent = (
