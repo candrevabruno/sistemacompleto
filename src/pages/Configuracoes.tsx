@@ -14,6 +14,7 @@ export function Configuracoes() {
 
   const tabs = [
     { id: 'geral', label: 'Geral' },
+    { id: 'agendas', label: 'Agendas (Google)' },
     { id: 'usuarios', label: 'Usuários' },
     { id: 'tokens', label: 'Token de API' },
     { id: 'kanban', label: 'Kanban' }
@@ -34,6 +35,7 @@ export function Configuracoes() {
       </div>
       <div>
         {activeTab === 'geral' && <AbaGeral />}
+        {activeTab === 'agendas' && <AbaAgendas />}
         {activeTab === 'usuarios' && <AbaUsuarios />}
         {activeTab === 'tokens' && <AbaTokens />}
         {activeTab === 'kanban' && <AbaKanban />}
@@ -448,6 +450,120 @@ function AbaKanban() {
           <span className="font-bold text-lg mt-0.5">•</span>
           <p>Para atualizar o status de um lead via N8N, envie uma requisição ao Supabase atualizando o campo <code>status</code> da tabela <code>leads</code> com um dos valores acima.</p>
         </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function AbaAgendas() {
+  const [agendas, setAgendas] = useState<any[]>([]);
+  const [openNew, setOpenNew] = useState(false);
+  const [form, setForm] = useState({ nome: '', cor: '#C47E7E', google_calendar_id: '' });
+  const [loading, setLoading] = useState(false);
+
+  const loadAgendas = async () => {
+    const { data } = await supabase.from('agendas').select('*').order('created_at', { ascending: false });
+    if (data) setAgendas(data);
+  };
+  useEffect(() => { loadAgendas(); }, []);
+
+  const saveAgenda = async () => {
+    if (!form.nome) return;
+    setLoading(true);
+    const { error } = await supabase.from('agendas').insert({
+      nome: form.nome,
+      cor: form.cor,
+      google_calendar_id: form.google_calendar_id,
+      ativo: true
+    });
+    setLoading(false);
+    if (error) {
+      alert(`Erro: ${error.message} (Lembre-se de rodar o migracao_google_calendar.sql no banco!)`);
+      return;
+    }
+    setForm({ nome: '', cor: '#C47E7E', google_calendar_id: '' });
+    setOpenNew(false);
+    loadAgendas();
+  };
+
+  const deleteAgenda = async (id: string) => {
+    if (!window.confirm("Atenção: Excluir esta agenda pode afetar os agendamentos vinculados a ela. Tem certeza?")) return;
+    await supabase.from('agendas').delete().eq('id', id);
+    loadAgendas();
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex justify-between items-center">
+          <div>
+            <CardTitle>Agendas (Google Calendar)</CardTitle>
+            <p className="text-sm text-[var(--color-text-muted)] mt-1">Conecte seus profissionais ou salas às agendas do Google.</p>
+          </div>
+          <Button onClick={() => setOpenNew(true)} size="sm"><Plus className="w-4 h-4 mr-2"/> Nova Agenda</Button>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {agendas.map(ag => (
+            <div key={ag.id} className="border border-[var(--color-border-card)] rounded-[12px] p-4 flex flex-col gap-3 relative overflow-hidden bg-white">
+              <div className="absolute top-0 left-0 w-2 h-full" style={{ backgroundColor: ag.cor }}></div>
+              <div className="flex justify-between items-start pl-3">
+                <div>
+                  <h3 className="font-bold text-lg text-[var(--color-text-main)] flex items-center gap-2">
+                    {ag.nome}
+                    {!ag.ativo && <Badge variant="default" className="text-[10px]">Inativo</Badge>}
+                  </h3>
+                  <div className="text-sm border bg-gray-50 text-gray-600 rounded px-2 py-1 mt-2 inline-flex items-center gap-2 overflow-hidden max-w-[200px] sm:max-w-[280px]">
+                    <span className="opacity-70 font-mono text-xs whitespace-nowrap">ID Google:</span>
+                    <span className="truncate">{ag.google_calendar_id || <span className="text-red-400 italic">Não configurado</span>}</span>
+                  </div>
+                </div>
+                <button onClick={() => deleteAgenda(ag.id)} className="p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors rounded">
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          ))}
+          {agendas.length === 0 && (
+             <div className="col-span-1 md:col-span-2 text-center py-8 text-[var(--color-text-muted)] border border-dashed border-[var(--color-border-card)] rounded-lg">
+               Nenhuma agenda cadastrada.
+             </div>
+          )}
+        </div>
+
+        <Modal isOpen={openNew} onClose={() => setOpenNew(false)} title="Adicionar Agenda">
+          <div className="space-y-4">
+            <Input label="Nome da Cadeira / Profissional" placeholder="Ex: Dra. Juliana" value={form.nome} onChange={e=>setForm({...form, nome: e.target.value})}/>
+            <div>
+               <label className="block text-sm font-medium text-[var(--color-text-main)] mb-1">E-mail ou ID do Google Calendar</label>
+               <input
+                 type="text"
+                 className="w-full border border-[var(--color-border-card)] rounded-[8px] px-3 py-2 text-sm bg-[var(--color-bg-base)] text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                 placeholder="Ex: juliana@suaclinica.com"
+                 value={form.google_calendar_id}
+                 onChange={e=>setForm({...form, google_calendar_id: e.target.value})}
+               />
+               <p className="text-xs text-[var(--color-text-muted)] mt-1">Este ID é crucial para o N8N saber onde marcar o agendamento.</p>
+            </div>
+            <div>
+               <label className="block text-sm font-medium text-[var(--color-text-main)] mb-1">Cor de identificação</label>
+               <div className="flex gap-2">
+                  <input
+                    type="color"
+                    className="w-10 h-10 border-0 p-0 rounded cursor-pointer"
+                    value={form.cor}
+                    onChange={e=>setForm({...form, cor: e.target.value})}
+                  />
+                  <div className="text-xs text-[var(--color-text-muted)] self-center">Aparece na barra lateral desta agenda</div>
+               </div>
+            </div>
+
+            <Button className="w-full" disabled={!form.nome || loading} onClick={saveAgenda}>
+              {loading ? 'Salvando...' : 'Adicionar Agenda'}
+            </Button>
+          </div>
+        </Modal>
       </CardContent>
     </Card>
   );

@@ -486,19 +486,19 @@ export function CRM() {
         </div>
       </Modal>
 
-      {/* MODAL REAGENDAR / CAL.COM AVISO */}
+      {/* MODAL REAGENDAR / GOOGLE CALENDAR AVISO */}
       <Modal isOpen={!!confirmReagendado} onClose={() => {
         if(confirmReagendado?.leadId) updateLeadState(confirmReagendado.leadId, confirmReagendado.sourceCol);
         setConfirmReagendado(null);
-      }} title="Reagendar Lead (Cal.com)">
+      }} title="Reagendar Lead (Google Calendar)">
         <div className="space-y-4">
           <div className="p-4 bg-amber-50 border border-amber-200 rounded-[8px] text-amber-800 text-sm font-medium">
              <h4 className="font-bold flex items-center gap-2 mb-2">Opção Bloqueada no CRM</h4>
-             <p>A gestão do calendário central agora é do Cal.com.</p>
-             <p className="mt-2 text-xs">⚠️ Para mover <strong>{confirmReagendado?.lead?.nome_lead || confirmReagendado?.lead?.whatsapp_lead}</strong> para "Reagendado", primeiro remarque o horário diretamente no App/Painel do Cal.com.</p>
+             <p>A gestão do calendário central agora é do Google Calendar.</p>
+             <p className="mt-2 text-xs">⚠️ Para mover <strong>{confirmReagendado?.lead?.nome_lead || confirmReagendado?.lead?.whatsapp_lead}</strong> para "Reagendado", primeiro remarque o horário diretamente no Google Calendar.</p>
           </div>
           
-          <p className="text-xs text-[var(--color-text-muted)] text-center my-2">Se você já remarcou no Cal.com, aprove apenas o status no card abaixo.</p>
+          <p className="text-xs text-[var(--color-text-muted)] text-center my-2">Se você já remarcou no Google Calendar, aprove apenas o status no card abaixo.</p>
           
           <div className="flex gap-3 justify-end mt-4">
             <Button variant="secondary" onClick={() => {
