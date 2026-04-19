@@ -493,12 +493,19 @@ export function CRM() {
       }} title="Reagendar Lead (Google Calendar)">
         <div className="space-y-4">
           <div className="p-4 bg-amber-50 border border-amber-200 rounded-[8px] text-amber-800 text-sm font-medium">
-             <h4 className="font-bold flex items-center gap-2 mb-2">Opção Bloqueada no CRM</h4>
-             <p>A gestão do calendário central agora é do Google Calendar.</p>
-             <p className="mt-2 text-xs">⚠️ Para mover <strong>{confirmReagendado?.lead?.nome_lead || confirmReagendado?.lead?.whatsapp_lead}</strong> para "Reagendado", primeiro remarque o horário diretamente no Google Calendar.</p>
+             <h4 className="font-bold flex items-center gap-2 mb-2">Aviso de Sincronia</h4>
+             <p>Lembre-se de primeiro remarcar o horário diretamente no <strong>Google Calendar</strong>.</p>
           </div>
           
-          <p className="text-xs text-[var(--color-text-muted)] text-center my-2">Se você já remarcou no Google Calendar, aprove apenas o status no card abaixo.</p>
+          <div>
+            <label className="block text-sm font-medium text-[var(--color-text-main)] mb-1">Qual foi a nova data e horário definida no Google? <span className="text-red-500">*</span></label>
+            <input
+              type="datetime-local"
+              value={reagendadoForm.dataHora}
+              onChange={e => setReagendadoForm({...reagendadoForm, dataHora: e.target.value})}
+              className="w-full border border-[var(--color-border-card)] rounded-[8px] px-3 py-2 text-sm bg-[var(--color-bg-base)] text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+            />
+          </div>
           
           <div className="flex gap-3 justify-end mt-4">
             <Button variant="secondary" onClick={() => {
@@ -507,17 +514,10 @@ export function CRM() {
             }}>Cancelar</Button>
             <Button
               className="bg-amber-500 text-white hover:bg-amber-600 border-none"
-              onClick={async () => {
-                if(!confirmReagendado?.leadId) return;
-                setSavingReagendado(true);
-                await supabase.from('leads').update({ status: 'reagendado' }).eq('id', confirmReagendado.leadId);
-                updateLeadState(confirmReagendado.leadId, 'reagendado');
-                setSavingReagendado(false);
-                setConfirmReagendado(null);
-              }}
-              disabled={savingReagendado}
+              onClick={confirmReagendadoAction}
+              disabled={!reagendadoForm.dataHora || savingReagendado}
             >
-              {savingReagendado ? 'Aprovando...' : 'Aprovar Status Reagendado'}
+              {savingReagendado ? 'Salvando...' : 'Confirmar Reagendamento'}
             </Button>
           </div>
         </div>
