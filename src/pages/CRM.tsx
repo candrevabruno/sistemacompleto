@@ -490,15 +490,15 @@ export function CRM() {
       <Modal isOpen={!!confirmReagendado} onClose={() => {
         if(confirmReagendado?.leadId) updateLeadState(confirmReagendado.leadId, confirmReagendado.sourceCol);
         setConfirmReagendado(null);
-      }} title="Reagendar Lead (Google Calendar)">
+      }} title="Reagendar Lead (Cal.com)">
         <div className="space-y-4">
           <div className="p-4 bg-amber-50 border border-amber-200 rounded-[8px] text-amber-800 text-sm font-medium">
              <h4 className="font-bold flex items-center gap-2 mb-2">Aviso de Sincronia</h4>
-             <p>Lembre-se de primeiro remarcar o horário diretamente no <strong>Google Calendar</strong>.</p>
+             <p>Lembre-se de primeiro remarcar o horário remotamente usando o painel central do <strong>Cal.com</strong>.</p>
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-[var(--color-text-main)] mb-1">Qual foi a nova data e horário definida no Google? <span className="text-red-500">*</span></label>
+            <label className="block text-sm font-medium text-[var(--color-text-main)] mb-1">Qual foi a nova data e horário definida no Cal.com? <span className="text-red-500">*</span></label>
             <input
               type="datetime-local"
               value={reagendadoForm.dataHora}

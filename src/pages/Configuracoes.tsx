@@ -458,7 +458,7 @@ function AbaKanban() {
 function AbaAgendas() {
   const [agendas, setAgendas] = useState<any[]>([]);
   const [openNew, setOpenNew] = useState(false);
-  const [form, setForm] = useState({ nome: '', cor: '#C47E7E', google_calendar_id: '' });
+  const [form, setForm] = useState({ nome: '', cor: '#C47E7E', calcom_link: '' });
   const [loading, setLoading] = useState(false);
 
   const loadAgendas = async () => {
@@ -473,7 +473,7 @@ function AbaAgendas() {
     const { error } = await supabase.from('agendas').insert({
       nome: form.nome,
       cor: form.cor,
-      google_calendar_id: form.google_calendar_id,
+      calcom_link: form.calcom_link,
       ativo: true
     });
     setLoading(false);
@@ -481,7 +481,7 @@ function AbaAgendas() {
       alert(`Erro: ${error.message} (Lembre-se de rodar o migracao_google_calendar.sql no banco!)`);
       return;
     }
-    setForm({ nome: '', cor: '#C47E7E', google_calendar_id: '' });
+    setForm({ nome: '', cor: '#C47E7E', calcom_link: '' });
     setOpenNew(false);
     loadAgendas();
   };
@@ -497,8 +497,8 @@ function AbaAgendas() {
       <CardHeader>
         <div className="flex justify-between items-center">
           <div>
-            <CardTitle>Agendas (Google Calendar)</CardTitle>
-            <p className="text-sm text-[var(--color-text-muted)] mt-1">Conecte seus profissionais ou salas às agendas do Google.</p>
+            <CardTitle>Agendas (Cal.com)</CardTitle>
+            <p className="text-sm text-[var(--color-text-muted)] mt-1">Conecte seus profissionais ou salas aos Event Types do Cal.com.</p>
           </div>
           <Button onClick={() => setOpenNew(true)} size="sm"><Plus className="w-4 h-4 mr-2"/> Nova Agenda</Button>
         </div>
@@ -515,8 +515,8 @@ function AbaAgendas() {
                     {!ag.ativo && <Badge variant="default" className="text-[10px]">Inativo</Badge>}
                   </h3>
                   <div className="text-sm border bg-gray-50 text-gray-600 rounded px-2 py-1 mt-2 inline-flex items-center gap-2 overflow-hidden max-w-[200px] sm:max-w-[280px]">
-                    <span className="opacity-70 font-mono text-xs whitespace-nowrap">ID Google:</span>
-                    <span className="truncate">{ag.google_calendar_id || <span className="text-red-400 italic">Não configurado</span>}</span>
+                    <span className="opacity-70 font-mono text-xs whitespace-nowrap">Link Cal.com:</span>
+                    <span className="truncate">{ag.calcom_link || <span className="text-red-400 italic">Não configurado</span>}</span>
                   </div>
                 </div>
                 <button onClick={() => deleteAgenda(ag.id)} className="p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors rounded">
@@ -536,15 +536,15 @@ function AbaAgendas() {
           <div className="space-y-4">
             <Input label="Nome da Cadeira / Profissional" placeholder="Ex: Dra. Juliana" value={form.nome} onChange={e=>setForm({...form, nome: e.target.value})}/>
             <div>
-               <label className="block text-sm font-medium text-[var(--color-text-main)] mb-1">E-mail ou ID do Google Calendar</label>
+               <label className="block text-sm font-medium text-[var(--color-text-main)] mb-1">Link da Agenda no Cal.com</label>
                <input
                  type="text"
                  className="w-full border border-[var(--color-border-card)] rounded-[8px] px-3 py-2 text-sm bg-[var(--color-bg-base)] text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
-                 placeholder="Ex: juliana@suaclinica.com"
-                 value={form.google_calendar_id}
-                 onChange={e=>setForm({...form, google_calendar_id: e.target.value})}
+                 placeholder="Ex: cal.com/suaclinica/dr-bruno"
+                 value={form.calcom_link}
+                 onChange={e=>setForm({...form, calcom_link: e.target.value})}
                />
-               <p className="text-xs text-[var(--color-text-muted)] mt-1">Este ID é crucial para o N8N saber onde marcar o agendamento.</p>
+               <p className="text-xs text-[var(--color-text-muted)] mt-1">Copie e cole o link público oficial do "Event Type" criado no Cal.com.</p>
             </div>
             <div>
                <label className="block text-sm font-medium text-[var(--color-text-main)] mb-1">Cor de identificação</label>
