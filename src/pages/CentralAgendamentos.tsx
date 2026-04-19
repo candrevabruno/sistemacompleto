@@ -8,7 +8,7 @@ import { Badge } from '../components/ui/Badge';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { CalendarCheck, Phone, Clock, ChevronDown, RefreshCw, CheckCircle, XCircle, UserCheck, CalendarIcon } from 'lucide-react';
 
-type Filtro = 'hoje' | 'semana' | 'mes' | 'custom';
+type Filtro = 'hoje' | 'amanha' | '7_dias' | '14_dias' | 'mes' | 'custom';
 type StatusAgendamento = 'agendado' | 'confirmado' | 'compareceu' | 'faltou' | 'cancelado';
 
 const STATUS_LABELS: Record<string, string> = {
@@ -52,7 +52,21 @@ export function CentralAgendamentos() {
     const now = new Date();
     switch (filtro) {
       case 'hoje': return { start: startOfDay(now), end: endOfDay(now) };
-      case 'semana': return { start: startOfWeek(now, { weekStartsOn: 1 }), end: endOfWeek(now, { weekStartsOn: 1 }) };
+      case 'amanha': {
+        const tomorrow = new Date(now);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        return { start: startOfDay(tomorrow), end: endOfDay(tomorrow) };
+      }
+      case '7_dias': {
+        const next7 = new Date(now);
+        next7.setDate(next7.getDate() + 7);
+        return { start: startOfDay(now), end: endOfDay(next7) };
+      }
+      case '14_dias': {
+        const next14 = new Date(now);
+        next14.setDate(next14.getDate() + 14);
+        return { start: startOfDay(now), end: endOfDay(next14) };
+      }
       case 'mes': return { start: startOfMonth(now), end: endOfMonth(now) };
       case 'custom':
         return {
@@ -193,10 +207,10 @@ export function CentralAgendamentos() {
           <div className="flex flex-col xl:flex-row gap-4 items-start xl:items-center">
             {/* Filtro de período */}
             <div className="flex flex-wrap gap-2">
-              {(['hoje', 'semana', 'mes'] as Filtro[]).map(f => (
+              {(['hoje', 'amanha', '7_dias', '14_dias', 'mes'] as Filtro[]).map(f => (
                 <button key={f} onClick={() => setFiltro(f)}
                   className={`px-3 py-1.5 text-sm font-medium rounded-[8px] transition-colors ${filtro === f ? 'bg-[var(--color-primary)] text-white' : 'bg-[var(--color-bg-base)] text-[var(--color-text-main)] hover:bg-[var(--color-primary-light)]'}`}>
-                  {f === 'hoje' ? 'Hoje' : f === 'semana' ? 'Semana' : 'Mês'}
+                  {f === 'hoje' ? 'Hoje' : f === 'amanha' ? 'Amanhã' : f === '7_dias' ? '7 dias' : f === '14_dias' ? '14 dias' : 'Mês'}
                 </button>
               ))}
               <div className="flex items-center gap-2">
