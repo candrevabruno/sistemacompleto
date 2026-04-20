@@ -14,7 +14,7 @@ export function Configuracoes() {
 
   const tabs = [
     { id: 'geral', label: 'Geral' },
-    { id: 'agendas', label: 'Agendas (Google)' },
+    { id: 'agendas', label: 'Agendas (Cal.com)' },
     { id: 'usuarios', label: 'Usuários' },
     { id: 'tokens', label: 'Token de API' },
     { id: 'kanban', label: 'Kanban' }

@@ -259,7 +259,7 @@ export function Dashboard() {
           </div>
           <div className="text-[var(--color-text-main)] text-sm font-medium">
             <strong className="text-[var(--color-primary)] text-lg mr-1">{leadsFora}</strong> 
-            pessoas tentaram falar com sua clínica fora do horário de atendimento neste período. Sem o agente de IA no WhatsApp, esses contatos teriam ido embora sem resposta — e provavelmente procurado a concorrência.
+            pessoas tentaram falar com sua empresa fora do horário de atendimento neste período. Sem o agente de IA no WhatsApp, esses contatos teriam ido embora sem resposta — e provavelmente procurado a concorrência.
           </div>
         </div>
       )}
