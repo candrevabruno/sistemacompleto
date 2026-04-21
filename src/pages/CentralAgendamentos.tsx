@@ -87,7 +87,7 @@ export function CentralAgendamentos() {
 
     let query = supabase
       .from('agendamentos')
-      .select('*, agendas(nome, cor)')
+      .select('*, agendas(nome, cor), leads:lead_id(resumo_conversa)')
       .gte('data_hora_inicio', start.toISOString())
       .lte('data_hora_inicio', end.toISOString())
       .order('data_hora_inicio', { ascending: true });
@@ -279,13 +279,18 @@ export function CentralAgendamentos() {
                           <Phone className="w-3 h-3" />{ag.whatsapp_lead}
                         </a>
                       )}
-                      {ag.procedimento_nome && (
-                        <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded border">{ag.procedimento_nome}</span>
-                      )}
                       {ag.agendas?.nome && (
                         <span className="text-xs font-medium" style={{ color: ag.agendas.cor }}>● {ag.agendas.nome}</span>
                       )}
                     </div>
+                    {/* Resumo da Conversa / Assunto */}
+                    {(ag.resumo_conversa || (ag.leads?.resumo_conversa) || (ag.procedimento_nome && ag.procedimento_nome !== 'Consulta Jurídica')) && (
+                      <div className="mt-3 p-2.5 border-l-2 border-[var(--color-primary)] bg-[var(--color-bg-base)]/50 rounded-r-[4px] max-w-2xl">
+                        <p className="text-[11px] text-[var(--color-text-muted)] italic leading-tight">
+                          "{ag.resumo_conversa || ag.leads?.resumo_conversa || ag.procedimento_nome}"
+                        </p>
+                      </div>
+                    )}
                   </div>
 
                   {/* Status */}
