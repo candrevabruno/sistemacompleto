@@ -108,7 +108,7 @@ export function LeadsClientes({ mode }: { mode?: 'leads' | 'clientes' }) {
 
     const headers = isLeads
       ? ['Nome', 'WhatsApp', 'Serviço de Interesse', 'Status do Lead', 'Última Mensagem', 'Agendamento', 'Data de Início']
-      : ['Nome', 'WhatsApp', 'Procedimentos Realizados (Qtd)', 'Próximo Agendamento', 'Cliente Desde'];
+      : ['Nome', 'WhatsApp', 'Serviços Realizados (Qtd)', 'Próximo Agendamento', 'Cliente Desde'];
 
     const rows = data.map(item => {
       if (isLeads) {
@@ -160,7 +160,7 @@ export function LeadsClientes({ mode }: { mode?: 'leads' | 'clientes' }) {
 
     const head = isLeads
       ? [['Nome', 'WhatsApp', 'Serviço', 'Status', 'Últ. Msg', 'Agendado', 'Início']]
-      : [['Nome', 'WhatsApp', 'Procedimentos (Qtd)', 'Próx. Agendamento', 'Cliente Desde']];
+      : [['Nome', 'WhatsApp', 'Serviços (Qtd)', 'Próx. Agendamento', 'Cliente Desde']];
 
     const body = data.map(item => {
       if (isLeads) {
@@ -323,7 +323,7 @@ export function LeadsClientes({ mode }: { mode?: 'leads' | 'clientes' }) {
                 </>
               ) : (
                 <>
-                  <th className="px-6 py-4 font-semibold text-center">Procedimentos Realizados (Qtd)</th>
+                  <th className="px-6 py-4 font-semibold text-center">Serviços Realizados (Qtd)</th>
                   <th className="px-6 py-4 font-semibold">Próximo Agendamento</th>
                   <th className="px-6 py-4 font-semibold">Cliente Desde</th>
                 </>
@@ -411,7 +411,7 @@ export function LeadsClientes({ mode }: { mode?: 'leads' | 'clientes' }) {
             </div>
 
             <div className="space-y-3">
-              <h3 className="font-semibold text-sm border-b pb-1">Procedimentos Realizados ({selectedCliente.countCompareceu})</h3>
+              <h3 className="font-semibold text-sm border-b pb-1">Serviços Realizados ({selectedCliente.countCompareceu})</h3>
               <p className="text-sm text-[var(--color-text-muted)] italic">Consultar painel de Agendamentos para os detalhes estritos de cada comparecimento.</p>
             </div>
 

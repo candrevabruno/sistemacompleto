@@ -9,7 +9,7 @@ import { Modal } from '../components/ui/Modal';
 import { Input } from '../components/ui/Input';
 import { formatDistanceToNow, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Plus, User, FileText, Calendar, DollarSign, Clock } from 'lucide-react';
+import { Plus, User, FileText, Calendar, DollarSign, Clock, Trash2 } from 'lucide-react';
 
 const COLUMNS = [
   { id: 'iniciou_atendimento', title: 'Iniciou', colorClass: 'border-[var(--color-primary)]' },
@@ -56,6 +56,17 @@ export function CRM() {
   const [openLeadDetails, setOpenLeadDetails] = useState(false);
   const [savingStatus, setSavingStatus] = useState(false);
 
+  // Lead Details Edit State
+  const [editingDetails, setEditingDetails] = useState(false);
+  const [detailsForm, setDetailsForm] = useState({ 
+    genero: '', 
+    data_nascimento: '', 
+    observacoes: '',
+    nome_lead: '',
+    procedimento_interesse: ''
+  });
+  const [savingDetails, setSavingDetails] = useState(false);
+
   const fetchLeads = async () => {
     setLoading(true);
     const { data } = await supabase.from('leads').select('*').order('ultima_mensagem', { ascending: false });
@@ -85,9 +96,17 @@ export function CRM() {
     }
 
     setSavingStatus(true);
-    await supabase.from('leads').update({ status: newStatus }).eq('id', leadId);
-    setLeads(prev => prev.map(l => l.id === leadId ? { ...l, status: newStatus } : l));
-    setSelectedLead((prev: any) => ({ ...prev, status: newStatus }));
+    
+    // Reset logic: se estiver saindo de converteu ou nao_converteu, limpa os campos financeiros/perda
+    const updates: any = { status: newStatus };
+    if (['converteu', 'nao_converteu'].includes(lead.status)) {
+       updates.valor_pago = 0;
+       updates.motivo_perda = null;
+    }
+
+    await supabase.from('leads').update(updates).eq('id', leadId);
+    setLeads(prev => prev.map(l => l.id === leadId ? { ...l, ...updates } : l));
+    setSelectedLead((prev: any) => ({ ...prev, ...updates }));
     setSavingStatus(false);
   };
 
@@ -166,10 +185,16 @@ export function CRM() {
       return;
     }
 
-    updateLeadState(leadId, newStatus);
-    const { error } = await supabase.from('leads').update({ status: newStatus }).eq('id', leadId);
+    const updates: any = { status: newStatus };
+    if (['converteu', 'nao_converteu'].includes(oldStatus)) {
+       updates.valor_pago = 0;
+       updates.motivo_perda = null;
+    }
+
+    setLeads(prev => prev.map(l => l.id === leadId ? { ...l, ...updates } : l));
+    const { error } = await supabase.from('leads').update(updates).eq('id', leadId);
     if (error) {
-       updateLeadState(leadId, oldStatus);
+       setLeads(prev => prev.map(l => l.id === leadId ? { ...l, status: oldStatus } : l));
        alert(`Erro ao salvar status: ${error.message}`);
     }
   };
@@ -233,7 +258,7 @@ export function CRM() {
           status: 'converteu',
           valor_pago: parseFloat(converteuForm.valor.replace(',', '.')),
           procedimento_interesse: converteuForm.servico,
-          observacoes: converteuForm.observacao ? `${confirmConverteu.lead.observacoes || ''}\nObs: ${converteuForm.observacao}` : confirmConverteu.lead.observacoes
+          observacoes: converteuForm.observacao ? `${confirmConverteu.lead.observacoes || ''}\nInformações Complementares: ${converteuForm.observacao}` : confirmConverteu.lead.observacoes
         })
         .eq('id', leadId);
       if (error) throw error;
@@ -271,9 +296,9 @@ export function CRM() {
     try {
       const novaData = new Date(reagendadoForm.dataHora).toISOString();
       if (lead.id_agendamento) {
-        await supabase.from('agendamentos').update({ data_hora_inicio: novaData, status: 'reagendado' }).eq('id', lead.id_agendamento);
+        await supabase.from('agendamentos').update({ data_hora_inicio: novaData, status: 'reagendado', modalidade: reagendadoForm.modalidade }).eq('id', lead.id_agendamento);
       }
-      await supabase.from('leads').update({ status: 'reagendado', data_agendamento: novaData }).eq('id', leadId);
+      await supabase.from('leads').update({ status: 'reagendado', data_agendamento: novaData, modalidade: reagendadoForm.modalidade }).eq('id', leadId);
       updateLeadState(leadId, 'reagendado');
       setConfirmReagendado(null);
       fetchLeads();
@@ -296,6 +321,36 @@ export function CRM() {
     setOpenNewLead(false);
     setNewLeadForm({ whatsapp: '', nome: '', procedimento: '', motivo: '' });
     fetchLeads();
+  };
+
+  const handleDeleteLead = async (leadId: string) => {
+    if (!confirm('Tem certeza que deseja excluir permanentemente este lead?')) return;
+    await supabase.from('leads').delete().eq('id', leadId);
+    setLeads(prev => prev.filter(l => l.id !== leadId));
+  };
+
+  const handleUpdateDetails = async () => {
+    if (!selectedLead) return;
+    setSavingDetails(true);
+    try {
+      const { error } = await supabase.from('leads').update({
+        nome_lead: detailsForm.nome_lead,
+        genero: detailsForm.genero,
+        data_nascimento: detailsForm.data_nascimento || null,
+        observacoes: detailsForm.observacoes,
+        procedimento_interesse: detailsForm.procedimento_interesse
+      }).eq('id', selectedLead.id);
+      
+      if (error) throw error;
+      
+      setLeads(prev => prev.map(l => l.id === selectedLead.id ? { ...l, ...detailsForm } : l));
+      setSelectedLead((prev: any) => ({ ...prev, ...detailsForm }));
+      setEditingDetails(false);
+    } catch (err: any) {
+      alert(`Erro ao salvar detalhes: ${err.message}`);
+    } finally {
+      setSavingDetails(false);
+    }
   };
 
   const cardsByCol = COLUMNS.reduce((acc, col) => {
@@ -331,8 +386,22 @@ export function CRM() {
                           {colCards.map((card, index) => (
                             <Draggable key={card.id} draggableId={card.id} index={index}>
                               {(provided, snapshot) => (
-                                <div ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps} onClick={() => { setSelectedLead(card); setOpenLeadDetails(true); }} className={`bg-white p-4 rounded-[12px] border-l-4 shadow-[0_2px_12px_-3px_rgba(0,0,0,0.06)] cursor-grab hover:shadow-md hover:-translate-y-0.5 transition-all ${col.colorClass} ${snapshot.isDragging ? 'opacity-90 scale-[1.02] shadow-xl ring-1 ring-[var(--color-primary)]/20' : ''}`}>
-                                  <div className="font-semibold text-sm line-clamp-1 mb-1">{card.nome_lead || 'Lead sem nome'}</div>
+                                <div ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps} className={`bg-white p-4 rounded-[12px] border-l-4 shadow-[0_2px_12px_-3px_rgba(0,0,0,0.06)] cursor-grab hover:shadow-md hover:-translate-y-0.5 transition-all group relative ${col.colorClass} ${snapshot.isDragging ? 'opacity-90 scale-[1.02] shadow-xl ring-1 ring-[var(--color-primary)]/20' : ''}`} onClick={() => { 
+                                  setSelectedLead(card); 
+                                  setDetailsForm({
+                                    nome_lead: card.nome_lead || '',
+                                    genero: card.genero || '',
+                                    data_nascimento: card.data_nascimento || '',
+                                    observacoes: card.observacoes || '',
+                                    procedimento_interesse: card.procedimento_interesse || ''
+                                  });
+                                  setEditingDetails(false);
+                                  setOpenLeadDetails(true); 
+                                }}>
+                                  <button onClick={(e) => { e.stopPropagation(); handleDeleteLead(card.id); }} className="absolute top-2 right-2 p-1 text-gray-300 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                  <div className="font-semibold text-sm line-clamp-1 mb-1 pr-6">{card.nome_lead || 'Lead sem nome'}</div>
                                   <div className="text-xs text-[var(--color-text-muted)] mb-3">{card.whatsapp_lead}</div>
                                   <div className="flex justify-between items-center mt-auto">
                                     <Badge variant={card.status} className="scale-90 origin-left">{col.title}</Badge>
@@ -367,6 +436,13 @@ export function CRM() {
           <div className="p-3 bg-[#7A9E87]/10 border border-[#7A9E87] rounded-[8px] text-[#7A9E87] font-medium text-sm">📅 {confirmAgendado?.lead?.nome_lead}</div>
           <div><label className="block text-sm font-medium mb-1">Data/Hora *</label><input type="datetime-local" value={agendadoForm.dataHora} onChange={e => setAgendadoForm({...agendadoForm, dataHora: e.target.value})} className="w-full border rounded-[8px] px-3 py-2 text-sm" /></div>
           <div><label className="block text-sm font-medium mb-1">Serviço</label><Input placeholder="Ex: Inventário" value={agendadoForm.procedimento} onChange={e => setAgendadoForm({...agendadoForm, procedimento: e.target.value})} /></div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Modalidade</label>
+            <select value={agendadoForm.modalidade} onChange={e => setAgendadoForm({...agendadoForm, modalidade: e.target.value})} className="w-full border rounded-[8px] px-3 py-2 text-sm">
+              <option value="presencial">Presencial</option>
+              <option value="online">Online</option>
+            </select>
+          </div>
           <div className="flex gap-3 justify-end mt-4">
             <Button variant="secondary" onClick={() => setConfirmAgendado(null)}>Cancelar</Button>
             <Button className="bg-[#7A9E87] text-white" onClick={confirmAgendadoAction} disabled={!agendadoForm.dataHora || savingAgendado}>Confirmar</Button>
@@ -379,7 +455,7 @@ export function CRM() {
           <div className="p-3 bg-green-50 border border-green-200 rounded-[8px] text-green-800 font-medium text-sm">🚀 Parabéns! Preencha os dados do contrato.</div>
           <div><label className="block text-sm font-medium mb-1">Serviço *</label><Input placeholder="Ex: Inventário" value={converteuForm.servico} onChange={e => setConverteuForm({...converteuForm, servico: e.target.value})} /></div>
           <div><label className="block text-sm font-medium mb-1">Valor do Honorário (R$) *</label><Input placeholder="0,00" value={converteuForm.valor} onChange={e => setConverteuForm({...converteuForm, valor: e.target.value})} /></div>
-          <div><label className="block text-sm font-medium mb-1">Obs</label><textarea rows={3} value={converteuForm.observacao} onChange={e => setConverteuForm({...converteuForm, observacao: e.target.value})} className="w-full border rounded-[8px] px-3 py-2 text-sm bg-[var(--color-bg-base)]" /></div>
+          <div><label className="block text-sm font-medium mb-1">Informações Complementares</label><textarea rows={3} value={converteuForm.observacao} onChange={e => setConverteuForm({...converteuForm, observacao: e.target.value})} className="w-full border rounded-[8px] px-3 py-2 text-sm bg-[var(--color-bg-base)]" /></div>
           <div className="flex gap-3 justify-end mt-4">
             <Button variant="secondary" onClick={() => setConfirmConverteu(null)}>Cancelar</Button>
             <Button className="bg-green-600 text-white" onClick={confirmConverteuAction} disabled={!converteuForm.valor || savingConverteu}>Confirmar</Button>
@@ -402,6 +478,13 @@ export function CRM() {
         <div className="space-y-4">
           <div className="p-4 bg-amber-50 rounded-[8px] text-amber-800 text-sm font-medium">Lembre-se de remarcar no Cal.com primeiro.</div>
           <div><label className="block text-sm font-medium mb-1">Nova Data/Hora *</label><input type="datetime-local" value={reagendadoForm.dataHora} onChange={e => setReagendadoForm({...reagendadoForm, dataHora: e.target.value})} className="w-full border rounded-[8px] px-3 py-2 text-sm bg-[var(--color-bg-base)]" /></div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Modalidade</label>
+            <select value={reagendadoForm.modalidade} onChange={e => setReagendadoForm({...reagendadoForm, modalidade: e.target.value})} className="w-full border rounded-[8px] px-3 py-2 text-sm">
+              <option value="presencial">Presencial</option>
+              <option value="online">Online</option>
+            </select>
+          </div>
           <div className="flex gap-3 justify-end mt-4">
             <Button variant="secondary" onClick={() => setConfirmReagendado(null)}>Cancelar</Button>
             <Button className="bg-amber-500 text-white" onClick={confirmReagendadoAction} disabled={!reagendadoForm.dataHora || savingReagendado}>Salvar</Button>
@@ -411,19 +494,23 @@ export function CRM() {
 
       <Modal isOpen={openLeadDetails} onClose={() => setOpenLeadDetails(false)} title="Detalhes do Contato">
         {selectedLead && (
-          <div className="space-y-6 max-h-[75vh] overflow-y-auto pr-2 custom-scrollbar">
+          <div className="space-y-6 max-h-[80vh] overflow-y-auto pr-2 custom-scrollbar">
             {/* Header com Status */}
             <div className="bg-gray-50 p-5 rounded-[16px] border border-[var(--color-border-card)] shadow-sm">
                 <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h2 className="font-cormorant text-2xl font-bold text-[var(--color-text-main)]">{selectedLead.nome_lead || 'Lead sem nome'}</h2>
+                  <div className="flex-1">
+                    {editingDetails ? (
+                       <Input value={detailsForm.nome_lead} onChange={e => setDetailsForm({...detailsForm, nome_lead: e.target.value})} className="text-xl font-bold font-cormorant mb-1" />
+                    ) : (
+                       <h2 className="font-cormorant text-2xl font-bold text-[var(--color-text-main)]">{selectedLead.nome_lead || 'Lead sem nome'}</h2>
+                    )}
                     <p className="text-sm text-[var(--color-text-muted)] font-medium">{selectedLead.whatsapp_lead}</p>
                   </div>
                   <Badge variant={selectedLead.status}>{COLUMNS.find(c => c.id === selectedLead.status)?.title}</Badge>
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] uppercase font-bold text-[var(--color-text-muted)] tracking-wider">Alterar Estágio no Funil</label>
+                  <label className="text-[10px] uppercase font-bold text-[var(--color-text-muted)] tracking-wider">Mudar Estágio</label>
                   <select 
                     value={selectedLead.status} 
                     onChange={(e) => handleStatusChange(selectedLead.id, e.target.value)}
@@ -435,19 +522,49 @@ export function CRM() {
                 </div>
             </div>
 
-            {/* Grid de Informações */}
+            {/* Grid de Informações - Editável */}
             <div className="grid grid-cols-2 gap-4">
                <div className="p-3 bg-[var(--color-bg-base)] rounded-[12px] border border-[var(--color-border-card)]">
                   <span className="text-[10px] text-[var(--color-text-muted)] font-bold uppercase">Gênero</span>
-                  <p className="text-sm font-medium mt-1">{selectedLead.genero || 'Não informado'}</p>
+                  {editingDetails ? (
+                    <select 
+                      value={detailsForm.genero} 
+                      onChange={e => setDetailsForm({...detailsForm, genero: e.target.value})}
+                      className="w-full mt-1 border rounded px-2 py-1 text-sm bg-white"
+                    >
+                      <option value="">Não informado</option>
+                      <option value="Masculino">Masculino</option>
+                      <option value="Feminino">Feminino</option>
+                      <option value="Outro">Outro</option>
+                    </select>
+                  ) : (
+                    <p className="text-sm font-medium mt-1">{selectedLead.genero || 'Não informado'}</p>
+                  )}
                </div>
                <div className="p-3 bg-[var(--color-bg-base)] rounded-[12px] border border-[var(--color-border-card)]">
                   <span className="text-[10px] text-[var(--color-text-muted)] font-bold uppercase">Nascimento</span>
-                  <p className="text-sm font-medium mt-1">{selectedLead.data_nascimento ? format(parseISO(selectedLead.data_nascimento), 'dd/MM/yyyy') : 'Não informado'}</p>
+                  {editingDetails ? (
+                    <input 
+                      type="date" 
+                      value={detailsForm.data_nascimento} 
+                      onChange={e => setDetailsForm({...detailsForm, data_nascimento: e.target.value})}
+                      className="w-full mt-1 border rounded px-2 py-1 text-sm bg-white"
+                    />
+                  ) : (
+                    <p className="text-sm font-medium mt-1">{selectedLead.data_nascimento ? format(parseISO(selectedLead.data_nascimento), 'dd/MM/yyyy') : 'Não informado'}</p>
+                  )}
                </div>
                <div className="p-3 bg-[var(--color-bg-base)] rounded-[12px] border border-[var(--color-border-card)]">
-                  <span className="text-[10px] text-[var(--color-text-muted)] font-bold uppercase">Procedimento</span>
-                  <p className="text-sm font-medium mt-1">{selectedLead.procedimento_interesse || 'Não informado'}</p>
+                  <span className="text-[10px] text-[var(--color-text-muted)] font-bold uppercase">Serviço/Assunto</span>
+                  {editingDetails ? (
+                    <Input 
+                      value={detailsForm.procedimento_interesse} 
+                      onChange={e => setDetailsForm({...detailsForm, procedimento_interesse: e.target.value})}
+                      className="mt-1 h-8"
+                    />
+                  ) : (
+                    <p className="text-sm font-medium mt-1">{selectedLead.procedimento_interesse || 'Não informado'}</p>
+                  )}
                </div>
                <div className="p-3 bg-[var(--color-bg-base)] rounded-[12px] border border-[var(--color-border-card)]">
                   <span className="text-[10px] text-[var(--color-text-muted)] font-bold uppercase">Agendamento</span>
@@ -455,23 +572,35 @@ export function CRM() {
                </div>
             </div>
 
-            {/* Resumo e Observações */}
+            {/* Ação de Edição */}
+            <div className="flex gap-2">
+              {editingDetails ? (
+                <>
+                  <Button onClick={handleUpdateDetails} disabled={savingDetails} className="flex-1 bg-green-600">Salvar Alterações</Button>
+                  <Button variant="secondary" onClick={() => setEditingDetails(false)}>Cancelar</Button>
+                </>
+              ) : (
+                <Button variant="secondary" onClick={() => setEditingDetails(true)} className="w-full">Editar Informações</Button>
+              )}
+            </div>
+
+            {/* Resumo e Observações/Histórico */}
             <div className="space-y-4">
-              {selectedLead.resumo_conversa && (
+              {selectedLead.resumo_conversa && !editingDetails && (
                 <div className="p-4 border border-[var(--color-border-card)] rounded-[12px] bg-white relative">
                   <span className="absolute -top-2 left-3 bg-white px-2 text-[10px] text-[var(--color-primary)] font-bold uppercase tracking-tight">IA - Resumo Automático</span>
                   <p className="text-sm text-[var(--color-text-main)] italic leading-relaxed pt-1">"{selectedLead.resumo_conversa}"</p>
                 </div>
               )}
 
-              {selectedLead.motivo_perda && (
+              {selectedLead.status === 'nao_converteu' && selectedLead.motivo_perda && (
                 <div className="p-4 border-l-4 border-rose-500 bg-rose-50 rounded-[12px]">
                    <span className="text-[10px] text-rose-600 font-bold uppercase tracking-wider">Motivo da Não Conversão</span>
                    <p className="text-sm font-medium text-rose-900 mt-1">{selectedLead.motivo_perda}</p>
                 </div>
               )}
 
-              {selectedLead.valor_pago > 0 && (
+              {selectedLead.status === 'converteu' && selectedLead.valor_pago > 0 && (
                 <div className="p-4 border-l-4 border-green-500 bg-green-50 rounded-[12px] flex justify-between items-center">
                    <div>
                      <span className="text-[10px] text-green-600 font-bold uppercase tracking-wider">Negócio Fechado</span>
@@ -483,7 +612,17 @@ export function CRM() {
 
               <div className="p-4 bg-gray-50 rounded-[12px] border border-[var(--color-border-card)]">
                 <span className="text-[10px] text-[var(--color-text-muted)] font-bold uppercase tracking-wider">Histórico / Observações Manuais</span>
-                <p className="text-sm text-[var(--color-text-main)] mt-2 whitespace-pre-wrap">{selectedLead.observacoes || 'Nenhuma observação manual registrada.'}</p>
+                {editingDetails ? (
+                  <textarea 
+                    rows={4} 
+                    value={detailsForm.observacoes} 
+                    onChange={e => setDetailsForm({...detailsForm, observacoes: e.target.value})}
+                    className="w-full mt-2 border rounded p-2 text-sm bg-white"
+                    placeholder="Escreva algo aqui..."
+                  />
+                ) : (
+                  <p className="text-sm text-[var(--color-text-main)] mt-2 whitespace-pre-wrap">{selectedLead.observacoes || 'Nenhuma observação manual registrada.'}</p>
+                )}
               </div>
             </div>
           </div>
