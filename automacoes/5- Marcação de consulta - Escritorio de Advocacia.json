@@ -655,6 +655,10 @@
             {
               "fieldId": "id_agendamento",
               "fieldValue": "={{ $json.data.uid }}"
+            },
+            {
+              "fieldId": "modalidade",
+              "fieldValue": "={{ $('setarInformacoes').item.json.tipo_consulta }}"
             }
           ]
         }
@@ -813,6 +817,10 @@
             {
               "fieldId": "nome_lead",
               "fieldValue": "={{ $('setarInformacoes').item.json.nome_lead }}"
+            },
+            {
+              "fieldId": "modalidade",
+              "fieldValue": "={{ $('setarInformacoes').item.json.tipo_consulta }}"
             }
           ]
         }
@@ -900,6 +908,10 @@
             {
               "fieldId": "agenda_id",
               "fieldValue": "7c34a0ca-5748-4f21-aa9a-41edf5754244"
+            },
+            {
+              "fieldId": "modalidade",
+              "fieldValue": "={{ $('setarInformacoes').item.json.tipo_consulta }}"
             }
           ]
         }
@@ -969,6 +981,10 @@
             {
               "fieldId": "agenda_id",
               "fieldValue": "7c34a0ca-5748-4f21-aa9a-41edf5754244"
+            },
+            {
+              "fieldId": "modalidade",
+              "fieldValue": "={{ $('setarInformacoes').item.json.tipo_consulta }}"
             }
           ]
         }
@@ -1424,7 +1440,7 @@
     "callerPolicy": "workflowsFromSameOwner",
     "availableInMCP": false
   },
-  "versionId": "4e415405-7c84-46da-b1ac-6b0b137008fc",
+  "versionId": "03d4f97d-48eb-4ad2-901b-bbff67c16723",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "bd23b4d0be4dd939efa78787b912105fba074f6766a8c4ab96351fd4f3b4ddad"
