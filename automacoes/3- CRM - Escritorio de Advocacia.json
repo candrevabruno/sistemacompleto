@@ -1,0 +1,810 @@
+{
+  "name": "3- CRM - Escritorio de Advocacia",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "mensagem_lead"
+            },
+            {
+              "name": "whatsapp_lead"
+            },
+            {
+              "name": "id_conta_chatwoot"
+            },
+            {
+              "name": "id_conversa_chatwoot"
+            },
+            {
+              "name": "id_Lead_chatwoot"
+            },
+            {
+              "name": "inbox_id_chatwoot"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        144,
+        208
+      ],
+      "id": "7bf2903a-42c0-4b74-91bf-6e4e1c2e2d8d",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryManager",
+      "typeVersion": 1.1,
+      "position": [
+        2976,
+        208
+      ],
+      "id": "87b6d43e-9be8-40cd-820a-3c8287555e2e",
+      "name": "Chat Memory Manager1"
+    },
+    {
+      "parameters": {
+        "content": "# Puxar Histórico da conversa",
+        "height": 500,
+        "width": 460,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        2816,
+        0
+      ],
+      "typeVersion": 1,
+      "id": "94dfcf7a-d907-4317-a161-c4216c188443",
+      "name": "Sticky Note9"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "leads",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "whatsapp_lead",
+              "condition": "eq",
+              "keyValue": "={{ $('setar_informacoes').item.json.whatsapp_lead }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "ultima_mensagem",
+              "fieldValue": "={{ $now }}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "={{ ['agendado', 'reagendado'].includes($json.status) ? $json.status : 'conversando' }}"
+            },
+            {
+              "fieldId": "follow_up_1",
+              "fieldValue": "={{ null }}"
+            },
+            {
+              "fieldId": "follow_up_2",
+              "fieldValue": "={{ null }}"
+            },
+            {
+              "fieldId": "follow_up_3",
+              "fieldValue": "={{ null }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        2432,
+        176
+      ],
+      "id": "cf6fafa4-eca6-4054-9927-5da2677de9fa",
+      "name": "atualizaFollowUP",
+      "credentials": {
+        "supabaseApi": {
+          "id": "ycZIGpAXZd31iIEF",
+          "name": "Supabase | Heroic Leap"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "# Zera os campos do Follow up e muda o Status para \"conversando\"",
+        "height": 500,
+        "width": 776,
+        "color": 2
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1968,
+        0
+      ],
+      "typeVersion": 1,
+      "id": "5305d412-7f4a-4a1e-b7aa-d629668de476",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "# Gatilho vem do SDR",
+        "height": 500,
+        "width": 360,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        0,
+        0
+      ],
+      "typeVersion": 1,
+      "id": "6cc1a8bc-4aa1-43bb-af4e-b23decd0d583",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "# Setar ID e Whatsapp do lead",
+        "height": 500,
+        "width": 300,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        384,
+        0
+      ],
+      "typeVersion": 1,
+      "id": "c9c37377-6b12-4d51-a85b-ae3f76c5f42e",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "# Resumo da Conversa",
+        "height": 500,
+        "width": 596,
+        "color": 2
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        3312,
+        0
+      ],
+      "typeVersion": 1,
+      "id": "fe2f686c-056c-4c14-9995-e75e7bfaca7f",
+      "name": "Sticky Note10"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        3392,
+        368
+      ],
+      "id": "67524840-61fb-4c8c-afc0-a4d5a34399ba",
+      "name": "OpenAI Chat Model3",
+      "credentials": {
+        "openAiApi": {
+          "id": "sxs3E7CAPsG8uL5n",
+          "name": "OpenAI | Heroic Leap"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"nome\": \"Carolina Silva\",\n  \"motivo_contato\": \"divorcio\",\n  \"resumo_conversa\": \"A lead Carolina Silva entrou em contato perguntando sobre clareamento de axilas, relatou constrangimento por conta do escurecimento da região e perguntou se o procedimento é definitivo. Ela demonstrou interesse em agendar uma avaliação.\",\n  \"status\": \"agendado\"\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        3776,
+        368
+      ],
+      "id": "22521d5f-72a8-4549-ba60-39063f668ad7",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "leads",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "whatsapp_lead",
+              "condition": "eq",
+              "keyValue": "={{ $('setar_informacoes').item.json.whatsapp_lead }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "nome_lead",
+              "fieldValue": "={{ $json.output.nome }}"
+            },
+            {
+              "fieldId": "resumo_conversa",
+              "fieldValue": "={{ $json.output.resumo_conversa }}"
+            },
+            {
+              "fieldId": "motivo_contato",
+              "fieldValue": "={{ $json.output.motivo_contato }}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "={{ $('PuxarNumeroLead').first().json.status === 'agendado' ? 'agendado' : $('PuxarNumeroLead').first().json.status === 'reagendado' ? 'reagendado' : $('PuxarNumeroLead').first().json.status === 'cancelou_agendamento' ? 'cancelou_agendamento' : $json.output.status }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        4192,
+        208
+      ],
+      "id": "a0b75c8f-7093-48a6-92eb-f7acc62600ee",
+      "name": "atualizarCRM",
+      "credentials": {
+        "supabaseApi": {
+          "id": "ycZIGpAXZd31iIEF",
+          "name": "Supabase | Heroic Leap"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.messages.map(m => `Usuário: ${m.human}\\nIA: ${m.ai}`).join('\\n\\n') }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=Dia e hora atual: {{ $now }}\n\n# IDENTIDADE\n\nVocê é um agente IA responsável por atualizar o CRM do **Candreva Advocacia**.\n\nSua função é ler toda a conversa entre a **secretária e o lead**, e gerar um resumo claro, objetivo e estratégico. Esse resumo será utilizado para manter o histórico atualizado e facilitar o acompanhamento futuro do escritório.\n\nVocê nunca inventa informações. Só preenche com base no que foi de fato conversado entre a secretária e o lead.\n\n# FUNÇÃO\n\n-   Você deve **registrar os dados dos atendimentos no CRM do escritório**.\n-   Antes de preencher qualquer campo, **leia com atenção toda a conversa entre a secretária e o lead** para garantir que os dados estejam corretos e completos.\n\n## CAMPOS OBRIGATÓRIOS\n\n### nome\n\n-   Registre **exatamente o nome informado pelo lead**.\n-   Se ele passar nome completo, salve completo.\n-   Se for apenas o primeiro nome, salve só o primeiro nome.\n-   Nunca invente sobrenomes ou complete por conta própria.\n\n### motivo_contato\n\n-   Registre aqui **o motivo do contato do lead**.\n-   Se o lead não deixar claro, deixe o campo em branco.\n-   Não tente adivinhar o motivo do contato — só registre o que estiver explícito ou implícito de forma clara.\n\n### resumo_conversa\n\n-   Escreva um **resumo claro, direto e natural**, reunindo **apenas o que o lead contou ou perguntou** durante a conversa.\n-   Inclua sempre **o nome do lead** (obrigatório).\n-   Foque em pontos como:\n    -   Tipo de caso.\n    -   O que o lead quer resolver.\n    -   Situação atual e detalhes importantes.\n    -   Dúvidas, dores, contexto e o que ele já tentou fazer.\n    -   Interesse em orientação, consulta ou agendamento.\n-   Ignore falas da secretária — registre apenas o que o lead disse.\n-   Não mencione valores.\n-   Escreva sempre em **texto corrido**, sem listas ou quebras de linha.\n\n### status\n- Registre o status atual do lead com base na conversa.\n- Use \"agendado\" se uma consulta foi marcada durante a conversa.\n- Use \"conversando\" se o lead ainda não agendou nada.\n\n## EXEMPLOS DE RESUMO DE CONVERSA\n### Exemplo 1 – Direito Trabalhista\n\nA lead Camila Ribeiro entrou em contato querendo entender se pode entrar com uma ação trabalhista contra a empresa onde trabalhava. Ela relatou que foi demitida sem justa causa, mas não recebeu férias vencidas, horas extras e a multa do FGTS. Comentou que já tentou falar com o RH, mas não teve retorno. Demonstrou interesse em uma orientação jurídica e perguntou quais seriam os próximos passos para iniciar o processo.\n\n###  Exemplo 2 – Direito de Família\n\nA lead Priscila Martins buscou informações sobre divórcio, dizendo que deseja se separar do marido e quer entender como funcionam guarda, pensão e divisão de bens. Ela relatou que a convivência está muito difícil e que precisa resolver a situação o quanto antes. Disse que ainda não conversou com o marido sobre acordo e não sabe se o processo será amigável ou litigioso. Perguntou se o escritório atende casos online e demonstrou interesse em marcar uma consulta.\n\n### Exemplo 3 – Previdenciário (INSS)\n\nO lead João Ferreira procurou o escritório porque teve a aposentadoria por tempo de contribuição negada pelo INSS. Ele comentou que já contribui há mais de 30 anos e não entendeu o motivo da negativa. Disse que já levou os documentos em uma agência, mas não recebeu orientação adequada. Perguntou se é possível entrar com recurso ou revisar o processo, e demonstrou interesse em saber como funciona a análise jurídica para esse tipo de caso.\n\n# FORMATO DA RESPOSTA\n\nResponda somente com um JSON válido.\n\nNão escreva explicações, comentários ou qualquer texto fora do JSON.\n\nUse exatamente esta estrutura:\n\n{\n  \"nome\": \"\",\n  \"motivo_contato\": \"\",\n  \"resumo_conversa\": \"\",\n  \"status\": \"\"\n}\n\n## Regras obrigatórias\n\n-  Não escreva nada antes ou depois do JSON.\n-  Não utilize markdown.\n-  Não use crases.\n-  Não adicione campos extras.\n-  Todos os valores devem ser string.\n-  Caso alguma informação não esteja disponível, preencha com \"\" (string vazia)."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.8,
+      "position": [
+        3504,
+        208
+      ],
+      "id": "e135c104-26fc-4c10-b722-5ddba56e7f0b",
+      "name": "CRM"
+    },
+    {
+      "parameters": {
+        "content": "# Verifica se o usuário existe no Banco de dados.",
+        "height": 680,
+        "width": 560,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        720,
+        0
+      ],
+      "typeVersion": 1,
+      "id": "f6e8dbbf-cd1b-4759-aec1-fedbb1fa0cda",
+      "name": "Sticky Note23"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "32a5f010-2252-4057-acb7-a085648e3a14",
+                    "leftValue": "={{ $json.whatsapp_lead }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "notEmpty",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Existe"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.whatsapp_lead }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "empty",
+                      "singleValue": true
+                    },
+                    "id": "c71b31fe-c16a-4e57-a5b5-7d115351d0ee"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Não existe"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        1120,
+        208
+      ],
+      "id": "ecf855a0-c3d6-434a-9395-3f8f7d45db10",
+      "name": "Switch4"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "leads",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "whatsapp_lead",
+              "keyValue": "={{ $json.whatsapp_lead }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        832,
+        208
+      ],
+      "id": "dad28c2d-cd51-4dc6-8619-0b1e6ac8758f",
+      "name": "PuxarNumeroLead",
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "ycZIGpAXZd31iIEF",
+          "name": "Supabase | Heroic Leap"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('setar_informacoes').item.json.whatsapp_lead }}",
+        "contextWindowLength": 30
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [
+        2976,
+        368
+      ],
+      "id": "5885c8eb-4f21-4156-a1b4-5e7cdd6dca06",
+      "name": "memoria",
+      "credentials": {
+        "postgres": {
+          "id": "uoT7wi570ZgcSSnW",
+          "name": "Postgres | Supabase | Heroic Leap"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "81f77c84-480b-4cee-8b43-3036b3e09c92",
+              "name": "mensagem_lead",
+              "value": "={{ $json.mensagem_lead }}",
+              "type": "string"
+            },
+            {
+              "id": "057e52dc-d925-48b6-8aab-5a07fc3f2a1f",
+              "name": "whatsapp_lead",
+              "value": "={{ $json.whatsapp_lead }}",
+              "type": "string"
+            },
+            {
+              "id": "bdcd7a15-0587-4d8c-9f95-a38fc8bfe158",
+              "name": "id_conta_chatwoot",
+              "value": "={{ $json.id_conta_chatwoot }}",
+              "type": "string"
+            },
+            {
+              "id": "d3b7244f-fcbd-4000-8b5b-7bdabdcabb28",
+              "name": "id_conversa_chatwoot",
+              "value": "={{ $json.id_conversa_chatwoot }}",
+              "type": "string"
+            },
+            {
+              "id": "d0d69d2a-ca24-4ddd-a095-5616cdc98909",
+              "name": "id_Lead_chatwoot",
+              "value": "={{ $json.id_Lead_chatwoot }}",
+              "type": "string"
+            },
+            {
+              "id": "10e779ea-1b65-48f0-a661-6b59c984c010",
+              "name": "inbox_id_chatwoot",
+              "value": "={{ $json.inbox_id_chatwoot }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        480,
+        208
+      ],
+      "id": "9221700a-37f0-491e-94f4-a06a410af4d8",
+      "name": "setar_informacoes"
+    },
+    {
+      "parameters": {
+        "content": "# Atualiza tabela CRM",
+        "height": 496,
+        "width": 608
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        3936,
+        0
+      ],
+      "typeVersion": 1,
+      "id": "f8e0d99f-b94d-446a-ab64-c6cdf6f20187",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "tableId": "leads",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "whatsapp_lead",
+              "fieldValue": "={{ $('setar_informacoes').item.json.whatsapp_lead }}"
+            },
+            {
+              "fieldId": "inicio_atendimento",
+              "fieldValue": "={{ $now }}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "iniciou_atendimento"
+            },
+            {
+              "fieldId": "id_conta_chatwoot",
+              "fieldValue": "={{ $('setar_informacoes').item.json.id_conta_chatwoot }}"
+            },
+            {
+              "fieldId": "id_conversa_chatwoot",
+              "fieldValue": "={{ $('setar_informacoes').item.json.id_conversa_chatwoot }}"
+            },
+            {
+              "fieldId": "id_lead_chatwoot",
+              "fieldValue": "={{ $('setar_informacoes').item.json.id_Lead_chatwoot }}"
+            },
+            {
+              "fieldId": "inbox_id_chatwoot",
+              "fieldValue": "={{ $('setar_informacoes').item.json.inbox_id_chatwoot }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1568,
+        640
+      ],
+      "id": "9c060241-1ae9-49da-b518-e0ddcdd1415d",
+      "name": "criar_usuario",
+      "credentials": {
+        "supabaseApi": {
+          "id": "ycZIGpAXZd31iIEF",
+          "name": "Supabase | Heroic Leap"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        2624,
+        304
+      ],
+      "id": "a2d134ca-ae96-4ee5-92aa-70dc3e7c02c0",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "content": "# Cadastra ele no banco de dados e coloca o status como \"iniciou_conversa\"",
+        "height": 568,
+        "width": 512,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1376,
+        320
+      ],
+      "typeVersion": 1,
+      "id": "709fdd80-5d94-4e9e-bf7c-1f18673bea23",
+      "name": "Sticky Note24"
+    },
+    {
+      "parameters": {
+        "content": "# Status para add:\n## novo_contato\n## conversando\n## consulta_agendada\n## compareceu\n## follow_up\n## fechado\n## perdido",
+        "height": 368,
+        "width": 432,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        2048,
+        640
+      ],
+      "typeVersion": 1,
+      "id": "7129170f-62a6-49a1-8568-d0c4e3d07b64",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "cancelou_agendamento",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2016,
+        192
+      ],
+      "id": "79db92e0-d28c-42fb-911a-36e3c4e76690",
+      "name": "Se nao cancelou"
+    }
+  ],
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "mensagem_lead": "Seu agendamento para a consulta online de inventário foi cancelado, Elen.\nEstaremos sempre à disposição para ajudá-la com um novo agendamento quando você precisar.\nPosso ajudar em mais alguma coisa?",
+          "whatsapp_lead": "5521981631124",
+          "id_conta_chatwoot": "1",
+          "id_conversa_chatwoot": "4",
+          "id_Lead_chatwoot": "4",
+          "inbox_id_chatwoot": "1"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "setar_informacoes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chat Memory Manager1": {
+      "main": [
+        [
+          {
+            "node": "CRM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "atualizaFollowUP": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model3": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "CRM",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "CRM",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CRM": {
+      "main": [
+        [
+          {
+            "node": "atualizarCRM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch4": {
+      "main": [
+        [
+          {
+            "node": "Se nao cancelou",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "criar_usuario",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PuxarNumeroLead": {
+      "main": [
+        [
+          {
+            "node": "Switch4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "memoria": {
+      "ai_memory": [
+        [
+          {
+            "node": "Chat Memory Manager1",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "setar_informacoes": {
+      "main": [
+        [
+          {
+            "node": "PuxarNumeroLead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "criar_usuario": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Chat Memory Manager1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Se nao cancelou": {
+      "main": [
+        [
+          {
+            "node": "atualizaFollowUP",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "timezone": "America/Sao_Paulo",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "cfd20c94-628a-4c74-b707-ef739bdcc061",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "bd23b4d0be4dd939efa78787b912105fba074f6766a8c4ab96351fd4f3b4ddad"
+  },
+  "id": "AT49JTla99mucbgf",
+  "tags": []
+}

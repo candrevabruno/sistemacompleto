@@ -1,0 +1,900 @@
+{
+  "name": "3- Agendamento - Escritorio de Advocacia",
+  "nodes": [
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "51bd4896-17e9-484b-b08a-b6854225ccb3",
+              "name": "response",
+              "value": "={{ $json.output }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1360,
+        96
+      ],
+      "id": "7db247ef-853d-43a9-be5a-4bde0a25c842",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.whatsapp_lead }}",
+        "contextWindowLength": 40
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [
+        720,
+        416
+      ],
+      "id": "bc7bf5e8-6c4b-4344-b839-69d0b3923812",
+      "name": "Postgres Chat Memory",
+      "credentials": {
+        "postgres": {
+          "id": "uoT7wi570ZgcSSnW",
+          "name": "Postgres | Supabase | Heroic Leap"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        464,
+        416
+      ],
+      "id": "995b9f23-504e-44ef-a942-a0b0527fcbed",
+      "name": "OpenAI Chat Model2",
+      "credentials": {
+        "openAiApi": {
+          "id": "sxs3E7CAPsG8uL5n",
+          "name": "OpenAI | Heroic Leap"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "",
+        "height": 648,
+        "width": 1820,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        0,
+        0
+      ],
+      "typeVersion": 1,
+      "id": "f7f91b07-aa16-4c82-8886-716cbba2b727",
+      "name": "Sticky Note5"
+    },
+    {
+      "parameters": {
+        "content": "## Agenda",
+        "height": 400,
+        "width": 768
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1024,
+        368
+      ],
+      "typeVersion": 1,
+      "id": "acdcebae-bdc9-486f-a9cf-5a71c89cdd52",
+      "name": "Sticky Note12"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "3058e999-b1bf-43f3-b95c-bf1d71157c51",
+              "name": "Duvida",
+              "value": "={{ $('When Executed by Another Workflow').item.json.duvida }}",
+              "type": "string"
+            },
+            {
+              "id": "c6e2e733-5bb4-4b3d-9a79-cf43a9e56458",
+              "name": "whatsapp_lead",
+              "value": "={{ $('When Executed by Another Workflow').item.json.whatsapp_lead }}",
+              "type": "string"
+            },
+            {
+              "id": "9181a250-f2ad-402e-8bed-2bc4ec9720e6",
+              "name": "servico",
+              "value": "=Assunto: {{ $('When Executed by Another Workflow').item.json.Assunto }}",
+              "type": "string"
+            },
+            {
+              "id": "2063178c-5134-49ce-9d86-c3a4d1f4f23d",
+              "name": "Tipo_de_consulta",
+              "value": "={{ $('When Executed by Another Workflow').item.json.Tipo_de_consulta }}",
+              "type": "string"
+            },
+            {
+              "id": "2986dc61-de65-440b-846c-d36b4d60d75b",
+              "name": "proximos_dias",
+              "value": "={{ $json.resultado }}",
+              "type": "string"
+            },
+            {
+              "id": "05f0efa3-390e-4ee4-bb1c-287d43d18324",
+              "name": "id_agendamento",
+              "value": "={{ $('puxar_lead').item.json.id_agendamento }}",
+              "type": "string"
+            },
+            {
+              "id": "6aec8106-e917-40de-a5d9-b17c7ca9db34",
+              "name": "nome_lead",
+              "value": "={{ $('puxar_lead').item.json.nome_lead }}",
+              "type": "string"
+            },
+            {
+              "id": "0f73549e-e856-4bfb-9061-944f4d82ad7b",
+              "name": "inicio_reuniao",
+              "value": "={{ $('When Executed by Another Workflow').item.json.inicio_reuniao }}",
+              "type": "string"
+            },
+            {
+              "id": "fe6ff59b-4aae-49ef-8c72-8d0039916c9f",
+              "name": "final_reuniao",
+              "value": "={{ $('When Executed by Another Workflow').item.json.final_reuniao }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        704,
+        96
+      ],
+      "id": "0f580113-348c-41a8-9039-bd7740b5cb71",
+      "name": "setarInfo3"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.Duvida }}\n\n\n{{ $json.servico }}\n{{ $json.Tipo_de_consulta }}",
+        "options": {
+          "systemMessage": "=## IDENTIDADE\nVocê é um **agente interno** responsável exclusivamente por gerenciar a agenda do escritório de advocacia **Candreva Advocacia**. \n\n## FUNÇÃO\nSua função é **consultar, reservar, remarcar ou cancelar horários de agendamentos** conforme solicitado pela **secretária**, garantindo **disponibilidade correta e alinhada aos dias específicos do escritório.\n\n## REGRAS DE MARCAÇÃO DE CONSULTA\n- Para acionar a tool `criar_reuniao` é obrigatório saber:\n  - Nome completo do lead\n  - Serviço solicitado\n  - Data e hora do agendamento\n  - Tipo de consulta (online ou presencial)\n\n- **Nunca acione** a tool `criar_reuniao` antes de saber esses dados.\n\n## TOOLS DISPONÍVEIS\nDurante o atendimento, você pode usar as seguintes tools internas.\n\n### 1. Nome da tool: `criar_reuniao`\n**Quando usar:**  \n- Sempre que precisar **marcar um agendamento** na agenda.  \n- Antes de chamar essa tool, é obrigatório ter:\n  1. O **nome completo** do paciente.\n  2. A **data e hora** desejada.\n  3. Serviço que o lead tem interesse.\n\n**Quando não usar:**  \n- Se ainda não tiver o nome completo do paciente.  \n- Se ainda não tiver a data e o horário desejado.\n- Se ainda não tiver o serviço desejado.\n\n#### Regras para marcar o agendamento\nPara marcar qualquer agendamento utilizando a tool **`criar_reuniao`**, é obrigatório definir corretamente:  \n1. O **start** (início do agendamento).  \n2. O **end** (fim do agendamento).  \n\nO tempo de cada consulta é de 60 minutos (end = start + 60min)  \n\nSempre calcule o horário final (**end**) com base na duração correspondente ao serviço informado.  \n\n### 2. Nome da tool: `reagendar_reuniao`\n**Quando usar:**  \n- Use quando o lead solicitar a **mudança de data ou horário** de um agendamento já marcado.\n- Consulte seu **histórico de conversa com o lead** para puxar o nome e o agendamento anterior.\n\n**Regras para uso:**  \n- Você já tem acesso ao histórico de conversas e agendamentos anteriores, então **não precisa pedir novamente** o nome e o horário anterior.\n\n**Quando não usar:**  \n- Se o paciente não tiver um agendamento previamente agendado.\n\n### 3. Nome da tool: `cancelar_reuniao`\n**Quando usar:**  \n- Use quando o paciente solicitar o **cancelamento** de um agendamento já agendado.\n\n**Regras para uso:**  \n- Você já tem acesso ao histórico de conversas e agendamentos anteriores, então **não precisa pedir novamente** o nome ou o horário anterior.\n\n**Quando não usar:**  \n- Se não houver nenhum agendamento agendado com o lead.\n- Se a solicitação for apenas uma dúvida ou pergunta genérica sem intenção de cancelar.\n\n### 4. Nome da tool: `ver_horarios`\n**Função:**  \n- Verificar se uma data/horário está disponível. **Nunca** confirmar ou iniciar agendamento.\n\n**Política de resposta (obrigatória):**\n- Responda **somente** se o horário está **disponível** ou **indisponível**.\n- **Não** mencione pagamento/sinal, nome do usuário, serviço, nem convide para “confirmar/agendar”.\n- **Não** faça perguntas adicionais. **Não** ofereça próximos passos além de sugerir novos horários se estiver indisponível.\n- Se o horário não estiver disponível, **ofereça até quatro opções alternativas**. \n\n**Formato de saída (use exatamente um destes modelos):**\n- Ao apresentar horários disponíveis, liste-os sempre em uma única frase corrida, separados por vírgula. Nunca use lista com traços ou bullets. Nunca coloque cada horário em uma linha separada.\"\nExemplo correto: \"Temos disponibilidade amanhã, dia 20/04, nos horários: 09:00, 10:00, 11:00, 12:00, 14:00 e 15:00.\n- Disponível → `\"Dia [dd/mm], às [hh] está disponível.\"`\n- Indisponível → `\"Dia [dd/mm], às [hh] não está disponível. Posso sugerir [até 4 opções de dia/horário]?\"`\n\n**Exemplos:**\n- `Segunda-feira, dia 15/09, às 10h está disponível.`\n- `Segunda-feira, dia 15/09, às 10h não está disponível. Porem temos os horários livres no mesmo dia as 11h, 15h e 18h.`\n\n**Cláusula anti-agendamento:**\n- Se a intenção do usuário for “confirmar/agendar”, **NÃO** responda aqui.\n- Finalize a verificação e devolva apenas a disponibilidade no **formato acima**; a secretária decidirá a próxima etapa.  \n- Use para buscar dias e horários disponíveis para agendamento.\n\n## REGRAS GERAIS\n- Sempre que mencionar o horário de um agendamento, informe o **dia da semana** junto com a data (dia e mês) e hora, neste formato:  \n  Exemplo: \"Terça-feira, dia 18/05 as 14:00\"\n- Nunca informe o **ano**. Use apenas **dia e mês**.\n- Considere que a data atual é sempre essa: {{ $now }}\n- Caso o paciente insista em saber **os horários disponíveis**, apresente no máximo **quatro opções**.\n- Ao marcar ou reagendar consultas, os campos inicio_reuniao e final_reuniao \ndevem ser enviados OBRIGATORIAMENTE no formato ISO 8601 UTC (com Z no final).\nConverta sempre o horário do fuso America/Bahia (UTC-3) para UTC somando 3 horas.\nExemplo: horário 09:00 Bahia = 12:00:00Z UTC → envie 2026-04-21T12:00:00Z\nA final_reuniao deve ser sempre 60 minutos após o inicio_reuniao.\n\n## DATA E HORA ATUALIZADOS\nPara efeito de contexto durante as suas conversas segue a data e hora de hoje e os próximos dias:\n{{ $json.proximos_dias }}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.8,
+      "position": [
+        960,
+        96
+      ],
+      "id": "39d114c3-cef3-4955-a61c-2229ba9179ad",
+      "name": "Agendar"
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "duvida"
+            },
+            {
+              "name": "whatsapp_lead"
+            },
+            {
+              "name": "Assunto"
+            },
+            {
+              "name": "Tipo_de_consulta"
+            },
+            {
+              "name": "inicio_reuniao"
+            },
+            {
+              "name": "final_reuniao"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        80,
+        96
+      ],
+      "id": "a0a8f019-8a9c-4f43-a89a-6fc0984c8ad7",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "jsCode": "const days = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];\nconst now = new Date();   // <-- ESTA LINHA ESTAVA FALTANDO\nconst pad = (n) => String(n).padStart(2, '0');\n\nlet result = '';\n\nfor (let i = 1; i <= 10; i++) {\n  const future = new Date(now);\n  future.setDate(now.getDate() + i);\n\n  let label = '';\n\n  if (i === 1) {\n    label = `Amanhã é ${days[future.getDay()]} ${pad(future.getDate())}/${pad(future.getMonth() + 1)}/${String(future.getFullYear()).slice(2)}`;\n  } else if (i === 2) {\n    label = `Depois de amanhã é ${days[future.getDay()]} ${pad(future.getDate())}/${pad(future.getMonth() + 1)}/${String(future.getFullYear()).slice(2)}`;\n  } else {\n    label = `${days[future.getDay()]} será dia ${pad(future.getDate())}/${pad(future.getMonth() + 1)}/${String(future.getFullYear()).slice(2)}`;\n  }\n\n  result += `${label}\\n`;\n}\n\nreturn [\n  {\n    json: {\n      resultado: result.trim()\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        464,
+        96
+      ],
+      "id": "849f6bac-1825-4899-9369-24dd5bc43f96",
+      "name": "proximos_dias"
+    },
+    {
+      "parameters": {
+        "description": "=**Quando usar:**  \n- Sempre que precisar **marcar um agendamento** na agenda.  \n- Antes de chamar essa tool, é obrigatório ter:\n  1. O **nome completo** do paciente.\n  2. A **data e hora** desejada.\n  3. Serviço que o lead tem interesse.\n\n**Quando não usar:**  \n- Se ainda não tiver o nome completo do paciente.  \n- Se ainda não tiver a data e o horário desejado.\n- Se ainda não tiver o serviço desejado.\n\n#### Regras para marcar o agendamento\nPara marcar qualquer agendamento utilizando a tool **`criar_reuniao`**, é obrigatório definir corretamente:  \n1. O **start** (início do agendamento).  \n2. O **end** (fim do agendamento).  \n\nO tempo de cada consulta é de **30 minutos** (end = start + 30min)  \n\nSempre calcule o horário final (**end**) com base na duração correspondente ao serviço informado. ",
+        "workflowId": {
+          "__rl": true,
+          "value": "gpK4xb97Yv1b8KA5",
+          "mode": "id",
+          "cachedResultUrl": "/workflow/gpK4xb97Yv1b8KA5"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "whatsapp_lead": "={{ $json.whatsapp_lead }}",
+            "evento": "agendamento",
+            "inicio_reuniao": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('inicio_reuniao', ``, 'string') }}",
+            "final_reuniao": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('final_reuniao', ``, 'string') }}",
+            "tipo_consulta": "={{ $json.Tipo_de_consulta }}",
+            "assunto": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('assunto', `Descreva qual o assunto o lead deseja falar e o caso que ele deseja resolver. Seja o mais detalhista possível.`, 'string') }}",
+            "nome_lead": "={{ $json.nome_lead }}",
+            "url_chatwoot": "https://chatwoot-chatwoot.cw3hc8.easypanel.host/"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "whatsapp_lead",
+              "displayName": "whatsapp_lead",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "evento",
+              "displayName": "evento",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "inicio_reuniao",
+              "displayName": "inicio_reuniao",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "final_reuniao",
+              "displayName": "final_reuniao",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "tipo_consulta",
+              "displayName": "tipo_consulta",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "assunto",
+              "displayName": "assunto",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "id_agendamento",
+              "displayName": "id_agendamento",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": true
+            },
+            {
+              "id": "nome_lead",
+              "displayName": "nome_lead",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "url_chatwoot",
+              "displayName": "url_chatwoot",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        1152,
+        608
+      ],
+      "id": "a9203d77-6cbd-4e7e-bccd-6d682e05b437",
+      "name": "criar_reuniao"
+    },
+    {
+      "parameters": {
+        "description": "=",
+        "workflowId": {
+          "__rl": true,
+          "value": "gpK4xb97Yv1b8KA5",
+          "mode": "id",
+          "cachedResultUrl": "/workflow/gpK4xb97Yv1b8KA5"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "evento": "VerHorarios",
+            "inicio_reuniao": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('inicio_reuniao', `Timestamp ISO do início do horário que o lead quer verificar. Exemplo: 2026-04-22T09:00:00-03:00`, 'string') }}",
+            "final_reuniao": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('final_reuniao', `Timestamp ISO do fim do horário (início + 30 minutos). Exemplo: 2026-04-22T09:30:00-03:00`, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "whatsapp_lead",
+              "displayName": "whatsapp_lead",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": true
+            },
+            {
+              "id": "evento",
+              "displayName": "evento",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "inicio_reuniao",
+              "displayName": "inicio_reuniao",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "final_reuniao",
+              "displayName": "final_reuniao",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "tipo_consulta",
+              "displayName": "tipo_consulta",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": true
+            },
+            {
+              "id": "assunto",
+              "displayName": "assunto",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": true
+            },
+            {
+              "id": "id_agendamento",
+              "displayName": "id_agendamento",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": true
+            },
+            {
+              "id": "nome_lead",
+              "displayName": "nome_lead",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": true
+            },
+            {
+              "id": "url_chatwoot",
+              "displayName": "url_chatwoot",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        1360,
+        464
+      ],
+      "id": "96b8e769-dbde-4db8-b088-c76ba6d885df",
+      "name": "VerHorarios"
+    },
+    {
+      "parameters": {
+        "description": "=**Quando usar:**  \n- Use quando o lead solicitar a **mudança de data ou horário** de um agendamento já marcado.\n- Consulte seu **histórico de conversa com o lead** para puxar o nome e o agendamento anterior.\n\n**Regras para uso:**  \n- Você já tem acesso ao histórico de conversas e agendamentos anteriores, então **não precisa pedir novamente** o nome e o horário anterior.\n\n**Quando não usar:**  \n- Se o paciente não tiver um agendamento previamente agendado.",
+        "workflowId": {
+          "__rl": true,
+          "value": "gpK4xb97Yv1b8KA5",
+          "mode": "id",
+          "cachedResultUrl": "/workflow/gpK4xb97Yv1b8KA5"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "whatsapp_lead": "={{ $json.whatsapp_lead }}",
+            "evento": "reagendamento",
+            "inicio_reuniao": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('inicio_reuniao', `Coloque aqui o timestamp do inicio do agendamento`, 'string') }}",
+            "final_reuniao": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('final_reuniao', `Coloque aqui o timestamp do final do agendamento`, 'string') }}",
+            "tipo_consulta": "={{ $json.Tipo_de_consulta }}",
+            "assunto": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('assunto', `Descreva qual o assunto o lead deseja falar e o caso que ele deseja resolver. Seja o mais detalhista possível.`, 'string') }}",
+            "id_agendamento": "={{ $json.id_agendamento }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "whatsapp_lead",
+              "displayName": "whatsapp_lead",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "evento",
+              "displayName": "evento",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "inicio_reuniao",
+              "displayName": "inicio_reuniao",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "final_reuniao",
+              "displayName": "final_reuniao",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "tipo_consulta",
+              "displayName": "tipo_consulta",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "assunto",
+              "displayName": "assunto",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "id_agendamento",
+              "displayName": "id_agendamento",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "url_chatwoot",
+              "displayName": "url_chatwoot",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        1504,
+        464
+      ],
+      "id": "88297d38-320e-40cc-a6e7-3a11312252f3",
+      "name": "reagendar_reuniao"
+    },
+    {
+      "parameters": {
+        "description": "=**Quando usar:**  \n- Use quando o paciente solicitar o **cancelamento** de um agendamento já agendado.\n\n**Regras para uso:**  \n- Você já tem acesso ao histórico de conversas e agendamentos anteriores, então **não precisa pedir novamente** o nome ou o horário anterior.\n\n**Quando não usar:**  \n- Se não houver nenhum agendamento agendado com o lead.\n- Se a solicitação for apenas uma dúvida ou pergunta genérica sem intenção de cancelar.",
+        "workflowId": {
+          "__rl": true,
+          "value": "gpK4xb97Yv1b8KA5",
+          "mode": "id",
+          "cachedResultUrl": "/workflow/gpK4xb97Yv1b8KA5"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "whatsapp_lead": "={{ $json.whatsapp_lead }}",
+            "evento": "cancelamento",
+            "id_agendamento": "={{ $json.id_agendamento }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "whatsapp_lead",
+              "displayName": "whatsapp_lead",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "evento",
+              "displayName": "evento",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "inicio_reuniao",
+              "displayName": "inicio_reuniao",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": true
+            },
+            {
+              "id": "final_reuniao",
+              "displayName": "final_reuniao",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": true
+            },
+            {
+              "id": "tipo_consulta",
+              "displayName": "tipo_consulta",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": true
+            },
+            {
+              "id": "assunto",
+              "displayName": "assunto",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": true
+            },
+            {
+              "id": "id_agendamento",
+              "displayName": "id_agendamento",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "url_chatwoot",
+              "displayName": "url_chatwoot",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        1664,
+        464
+      ],
+      "id": "288c9f36-a768-4a43-b50d-b819fd2e278e",
+      "name": "cancelar_reuniao"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "leads",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "whatsapp_lead",
+              "keyValue": "={{ $json.whatsapp_lead }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        272,
+        96
+      ],
+      "id": "9e49f9f9-1d3a-47fe-babe-2a059562cf7b",
+      "name": "puxar_lead",
+      "credentials": {
+        "supabaseApi": {
+          "id": "ycZIGpAXZd31iIEF",
+          "name": "Supabase | Heroic Leap"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "### Colocar a URL do chatwoot no node \"criar_reuniao\"",
+        "height": 272,
+        "width": 288,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1040,
+        480
+      ],
+      "typeVersion": 1,
+      "id": "d1d7746c-0492-4ee0-b364-f0316a93a8fb",
+      "name": "Sticky Note"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Postgres Chat Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Agendar",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Agendar",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "setarInfo3": {
+      "main": [
+        [
+          {
+            "node": "Agendar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agendar": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "puxar_lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "proximos_dias": {
+      "main": [
+        [
+          {
+            "node": "setarInfo3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "criar_reuniao": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agendar",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "VerHorarios": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agendar",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "reagendar_reuniao": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agendar",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "cancelar_reuniao": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agendar",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "puxar_lead": {
+      "main": [
+        [
+          {
+            "node": "proximos_dias",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "timezone": "America/Sao_Paulo",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "fdca6f9d-5b21-4605-abc5-86bfa34db179",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "bd23b4d0be4dd939efa78787b912105fba074f6766a8c4ab96351fd4f3b4ddad"
+  },
+  "id": "72ouGwyTr0Qx2b26",
+  "tags": []
+}

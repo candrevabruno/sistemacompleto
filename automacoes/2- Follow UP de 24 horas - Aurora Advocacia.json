@@ -1,8 +1,9 @@
 {
-  "name": "3- Follow UP de 36 horas | Heroic Leap",
+  "name": "2- Follow UP de 24 horas - Aurora Advocacia",
   "nodes": [
     {
       "parameters": {
+        "model": "gpt-4.1-mini",
         "options": {}
       },
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
@@ -11,8 +12,14 @@
         1072,
         640
       ],
-      "id": "e390286a-844a-4dfb-9767-ad1d46999770",
-      "name": "OpenAI Chat Model3"
+      "id": "4cd164e9-e839-4dfb-865c-0bcba51c7584",
+      "name": "OpenAI Chat Model3",
+      "credentials": {
+        "openAiApi": {
+          "id": "sxs3E7CAPsG8uL5n",
+          "name": "OpenAI | Heroic Leap"
+        }
+      }
     },
     {
       "parameters": {
@@ -20,7 +27,7 @@
           "interval": [
             {
               "field": "cronExpression",
-              "expression": "0 */10 8-21 * * *"
+              "expression": "0 0 8-21 * * *"
             }
           ]
         }
@@ -31,7 +38,7 @@
         -2064,
         416
       ],
-      "id": "57fc64bf-6e8f-43af-b95d-9a8a626cc770",
+      "id": "9404a785-287e-4fe7-98a2-c9d8d5aca4dd",
       "name": "Schedule Trigger1"
     },
     {
@@ -44,7 +51,7 @@
         704,
         400
       ],
-      "id": "21de3212-0254-4d2a-98b4-c53648501228",
+      "id": "0b5f7a7b-d913-4c2f-a770-4b3be1e077bf",
       "name": "Chat Memory Manager"
     },
     {
@@ -57,7 +64,7 @@
         400,
         384
       ],
-      "id": "abe8f661-84d4-475c-a05f-06e7f898a462",
+      "id": "e4d99465-403c-4fcd-9d06-876a14cbb14b",
       "name": "Loop"
     },
     {
@@ -87,12 +94,12 @@
         1472,
         400
       ],
-      "id": "737009b1-39f6-4f90-a98d-29364c6648d1",
+      "id": "dc970b4c-1a5a-41a3-b186-48a158b79729",
       "name": "enviarMsgLead",
       "credentials": {
         "httpHeaderAuth": {
-          "id": "voEs24CcUUXw3ksP",
-          "name": "Chatwoot - Heroic Leap"
+          "id": "WTaq4r2w5iyC4E2R",
+          "name": "Chatwoot | Heroic Leap"
         }
       }
     },
@@ -106,7 +113,7 @@
         1984,
         400
       ],
-      "id": "07beb499-ee67-4cf5-8efe-b6c6975400ba",
+      "id": "fbd72f2d-c8a6-4f09-a411-27be7e42043d",
       "name": "Wait",
       "webhookId": "b6f37c6e-976c-467d-be46-f84c38c324fa"
     },
@@ -122,8 +129,14 @@
         704,
         640
       ],
-      "id": "5e275684-fd95-4b9f-9003-318da542f91d",
-      "name": "memoriaLead"
+      "id": "34e40349-bf53-4b72-b8ef-d458c83a0f7b",
+      "name": "memoriaLead",
+      "credentials": {
+        "postgres": {
+          "id": "uoT7wi570ZgcSSnW",
+          "name": "Postgres | Supabase | Heroic Leap"
+        }
+      }
     },
     {
       "parameters": {
@@ -189,7 +202,7 @@
         -560,
         352
       ],
-      "id": "b524c7ff-55f9-4797-b1aa-c209a7e510e0",
+      "id": "fe861a38-d5e1-4a3e-865f-540468bc1a8b",
       "name": "verificarChatWoot"
     },
     {
@@ -200,7 +213,7 @@
         -272,
         512
       ],
-      "id": "aef12d75-e3de-43fb-bc41-2e13d7b8dcf7",
+      "id": "c7b64d15-f0c2-40c0-a62e-804582d9cd4a",
       "name": "não fazer nada"
     },
     {
@@ -216,7 +229,7 @@
         192
       ],
       "typeVersion": 1,
-      "id": "637c28f1-472b-49e8-a5c5-c4c356570dcb",
+      "id": "d351c785-e344-4f7d-b649-57de164a27b2",
       "name": "Sticky Note2"
     },
     {
@@ -256,7 +269,7 @@
             {
               "id": "727bf695-eace-44ab-ba77-d7fb9e441af2",
               "name": "url_chatwoot",
-              "value": "",
+              "value": "https://chatwoot-chatwoot.cw3hc8.easypanel.host/",
               "type": "string"
             }
           ]
@@ -269,20 +282,20 @@
         80,
         384
       ],
-      "id": "0c60ed8c-aa35-440e-9225-443cf7777a07",
+      "id": "40e4a093-57f4-4522-8eb4-86b09d674cd4",
       "name": "setarInformacoes"
     },
     {
       "parameters": {
         "operation": "getAll",
-        "tableId": "vw_leads_com_tempo",
+        "tableId": "v_leads",
         "returnAll": true,
         "filters": {
           "conditions": [
             {
               "keyName": "minutos_ultima_mensagem",
               "condition": "gte",
-              "keyValue": "2160"
+              "keyValue": "1440"
             }
           ]
         }
@@ -293,9 +306,15 @@
         -1712,
         416
       ],
-      "id": "b0eabf56-b773-49a3-8b69-57aa67d087b8",
+      "id": "9a7799b8-96b9-45bc-a799-bd68c52bd13a",
       "name": "PuxarDadosLead",
-      "alwaysOutputData": false
+      "alwaysOutputData": false,
+      "credentials": {
+        "supabaseApi": {
+          "id": "ycZIGpAXZd31iIEF",
+          "name": "Supabase | Heroic Leap"
+        }
+      }
     },
     {
       "parameters": {
@@ -310,14 +329,23 @@
             {
               "id": "8d68f79e-5b79-4cb3-b19d-0accbd6cd8ad",
               "leftValue": "={{ $json.status }}",
-              "rightValue": "agendado",
+              "rightValue": "consulta_agendada",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            },
+            {
+              "id": "eba999a3-90ae-4a4c-892b-da2c9775a053",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "reagendado",
               "operator": {
                 "type": "string",
                 "operation": "notEquals"
               }
             }
           ],
-          "combinator": "and"
+          "combinator": "or"
         },
         "options": {}
       },
@@ -327,7 +355,7 @@
         -1328,
         480
       ],
-      "id": "43dcd43e-26f8-4118-9c59-e269e2b3ac18",
+      "id": "015feafa-dd9b-450c-b308-cac98195a3fd",
       "name": "Filter"
     },
     {
@@ -361,7 +389,7 @@
         -976,
         480
       ],
-      "id": "d736cef4-a92d-4274-b95d-3304fbbeeffa",
+      "id": "8861e352-03ea-4b0c-98b2-4d329317dec5",
       "name": "If"
     },
     {
@@ -377,7 +405,7 @@
         192
       ],
       "typeVersion": 1,
-      "id": "dead502a-68ec-47fb-b97c-3e65b5c2c182",
+      "id": "f28cb858-bb16-4911-8168-9db3f9eb2bba",
       "name": "Sticky Note9"
     },
     {
@@ -393,7 +421,7 @@
         192
       ],
       "typeVersion": 1,
-      "id": "e9e6c8ad-fa1e-473d-9188-c6cc367112a6",
+      "id": "55d45696-113f-4832-96ee-35115da63261",
       "name": "Sticky Note3"
     },
     {
@@ -409,7 +437,7 @@
         192
       ],
       "typeVersion": 1,
-      "id": "b41f8378-63aa-454d-9177-eb805ad159d4",
+      "id": "7347ebd7-7a28-49d3-acde-791dbdefb27b",
       "name": "Sticky Note"
     },
     {
@@ -424,7 +452,7 @@
         192
       ],
       "typeVersion": 1,
-      "id": "5c142b97-69aa-464d-8442-59de3ce612b3",
+      "id": "ff2f19ee-663b-43d6-860c-9a07f2d3907b",
       "name": "Sticky Note4"
     },
     {
@@ -440,7 +468,7 @@
         192
       ],
       "typeVersion": 1,
-      "id": "e23f48aa-dcd3-4e8d-855d-70d3c86b57d4",
+      "id": "1468d909-9fcb-4742-ba20-d360625d9ffb",
       "name": "Sticky Note5"
     },
     {
@@ -456,7 +484,7 @@
         192
       ],
       "typeVersion": 1,
-      "id": "e152a32b-899d-4487-a77d-21b8634efc2e",
+      "id": "80d8c930-ba31-43a1-84c9-7f4b0fa5ac47",
       "name": "Sticky Note58"
     },
     {
@@ -471,8 +499,14 @@
         1280,
         656
       ],
-      "id": "81109e04-0172-4c6f-9ac4-7c2feff7cb9c",
-      "name": "memoriaLead1"
+      "id": "823abaf4-7f6a-4e88-9084-4b1e50015ffa",
+      "name": "memoriaLead1",
+      "credentials": {
+        "postgres": {
+          "id": "uoT7wi570ZgcSSnW",
+          "name": "Postgres | Supabase | Heroic Leap"
+        }
+      }
     },
     {
       "parameters": {
@@ -507,9 +541,15 @@
         1744,
         400
       ],
-      "id": "77dd25cd-7941-4f5a-a89f-f96f42d3392d",
+      "id": "060e4455-c4ef-4cc3-9382-cca2c05df962",
       "name": "marcar_follow_up",
-      "alwaysOutputData": false
+      "alwaysOutputData": false,
+      "credentials": {
+        "supabaseApi": {
+          "id": "ycZIGpAXZd31iIEF",
+          "name": "Supabase | Heroic Leap"
+        }
+      }
     },
     {
       "parameters": {
@@ -524,7 +564,7 @@
         0
       ],
       "typeVersion": 1,
-      "id": "8898ada4-f1ce-4938-8c5f-0dc6a29c79a5",
+      "id": "7a2daf51-04bf-4af8-a0ac-2752fa171e48",
       "name": "Sticky Note1"
     },
     {
@@ -532,7 +572,7 @@
         "promptType": "define",
         "text": "=Histórico de conversa: {{ JSON.stringify($json.messages, null, 2) }}",
         "options": {
-          "systemMessage": "=## IDENTIDADE\n\nVocê é uma **secretária virtual** de uma empresa.  \nVocê é especialista em follow-up natural e leve para retomar conversas no WhatsApp.\n\n## FUNÇÃO\n\n-   Ler as últimas mensagens trocadas entre você e o cliente.\n-   Entender em que ponto a conversa parou.\n-   Criar **uma mensagem única, humanizada e natural** para retomar o diálogo.\n-   Estimular o cliente a responder sem pressão.\n\n## REGRAS DE MENSAGEM\n\n-   Nunca se apresente, nunca peça nome ou dados já informados.\n-   Seja breve, como uma conversa normal no WhatsApp.\n-   Use o nome do cliente, se estiver disponível.\n-   Não pressione, não cobre retorno e não mencione tempo de ausência.\n-   Nunca repita a última pergunta ou informação enviada.\n-   Se a sua última mensagem tinha link, instrução ou orientações específicas, não repita.\n-   Retome o assunto de forma simpática e profissional, com naturalidade.\n-   Emojis só se fizer sentido e sempre de maneira moderada.\n-   Passe segurança e disponibilidade para ajudar.\n-   Data e hora de agora: {{ $now }}\n\n## EXEMPLOS DE MENSAGENS\nExemplo 1:\n\"Oi! Você chegou a ver minha última mensagem?\"\n\nExemplo 2:\n\"Ficou alguma dúvida que eu possa esclarecer pra você?\"\n\nExemplo 3:\n\"Oi! Você chegou a ver minha última mensagem?\"\n\nExemplo 4:\n\"Olá, esta ai ainda?\"\n\nExemplo 5:\n\"Oi! Você chegou a ver minha última mensagem?\"\n\nExemplo 6:\n\"Olá, chegou a ver o que te mandei?\""
+          "systemMessage": "=## IDENTIDADE\n\nVocê é **Camila**, secretária de um escritório de advocacia.  \nVocê é especialista em follow-up natural e leve para retomar conversas no WhatsApp.\n\n## FUNÇÃO\n\n-   Ler as últimas mensagens trocadas entre você e o cliente.\n-   Entender em que ponto a conversa parou.\n-   Criar **uma mensagem única, humanizada e natural** para retomar o diálogo.\n-   Estimular o cliente a responder sem pressão.\n\n## REGRAS DE MENSAGEM\n\n-   Nunca se apresente, nunca peça nome ou dados já informados.\n-   Seja breve, como uma conversa normal no WhatsApp.\n-   Use o nome do cliente, se estiver disponível.\n-   Não pressione, não cobre retorno e não mencione tempo de ausência.\n-   Nunca repita a última pergunta ou informação enviada.\n-   Se a sua última mensagem tinha link, instrução ou orientação jurídica, não repita.\n-   Retome o assunto de forma simpática e profissional, com naturalidade.\n-   Emojis só se fizer sentido e sempre de maneira moderada.\n-   Passe segurança e disponibilidade para ajudar.\n-   Data e hora de agora: {{ $now }}\n\n## EXEMPLOS DE MENSAGENS\nExemplo 1:\n\"Oi! Você chegou a ver minha última mensagem?\"\n\nExemplo 2:\n\"Ficou alguma dúvida que eu possa esclarecer pra você?\"\n\nExemplo 3:\n\"Oi! Você chegou a ver minha última mensagem?\"\n\nExemplo 4:\n\"Olá, esta ai ainda?\"\n\nExemplo 5:\n\"Oi! Você chegou a ver minha última mensagem?\"\n\nExemplo 6:\n\"Olá, chegou a ver o que te mandei?\""
         }
       },
       "type": "@n8n/n8n-nodes-langchain.agent",
@@ -541,8 +581,8 @@
         1120,
         400
       ],
-      "id": "a33d78df-cb75-454d-9a8c-5494dc3de694",
-      "name": "Follow UP 3"
+      "id": "9a4858b1-f022-43cf-a634-86971395a66e",
+      "name": "Follow UP 2"
     }
   ],
   "pinData": {},
@@ -551,7 +591,7 @@
       "ai_languageModel": [
         [
           {
-            "node": "Follow UP 3",
+            "node": "Follow UP 2",
             "type": "ai_languageModel",
             "index": 0
           }
@@ -573,7 +613,7 @@
       "main": [
         [
           {
-            "node": "Follow UP 3",
+            "node": "Follow UP 2",
             "type": "main",
             "index": 0
           }
@@ -691,7 +731,7 @@
       "ai_memory": [
         [
           {
-            "node": "Follow UP 3",
+            "node": "Follow UP 2",
             "type": "ai_memory",
             "index": 0
           }
@@ -709,7 +749,7 @@
         ]
       ]
     },
-    "Follow UP 3": {
+    "Follow UP 2": {
       "main": [
         [
           {
@@ -721,19 +761,20 @@
       ]
     }
   },
-  "active": false,
+  "active": true,
   "settings": {
     "executionOrder": "v1",
     "binaryMode": "separate",
-    "availableInMCP": false,
     "timeSavedMode": "fixed",
     "timezone": "America/Sao_Paulo",
-    "callerPolicy": "workflowsFromSameOwner"
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
   },
-  "versionId": "c10f1600-06af-41b7-b5a5-199ff120c57a",
+  "versionId": "3fe4466d-f6ba-4259-a78d-96aeeb280f11",
   "meta": {
-    "instanceId": "cd3f555560da593715f2409944039c2dd529d28b002c9eefb22eeac5fd695ee6"
+    "templateCredsSetupCompleted": true,
+    "instanceId": "bd23b4d0be4dd939efa78787b912105fba074f6766a8c4ab96351fd4f3b4ddad"
   },
-  "id": "36WnNdldqglOlYFQ",
+  "id": "KrVqcFmsnXD56rry",
   "tags": []
 }

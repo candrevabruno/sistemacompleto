@@ -1,0 +1,373 @@
+{
+  "name": "5- Lembrete de Consulta - Escritorio de Advocacia",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -192,
+        -16
+      ],
+      "id": "0bd20cfd-6046-428d-ae12-d3a86b05ceac",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "leads",
+        "returnAll": true,
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "status",
+              "condition": "eq",
+              "keyValue": "agendado"
+            },
+            {
+              "keyName": "data_agendamento",
+              "condition": "gte",
+              "keyValue": "=={{ $now.setZone('America/Sao_Paulo').startOf('day').toISO() }}"
+            },
+            {
+              "keyName": "data_agendamento",
+              "condition": "lte",
+              "keyValue": "={{ $now.setZone('America/Sao_Paulo').endOf('day').toISO() }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        32,
+        -16
+      ],
+      "id": "9c464025-1a61-491d-b399-731039abf6b8",
+      "name": "PuxarDadosLead",
+      "alwaysOutputData": false,
+      "credentials": {
+        "supabaseApi": {
+          "id": "ycZIGpAXZd31iIEF",
+          "name": "Supabase | Heroic Leap"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        256,
+        -16
+      ],
+      "id": "485b791a-cb93-4685-b53a-b36b8bf88ee0",
+      "name": "Loop"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "nome_lead",
+              "value": "={{ $json.nome_lead }}",
+              "type": "string"
+            },
+            {
+              "id": "a2",
+              "name": "whatsapp_lead",
+              "value": "={{ $json.whatsapp_lead }}",
+              "type": "string"
+            },
+            {
+              "id": "a3",
+              "name": "data_agendamento",
+              "value": "={{ $json.data_agendamento }}",
+              "type": "string"
+            },
+            {
+              "id": "a4",
+              "name": "id_conta_chatwoot",
+              "value": "={{ $json.id_conta_chatwoot }}",
+              "type": "string"
+            },
+            {
+              "id": "a5",
+              "name": "id_conversa_chatwoot",
+              "value": "={{ $json.id_conversa_chatwoot }}",
+              "type": "string"
+            },
+            {
+              "id": "a6",
+              "name": "url_chatwoot",
+              "value": "=https://chatwoot-chatwoot.cw3hc8.easypanel.host/",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        496,
+        0
+      ],
+      "id": "c9b1d995-3e10-4647-a9e8-da6d8e34e5c6",
+      "name": "setarInformacoes"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Crie uma mensagem de lembrete de consulta para o lead {{ $json.nome_lead }}. A consulta está agendada para {{ DateTime.fromISO($json.data_agendamento).setZone('America/Sao_Paulo').toFormat(\"dd/MM 'às' HH:mm\") }}.",
+        "options": {
+          "systemMessage": "=## IDENTIDADE\nVocê é **Camila**, secretária da Candreva Advocacia.\nVocê é especialista em enviar lembretes humanizados e naturais no WhatsApp.\n\n## FUNÇÃO\n- Enviar uma mensagem de lembrete da consulta agendada para hoje.\n- A mensagem deve ser leve, simpática e profissional.\n\n## REGRAS\n- Use o nome do lead.\n- Mencione a data e horário da consulta: {{ DateTime.fromISO($('setarInformacoes').item.json.data_agendamento).setZone('America/Sao_Paulo').toFormat(\"dd/MM 'às' HH:mm\") }}\n- Seja breve, como uma conversa natural no WhatsApp.\n- Não pressione nem cobre nada.\n- Emojis com moderação.\n- Nunca invente informações.\n- Data e hora de agora: {{ $now }}\n\n## EXEMPLOS\nExemplo 1:\n\"Oi, [nome]! Só passando para lembrar que sua consulta está agendada para hoje às [hora]. Qualquer dúvida, estou por aqui! 😊\"\n\nExemplo 2:\n\"Olá, [nome]! Sua consulta online é hoje às [hora]. Se precisar de algo antes, é só me chamar!\"\n\nExemplo 3:\n\"Oi, [nome]! Lembrando que hoje temos sua consulta às [hora]. Até logo! 😊\""
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.8,
+      "position": [
+        704,
+        0
+      ],
+      "id": "501b061f-9aa4-4617-b8b4-409fc07e4784",
+      "name": "Lembrete IA"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        688,
+        192
+      ],
+      "id": "5bb95d5a-0ebf-4493-8275-d33cb435aca1",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "sxs3E7CAPsG8uL5n",
+          "name": "OpenAI | Heroic Leap"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b1",
+              "name": "mensagem",
+              "value": "={{ $json.output }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1056,
+        0
+      ],
+      "id": "3bfc0640-b853-4cd1-ab79-33068291d262",
+      "name": "setarMensagem"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('setarInformacoes').item.json.url_chatwoot }}api/v1/accounts/{{ $('setarInformacoes').item.json.id_conta_chatwoot }}/conversations/{{ $('setarInformacoes').item.json.id_conversa_chatwoot }}/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"content\": \"{{ $json.mensagem }}\",\n  \"message_type\": \"outgoing\",\n  \"private\": false\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1264,
+        0
+      ],
+      "id": "8080edbe-3e42-4d35-8522-8650c31f7230",
+      "name": "enviarMsgLead",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "WTaq4r2w5iyC4E2R",
+          "name": "Chatwoot | Heroic Leap"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1712,
+        -176
+      ],
+      "id": "7e9c2347-94a2-4646-b5f5-f7b73cae558d",
+      "name": "Voltar ao Loop"
+    },
+    {
+      "parameters": {
+        "amount": 10
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1616,
+        160
+      ],
+      "id": "317073ee-4e40-43a9-8ffc-cf67749bc1a6",
+      "name": "Wait",
+      "webhookId": "7e05cd0d-d9d3-4259-a399-decbe2987b67"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "PuxarDadosLead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PuxarDadosLead": {
+      "main": [
+        [
+          {
+            "node": "Loop",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop": {
+      "main": [
+        [],
+        [
+          {
+            "node": "setarInformacoes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "setarInformacoes": {
+      "main": [
+        [
+          {
+            "node": "Lembrete IA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lembrete IA": {
+      "main": [
+        [
+          {
+            "node": "setarMensagem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Lembrete IA",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "setarMensagem": {
+      "main": [
+        [
+          {
+            "node": "enviarMsgLead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "enviarMsgLead": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Voltar ao Loop": {
+      "main": [
+        []
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Loop",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "timezone": "America/Sao_Paulo",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "3444ed93-5f8e-4355-9d53-ee700b3a20bc",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "bd23b4d0be4dd939efa78787b912105fba074f6766a8c4ab96351fd4f3b4ddad"
+  },
+  "id": "1K0ca3NBKKqyQYlL",
+  "tags": []
+}

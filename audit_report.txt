@@ -1,0 +1,228 @@
+
+============================================================
+FILE: 1- Secretaria _ Ellegance Clínica Integrada.json
+============================================================
+[POSTGRES] Node: Postgres
+  - Operation: deleteTable
+  - Table: {'__rl': True, 'mode': 'list', 'value': 'public'}.{'__rl': True, 'value': 'n8n_chat_histories', 'mode': 'list', 'cachedResultName': 'n8n_chat_histories'}
+  - Columns: N/A
+------------------------------
+[POSTGRES] Node: memoria
+  - Operation: executeQuery
+  - Query:
+    
+------------------------------
+[SUPABASE] Node: apagar_CRM
+  - Operation: delete
+  - Table: N/A
+------------------------------
+
+============================================================
+FILE: 2- sobreClinica  _ Ellegance Clínica Integrada.json
+============================================================
+[POSTGRES] Node: memoria
+  - Operation: executeQuery
+  - Query:
+    
+------------------------------
+
+============================================================
+FILE: 3- CRM _ Ellegance Clínica Integrada.json
+============================================================
+[SUPABASE] Node: atualizaFollowUP
+  - Operation: update
+  - Table: N/A
+------------------------------
+[SUPABASE] Node: atualizarCRM
+  - Operation: update
+  - Table: N/A
+------------------------------
+[SUPABASE] Node: PuxarNumeroLead
+  - Operation: get
+  - Table: N/A
+------------------------------
+[SUPABASE] Node: CriarUsuario
+  - Operation: N/A
+  - Table: N/A
+------------------------------
+[POSTGRES] Node: memoria
+  - Operation: executeQuery
+  - Query:
+    
+------------------------------
+
+============================================================
+FILE: Agendamento/4- Agente de Agendamento _ Ellegance Clínica Integrada.json
+============================================================
+[POSTGRES] Node: memoria1
+  - Operation: executeQuery
+  - Query:
+    
+------------------------------
+[SUPABASE] Node: puxar_lead
+  - Operation: get
+  - Table: N/A
+------------------------------
+
+============================================================
+FILE: Agendamento/Agendas/Angela _ Ellegance Clínica Integrada.json
+============================================================
+[HTTP API] Node: agendar_consulta
+  - Method: POST
+  - URL: https://rsbcqkhbhmdieblogntv.supabase.co/functions/v1/agendamentos/horarios
+------------------------------
+[HTTP API] Node: reagendar
+  - Method: PUT
+  - URL: =https://rsbcqkhbhmdieblogntv.supabase.co/functions/v1/agendamentos/{{ $('setar_informacoes').item.json.id_agendamento }}
+------------------------------
+[HTTP API] Node: cancelar
+  - Method: DELETE
+  - URL: =https://rsbcqkhbhmdieblogntv.supabase.co/functions/v1/agendamentos/{{ $('setar_informacoes').item.json.id_agendamento }}
+------------------------------
+[SUPABASE] Node: atualizar_banco_dados
+  - Operation: update
+  - Table: N/A
+------------------------------
+[HTTP API] Node: VerHorarios
+  - Method: GET
+  - URL: https://rsbcqkhbhmdieblogntv.supabase.co/functions/v1/agendamentos/horarios
+------------------------------
+[SUPABASE] Node: atualizar_banco_dados2
+  - Operation: update
+  - Table: N/A
+------------------------------
+[SUPABASE] Node: atualizar_banco_dados3
+  - Operation: update
+  - Table: N/A
+------------------------------
+
+============================================================
+FILE: Agendamento/Agendas/Fernanda _ Ellegance Clínica Integrada.json
+============================================================
+[HTTP API] Node: agendar_consulta
+  - Method: POST
+  - URL: https://rsbcqkhbhmdieblogntv.supabase.co/functions/v1/agendamentos
+------------------------------
+[HTTP API] Node: reagendar
+  - Method: PUT
+  - URL: =https://rsbcqkhbhmdieblogntv.supabase.co/functions/v1/agendamentos/{{ $('setar_informacoes').item.json.id_agendamento }}
+------------------------------
+[HTTP API] Node: cancelar
+  - Method: DELETE
+  - URL: =https://rsbcqkhbhmdieblogntv.supabase.co/functions/v1/agendamentos/{{ $json.id_agendamento }}
+------------------------------
+[SUPABASE] Node: atualizar_banco_dados
+  - Operation: update
+  - Table: N/A
+------------------------------
+[HTTP API] Node: VerHorarios
+  - Method: GET
+  - URL: https://rsbcqkhbhmdieblogntv.supabase.co/functions/v1/agendamentos/horarios
+------------------------------
+[SUPABASE] Node: atualizar_banco_dados2
+  - Operation: update
+  - Table: N/A
+------------------------------
+[SUPABASE] Node: atualizar_banco_dados3
+  - Operation: update
+  - Table: N/A
+------------------------------
+
+============================================================
+FILE: Agendamento/Agendas/Kelly _ Ellegance Clínica Integrada.json
+============================================================
+[HTTP API] Node: agendar_consulta
+  - Method: POST
+  - URL: https://rsbcqkhbhmdieblogntv.supabase.co/functions/v1/agendamentos
+------------------------------
+[HTTP API] Node: reagendar
+  - Method: PUT
+  - URL: =https://rsbcqkhbhmdieblogntv.supabase.co/functions/v1/agendamentos/{{ $('setar_informacoes').item.json.id_agendamento }}
+------------------------------
+[HTTP API] Node: cancelar
+  - Method: DELETE
+  - URL: =https://rsbcqkhbhmdieblogntv.supabase.co/functions/v1/agendamentos/{{ $json.id_agendamento }}
+------------------------------
+[SUPABASE] Node: atualizar_banco_dados
+  - Operation: update
+  - Table: N/A
+------------------------------
+[HTTP API] Node: VerHorarios
+  - Method: GET
+  - URL: https://rsbcqkhbhmdieblogntv.supabase.co/functions/v1/agendamentos/horarios
+------------------------------
+[SUPABASE] Node: atualizar_banco_dados2
+  - Operation: update
+  - Table: N/A
+------------------------------
+[SUPABASE] Node: atualizar_banco_dados3
+  - Operation: update
+  - Table: N/A
+------------------------------
+
+============================================================
+FILE: Follow-Up/1- Follow UP de 20 minutos _ Ellegance Clínica Integrada.json
+============================================================
+[POSTGRES] Node: memoriaLead
+  - Operation: executeQuery
+  - Query:
+    
+------------------------------
+[SUPABASE] Node: PuxarDadosLead
+  - Operation: getAll
+  - Table: N/A
+------------------------------
+[POSTGRES] Node: memoriaLead1
+  - Operation: executeQuery
+  - Query:
+    
+------------------------------
+[SUPABASE] Node: marcar_follow_up
+  - Operation: update
+  - Table: N/A
+------------------------------
+
+============================================================
+FILE: Follow-Up/2- Follow UP de 24 horas _ Ellegance Clínica Integrada.json
+============================================================
+[POSTGRES] Node: memoriaLead
+  - Operation: executeQuery
+  - Query:
+    
+------------------------------
+[SUPABASE] Node: PuxarDadosLead
+  - Operation: getAll
+  - Table: N/A
+------------------------------
+[POSTGRES] Node: memoriaLead1
+  - Operation: executeQuery
+  - Query:
+    
+------------------------------
+[SUPABASE] Node: marcar_follow_up
+  - Operation: update
+  - Table: N/A
+------------------------------
+
+============================================================
+FILE: Follow-Up/3- Follow UP de 36 horas _ Ellegance Clínica Integrada.json
+============================================================
+[POSTGRES] Node: memoriaLead
+  - Operation: executeQuery
+  - Query:
+    
+------------------------------
+[SUPABASE] Node: PuxarDadosLead
+  - Operation: getAll
+  - Table: N/A
+------------------------------
+[POSTGRES] Node: memoriaLead1
+  - Operation: executeQuery
+  - Query:
+    
+------------------------------
+[SUPABASE] Node: marcar_follow_up
+  - Operation: update
+  - Table: N/A
+------------------------------
+

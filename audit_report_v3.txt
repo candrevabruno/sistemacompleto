@@ -1,0 +1,277 @@
+AUDITORIA DE COLUNAS E URLS (SAAS WHITE-LABEL)
+
+
+============================================================
+FILE: 1- Secretaria _ Ellegance Clínica Integrada.json
+============================================================
+[POSTGRES] Node: Postgres
+  - Table: public.n8n_chat_histories
+------------------------------
+[POSTGRES] Node: memoria
+  - Query:
+    
+------------------------------
+[HTTP API] Node: baixarAudio
+  - Method: GET
+  - URL: ={{ $('setar_informacoes').item.json.msg.urlMedia }}
+------------------------------
+[HTTP API] Node: respostaChatwoot
+  - Method: POST
+  - URL: ={{ $('setar_informacoes').item.json.url_do_seu_chatwoot }}/api/v1/accounts/{{ $('setar_informacoes').item.json.msg.id_conta_chatwoot }}/conversations/{{ $('setar_informacoes').item.json.msg.id_conversa_chatwoot }}/messages
+------------------------------
+[SUPABASE] Node: apagar_CRM
+  - Operation: delete
+  - Table: leads
+------------------------------
+
+============================================================
+FILE: 2- sobreClinica  _ Ellegance Clínica Integrada.json
+============================================================
+[POSTGRES] Node: memoria
+  - Query:
+    
+------------------------------
+
+============================================================
+FILE: 3- CRM _ Ellegance Clínica Integrada.json
+============================================================
+[SUPABASE] Node: atualizaFollowUP
+  - Operation: update
+  - Table: leads
+  - Form Fields: ['follow_up_1', 'follow_up_2', 'follow_up_3', 'ultima_mensagem', 'status']
+------------------------------
+[SUPABASE] Node: atualizarCRM
+  - Operation: update
+  - Table: leads
+  - Form Fields: ['nome_lead', 'motivo_contato', 'procedimento_interesse', 'resumo_conversa']
+------------------------------
+[SUPABASE] Node: PuxarNumeroLead
+  - Operation: get
+  - Table: leads
+------------------------------
+[SUPABASE] Node: CriarUsuario
+  - Operation: N/A
+  - Table: leads
+  - Form Fields: ['inicio_atendimento', 'whatsapp_lead', 'id_conta_chatwoot', 'id_conversa_chatwoot', 'id_lead_chatwoot', 'inbox_id_chatwoot', 'status']
+------------------------------
+[POSTGRES] Node: memoria
+  - Query:
+    
+------------------------------
+
+============================================================
+FILE: Agendamento/4- Agente de Agendamento _ Ellegance Clínica Integrada.json
+============================================================
+[POSTGRES] Node: memoria1
+  - Query:
+    
+------------------------------
+[SUPABASE] Node: puxar_lead
+  - Operation: get
+  - Table: leads
+------------------------------
+
+============================================================
+FILE: Agendamento/Agendas/Angela _ Ellegance Clínica Integrada.json
+============================================================
+[HTTP API] Node: etiqueta_reuniao_marcada
+  - Method: POST
+  - URL: ={{ $('setar_informacoes').item.json.url_chatwoot }}api/v1/accounts/{{ $json['id_conta_chatwoot'] }}/conversations/{{ $json['id_conversa_chatwoot'] }}/labels
+------------------------------
+[HTTP API] Node: agendar_consulta
+  - Method: POST
+  - [WARNING] HARDCODED OLD SUPABASE URL: https://rsbcqkhbhmdieblogntv.supabase.co/functions/v1/agendamentos/horarios
+------------------------------
+[HTTP API] Node: reagendar
+  - Method: PUT
+  - [WARNING] HARDCODED OLD SUPABASE URL: =https://rsbcqkhbhmdieblogntv.supabase.co/functions/v1/agendamentos/{{ $('setar_informacoes').item.json.id_agendamento }}
+------------------------------
+[HTTP API] Node: cancelar
+  - Method: DELETE
+  - [WARNING] HARDCODED OLD SUPABASE URL: =https://rsbcqkhbhmdieblogntv.supabase.co/functions/v1/agendamentos/{{ $('setar_informacoes').item.json.id_agendamento }}
+------------------------------
+[SUPABASE] Node: atualizar_banco_dados
+  - Operation: update
+  - Table: leads
+  - Form Fields: ['data_agendamento', 'agendamento_criado_em', 'status']
+------------------------------
+[HTTP API] Node: VerHorarios
+  - Method: GET
+  - [WARNING] HARDCODED OLD SUPABASE URL: https://rsbcqkhbhmdieblogntv.supabase.co/functions/v1/agendamentos/horarios
+------------------------------
+[HTTP API] Node: etiqueta_cancelou_consulta
+  - Method: POST
+  - URL: ={{ $('setar_informacoes').item.json.url_chatwoot }}api/v1/accounts/{{ $('setar_informacoes').item.json.id_conta_chatwoot }}/conversations/{{ $('setar_informacoes').item.json.id_conversa_chatwoot }}/labels
+------------------------------
+[SUPABASE] Node: atualizar_banco_dados2
+  - Operation: update
+  - Table: leads
+  - Form Fields: ['data_agendamento', 'agendamento_criado_em', 'status']
+------------------------------
+[SUPABASE] Node: atualizar_banco_dados3
+  - Operation: update
+  - Table: leads
+  - Form Fields: ['data_agendamento', 'agendamento_criado_em']
+------------------------------
+
+============================================================
+FILE: Agendamento/Agendas/Fernanda _ Ellegance Clínica Integrada.json
+============================================================
+[HTTP API] Node: etiqueta_reuniao_marcada
+  - Method: POST
+  - URL: ={{ $('setar_informacoes').item.json.url_chatwoot }}api/v1/accounts/{{ $json['id_conta_chatwoot'] }}/conversations/{{ $json['id_conversa_chatwoot'] }}/labels
+------------------------------
+[HTTP API] Node: agendar_consulta
+  - Method: POST
+  - [WARNING] HARDCODED OLD SUPABASE URL: https://rsbcqkhbhmdieblogntv.supabase.co/functions/v1/agendamentos
+------------------------------
+[HTTP API] Node: reagendar
+  - Method: PUT
+  - [WARNING] HARDCODED OLD SUPABASE URL: =https://rsbcqkhbhmdieblogntv.supabase.co/functions/v1/agendamentos/{{ $('setar_informacoes').item.json.id_agendamento }}
+------------------------------
+[HTTP API] Node: cancelar
+  - Method: DELETE
+  - [WARNING] HARDCODED OLD SUPABASE URL: =https://rsbcqkhbhmdieblogntv.supabase.co/functions/v1/agendamentos/{{ $json.id_agendamento }}
+------------------------------
+[SUPABASE] Node: atualizar_banco_dados
+  - Operation: update
+  - Table: leads
+  - Form Fields: ['data_agendamento', 'agendamento_criado_em', 'status']
+------------------------------
+[HTTP API] Node: VerHorarios
+  - Method: GET
+  - [WARNING] HARDCODED OLD SUPABASE URL: https://rsbcqkhbhmdieblogntv.supabase.co/functions/v1/agendamentos/horarios
+------------------------------
+[HTTP API] Node: etiqueta_cancelou_consulta
+  - Method: POST
+  - URL: ={{ $('setar_informacoes').item.json.url_chatwoot }}api/v1/accounts/{{ $('setar_informacoes').item.json.id_conta_chatwoot }}/conversations/{{ $('setar_informacoes').item.json.id_conversa_chatwoot }}/labels
+------------------------------
+[SUPABASE] Node: atualizar_banco_dados2
+  - Operation: update
+  - Table: leads
+  - Form Fields: ['data_agendamento', 'agendamento_criado_em', 'status']
+------------------------------
+[SUPABASE] Node: atualizar_banco_dados3
+  - Operation: update
+  - Table: leads
+  - Form Fields: ['data_agendamento', 'agendamento_criado_em']
+------------------------------
+
+============================================================
+FILE: Agendamento/Agendas/Kelly _ Ellegance Clínica Integrada.json
+============================================================
+[HTTP API] Node: etiqueta_reuniao_marcada
+  - Method: POST
+  - URL: ={{ $('setar_informacoes').item.json.url_chatwoot }}api/v1/accounts/{{ $json['id_conta_chatwoot'] }}/conversations/{{ $json['id_conversa_chatwoot'] }}/labels
+------------------------------
+[HTTP API] Node: agendar_consulta
+  - Method: POST
+  - [WARNING] HARDCODED OLD SUPABASE URL: https://rsbcqkhbhmdieblogntv.supabase.co/functions/v1/agendamentos
+------------------------------
+[HTTP API] Node: reagendar
+  - Method: PUT
+  - [WARNING] HARDCODED OLD SUPABASE URL: =https://rsbcqkhbhmdieblogntv.supabase.co/functions/v1/agendamentos/{{ $('setar_informacoes').item.json.id_agendamento }}
+------------------------------
+[HTTP API] Node: cancelar
+  - Method: DELETE
+  - [WARNING] HARDCODED OLD SUPABASE URL: =https://rsbcqkhbhmdieblogntv.supabase.co/functions/v1/agendamentos/{{ $json.id_agendamento }}
+------------------------------
+[SUPABASE] Node: atualizar_banco_dados
+  - Operation: update
+  - Table: leads
+  - Form Fields: ['data_agendamento', 'agendamento_criado_em', 'status']
+------------------------------
+[HTTP API] Node: VerHorarios
+  - Method: GET
+  - [WARNING] HARDCODED OLD SUPABASE URL: https://rsbcqkhbhmdieblogntv.supabase.co/functions/v1/agendamentos/horarios
+------------------------------
+[HTTP API] Node: etiqueta_cancelou_consulta
+  - Method: POST
+  - URL: ={{ $('setar_informacoes').item.json.url_chatwoot }}api/v1/accounts/{{ $('setar_informacoes').item.json.id_conta_chatwoot }}/conversations/{{ $('setar_informacoes').item.json.id_conversa_chatwoot }}/labels
+------------------------------
+[SUPABASE] Node: atualizar_banco_dados2
+  - Operation: update
+  - Table: leads
+  - Form Fields: ['data_agendamento', 'agendamento_criado_em', 'status']
+------------------------------
+[SUPABASE] Node: atualizar_banco_dados3
+  - Operation: update
+  - Table: leads
+  - Form Fields: ['data_agendamento', 'agendamento_criado_em']
+------------------------------
+
+============================================================
+FILE: Follow-Up/1- Follow UP de 20 minutos _ Ellegance Clínica Integrada.json
+============================================================
+[HTTP API] Node: enviarMsgLead
+  - Method: POST
+  - URL: ={{ $('setarInformacoes').item.json.url_chatwoot }}api/v1/accounts/{{ $('setarInformacoes').item.json.id_conta_chatwoot }}/conversations/{{ $('setarInformacoes').item.json.id_conversa_chatwoot }}/messages
+------------------------------
+[POSTGRES] Node: memoriaLead
+  - Query:
+    
+------------------------------
+[SUPABASE] Node: PuxarDadosLead
+  - Operation: getAll
+  - Table: v_leads
+------------------------------
+[POSTGRES] Node: memoriaLead1
+  - Query:
+    
+------------------------------
+[SUPABASE] Node: marcar_follow_up
+  - Operation: update
+  - Table: leads
+  - Form Fields: ['follow_up_1', 'status']
+------------------------------
+
+============================================================
+FILE: Follow-Up/2- Follow UP de 24 horas _ Ellegance Clínica Integrada.json
+============================================================
+[HTTP API] Node: enviarMsgLead
+  - Method: POST
+  - URL: ={{ $('setarInformacoes').item.json.url_chatwoot }}api/v1/accounts/{{ $('setarInformacoes').item.json.id_conta_chatwoot }}/conversations/{{ $('setarInformacoes').item.json.id_conversa_chatwoot }}/messages
+------------------------------
+[POSTGRES] Node: memoriaLead
+  - Query:
+    
+------------------------------
+[SUPABASE] Node: PuxarDadosLead
+  - Operation: getAll
+  - Table: v_leads
+------------------------------
+[POSTGRES] Node: memoriaLead1
+  - Query:
+    
+------------------------------
+[SUPABASE] Node: marcar_follow_up
+  - Operation: update
+  - Table: leads
+  - Form Fields: ['follow_up_1', 'status']
+------------------------------
+
+============================================================
+FILE: Follow-Up/3- Follow UP de 36 horas _ Ellegance Clínica Integrada.json
+============================================================
+[HTTP API] Node: enviarMsgLead
+  - Method: POST
+  - URL: ={{ $('setarInformacoes').item.json.url_chatwoot }}api/v1/accounts/{{ $('setarInformacoes').item.json.id_conta_chatwoot }}/conversations/{{ $('setarInformacoes').item.json.id_conversa_chatwoot }}/messages
+------------------------------
+[POSTGRES] Node: memoriaLead
+  - Query:
+    
+------------------------------
+[SUPABASE] Node: PuxarDadosLead
+  - Operation: getAll
+  - Table: v_leads
+------------------------------
+[POSTGRES] Node: memoriaLead1
+  - Query:
+    
+------------------------------
+[SUPABASE] Node: marcar_follow_up
+  - Operation: update
+  - Table: leads
+  - Form Fields: ['follow_up_1', 'status']
+------------------------------
+

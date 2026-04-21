@@ -48,12 +48,21 @@ export function CRM() {
   // Lead Details
   const [selectedLead, setSelectedLead] = useState<any>(null);
   const [openLeadDetails, setOpenLeadDetails] = useState(false);
+  const [savingStatus, setSavingStatus] = useState(false);
 
   const fetchLeads = async () => {
     setLoading(true);
     const { data } = await supabase.from('leads').select('*').order('ultima_mensagem', { ascending: false });
     if (data) setLeads(data);
     setLoading(false);
+  };
+
+  const handleStatusChange = async (leadId: string, newStatus: string) => {
+    setSavingStatus(true);
+    await supabase.from('leads').update({ status: newStatus }).eq('id', leadId);
+    setLeads(prev => prev.map(l => l.id === leadId ? { ...l, status: newStatus } : l));
+    setSelectedLead((prev: any) => ({ ...prev, status: newStatus }));
+    setSavingStatus(false);
   };
 
   const fetchAgendas = async () => {
@@ -405,7 +414,7 @@ export function CRM() {
         <div className="space-y-4">
           <Input label="WhatsApp (Obrigatório)" placeholder="+5511999999999" value={newLeadForm.whatsapp} onChange={e => setNewLeadForm({...newLeadForm, whatsapp: e.target.value})} />
           <Input label="Nome do lead" placeholder="Ex: Maria" value={newLeadForm.nome} onChange={e => setNewLeadForm({...newLeadForm, nome: e.target.value})} />
-          <Input label="Procedimento de interesse" placeholder="Ex: Botox" value={newLeadForm.procedimento} onChange={e => setNewLeadForm({...newLeadForm, procedimento: e.target.value})} />
+          <Input label="Serviço de interesse" placeholder="Ex: Inventário, Divórcio, Consultoria" value={newLeadForm.procedimento} onChange={e => setNewLeadForm({...newLeadForm, procedimento: e.target.value})} />
           <Input label="Motivo do contato" placeholder="Ex: Veio pelo Instagram" value={newLeadForm.motivo} onChange={e => setNewLeadForm({...newLeadForm, motivo: e.target.value})} />
           <Button onClick={handleSaveNewLead} className="w-full" disabled={!newLeadForm.whatsapp}>Criar Lead</Button>
         </div>
@@ -531,7 +540,19 @@ export function CRM() {
                <div className="flex-1">
                  <h2 className="font-cormorant text-2xl font-bold">{selectedLead.nome_lead || 'Lead sem nome'}</h2>
                  <p className="text-sm font-medium opacity-80 mt-1">{selectedLead.whatsapp_lead}</p>
-                 <Badge variant={selectedLead.status} className="mt-2">{selectedLead.status}</Badge>
+                 <div className="mt-2">
+                   <label className="text-xs text-gray-500 block mb-1">Etapa do funil</label>
+                   <select
+                     value={selectedLead.status}
+                     disabled={savingStatus}
+                     onChange={e => handleStatusChange(selectedLead.id, e.target.value)}
+                     className="text-sm font-medium border border-gray-300 rounded-[6px] px-2 py-1.5 bg-white cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] disabled:opacity-60 w-full"
+                   >
+                     {COLUMNS.map(col => (
+                       <option key={col.id} value={col.id}>{col.title}</option>
+                     ))}
+                   </select>
+                 </div>
                </div>
             </div>
 
@@ -549,7 +570,7 @@ export function CRM() {
             <div className="space-y-3">
               <h3 className="font-semibold text-sm border-b pb-1">Informações de Negócio</h3>
               <div className="flex flex-col gap-2">
-                <div className="flex flex-col p-2 border rounded bg-white gap-1"><span className="text-xs text-gray-500">Procedimento de interesse</span><span className="text-sm font-medium">{selectedLead.procedimento_interesse || '-'}</span></div>
+                <div className="flex flex-col p-2 border rounded bg-white gap-1"><span className="text-xs text-gray-500">Serviço de interesse</span><span className="text-sm font-medium">{selectedLead.procedimento_interesse || '-'}</span></div>
                 <div className="flex flex-col p-2 border rounded bg-white gap-1"><span className="text-xs text-gray-500">Motivo do contato</span><span className="text-sm font-medium">{selectedLead.motivo_contato || '-'}</span></div>
                 {selectedLead.data_agendamento && <div className="flex flex-col p-2 border rounded bg-white gap-1"><span className="text-xs text-gray-500">Data Agendada</span><span className="text-sm font-medium">{format(parseISO(selectedLead.data_agendamento), 'dd/MM/yyyy HH:mm')}</span></div>}
               </div>

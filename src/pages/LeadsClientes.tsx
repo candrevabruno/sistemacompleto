@@ -376,7 +376,7 @@ export function LeadsClientes({ mode }: { mode?: 'leads' | 'clientes' }) {
             <div className="text-sm border p-4 rounded bg-gray-50">
                <p><strong>WhatsApp:</strong> {selectedLead.whatsapp_lead}</p>
                <p className="mt-2"><strong>Status Atual:</strong> <Badge variant={selectedLead.status}>{selectedLead.status}</Badge></p>
-               <p className="mt-2"><strong>Procedimento de interesse:</strong> {selectedLead.procedimento_interesse || '-'}</p>
+               <p className="mt-2"><strong>Serviço de interesse:</strong> {selectedLead.procedimento_interesse || '-'}</p>
                <p className="mt-2"><strong>Motivo:</strong> {selectedLead.historico_conversa || '-'}</p>
                <p className="mt-2"><strong>Início:</strong> {selectedLead.inicio_atendimento ? format(parseISO(selectedLead.inicio_atendimento), 'dd/MM/yyyy HH:mm') : '-'}</p>
             </div>

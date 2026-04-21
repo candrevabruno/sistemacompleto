@@ -1,0 +1,1330 @@
+{
+  "name": "4- Marcação de consulta - Escritorio de Advocacia",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "whatsapp_lead"
+            },
+            {
+              "name": "evento"
+            },
+            {
+              "name": "inicio_reuniao"
+            },
+            {
+              "name": "final_reuniao"
+            },
+            {
+              "name": "tipo_consulta"
+            },
+            {
+              "name": "assunto"
+            },
+            {
+              "name": "id_agendamento"
+            },
+            {
+              "name": "nome_lead"
+            },
+            {
+              "name": "url_chatwoot"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -1152,
+        544
+      ],
+      "id": "e263709e-905d-4c96-a297-19e45bf47a05",
+      "name": "exec workflow"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "whatsapp_lead",
+              "value": "={{ $json.whatsapp_lead }}",
+              "type": "string"
+            },
+            {
+              "id": "a2",
+              "name": "evento",
+              "value": "={{ $json.evento }}",
+              "type": "string"
+            },
+            {
+              "id": "a3",
+              "name": "inicio_reuniao",
+              "value": "={{ $json.inicio_reuniao }}",
+              "type": "string"
+            },
+            {
+              "id": "a4",
+              "name": "final_reuniao",
+              "value": "={{ $json.final_reuniao }}",
+              "type": "string"
+            },
+            {
+              "id": "a5",
+              "name": "tipo_consulta",
+              "value": "={{ $json.tipo_consulta }}",
+              "type": "string"
+            },
+            {
+              "id": "a6",
+              "name": "assunto",
+              "value": "={{ $json.assunto }}",
+              "type": "string"
+            },
+            {
+              "id": "a7",
+              "name": "id_agendamento",
+              "value": "={{ $json.id_agendamento }}",
+              "type": "string"
+            },
+            {
+              "id": "a8",
+              "name": "nome_lead",
+              "value": "={{ $json.nome_lead }}",
+              "type": "string"
+            },
+            {
+              "id": "a9",
+              "name": "url_chatwoot",
+              "value": "=https://chatwoot-chatwoot.cw3hc8.easypanel.host/",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -944,
+        544
+      ],
+      "id": "ff04d301-72b1-4382-801c-8b302e3da854",
+      "name": "setarInformacoes"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.evento }}",
+                    "rightValue": "agendamento",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "sw1"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "agendamento"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "sw2",
+                    "leftValue": "={{ $json.evento }}",
+                    "rightValue": "cancelamento",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "cancelamento"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "sw3",
+                    "leftValue": "={{ $json.evento }}",
+                    "rightValue": "reagendamento",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "reagendamento"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "sw4",
+                    "leftValue": "={{ $json.evento }}",
+                    "rightValue": "VerHorarios",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Ver Horarios"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -720,
+        512
+      ],
+      "id": "d1db71b6-5b64-4b73-8212-05c395a6a996",
+      "name": "Switch4"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "if5-cond",
+              "leftValue": "={{ Object.values($('Já tem um evento').first().json.data)[0].some(slot => slot.start.substring(0, 16) === $('setarInformacoes').first().json.inicio_reuniao.substring(0, 16)) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -240,
+        160
+      ],
+      "id": "0cb682b7-c5bd-474f-9af2-879e352cb5c3",
+      "name": "If5"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ef6",
+              "name": "response",
+              "value": "=Você já tem uma reunião agendada para o dia: {{ DateTime.fromISO($('setarInformacoes').item.json.inicio_reuniao).setZone('America/Bahia').toFormat(\"dd/MM 'às' HH:mm\") }}. Gostaria de reagendar?",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        16,
+        176
+      ],
+      "id": "28c8b34e-1cbf-4ccb-9c08-9cee3cefbc65",
+      "name": "Edit Fields6"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.cal.com/v2/bookings",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer cal_live_adeb50383f3680b1b5fb4c3f5a36a798"
+            },
+            {
+              "name": "cal-api-version",
+              "value": "2024-08-13"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"eventTypeId\": 5413988,\n  \"start\": \"{{ $('setarInformacoes').item.json.inicio_reuniao }}\",\n  \"attendee\": {\n    \"name\": \"{{ $('setarInformacoes').item.json.nome_lead }}\",\n    \"email\": \"placeholder@agendamento.com\",\n    \"timeZone\": \"America/Bahia\"\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        16,
+        0
+      ],
+      "id": "68a12a91-5da6-4d4c-930a-7bd5fe9ef8b2",
+      "name": "Marca"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "si1",
+              "name": "data_agendada",
+              "value": "={{ $json.data.start }}",
+              "type": "string"
+            },
+            {
+              "id": "si2",
+              "name": "id_agendamento",
+              "value": "={{ $json.data.uid }}",
+              "type": "string"
+            },
+            {
+              "id": "si3",
+              "name": "link_meet",
+              "value": "={{ $json.data.meetingUrl }}",
+              "type": "string"
+            },
+            {
+              "id": "si4",
+              "name": "data_formatada",
+              "value": "={{ DateTime.fromISO($json.data.start).setZone('America/Bahia').toFormat(\"dd/MM 'às' HH:mm\") }}",
+              "type": "string"
+            },
+            {
+              "id": "a12cb31a-b10b-4817-9953-d77dbf6c1dfc",
+              "name": "whatsapp_lead",
+              "value": "={{ $('setarInformacoes').item.json.whatsapp_lead }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        224,
+        0
+      ],
+      "id": "52d4d033-f74d-4817-b7b8-9adc324562ce",
+      "name": "setarInfo"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('setarInformacoes').item.json.url_chatwoot }}api/v1/accounts/{{ $('status_agendado1').item.json.id_conta_chatwoot }}/conversations/{{ $('status_agendado1').item.json.id_conversa_chatwoot }}/labels",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {}
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"labels\": [\n    \"reuniao_marcada\"\n  ]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        864,
+        0
+      ],
+      "id": "a5bb2906-bc75-4c3e-a4f9-8c0ae61cb1b6",
+      "name": "etiqueta_reuniao_marcada",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "WTaq4r2w5iyC4E2R",
+          "name": "Chatwoot | Heroic Leap"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "r1",
+              "name": "response",
+              "value": "=Agendamento concluído para o dia: {{ $('setarInfo').item.json.data_formatada }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1184,
+        0
+      ],
+      "id": "2313683f-dac2-4276-91c0-ca6076069ee0",
+      "name": "response1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.cal.com/v2/bookings/{{ $('setarInformacoes').item.json.id_agendamento }}/cancel",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer cal_live_adeb50383f3680b1b5fb4c3f5a36a798"
+            },
+            {
+              "name": "cal-api-version",
+              "value": "2024-08-13"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "cancellationReason",
+              "value": "Cliente solicitou o cancelamento"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -432,
+        528
+      ],
+      "id": "6d6320ba-299c-4eed-ab1d-286848345264",
+      "name": "Cancelar"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "leads",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "whatsapp_lead",
+              "condition": "eq",
+              "keyValue": "={{ $('setarInformacoes').item.json.whatsapp_lead }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "data_agendamento",
+              "fieldValue": "={{ null }}"
+            },
+            {
+              "fieldId": "id_agendamento",
+              "fieldValue": "={{ null }}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "perdido"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -208,
+        528
+      ],
+      "id": "5b0e5d7a-7113-4328-b4f0-f492e185baad",
+      "name": "tirar_data_agendamento",
+      "credentials": {
+        "supabaseApi": {
+          "id": "ycZIGpAXZd31iIEF",
+          "name": "Supabase | Heroic Leap"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ef7",
+              "name": "response",
+              "value": "Informe o usuário que o agendamento foi cancelado e que estará sempre à disposição para um novo agendamento.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        224,
+        528
+      ],
+      "id": "aea15de1-ec16-43e1-9098-d38b5f98afb5",
+      "name": "Edit Fields7"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.cal.com/v2/slots?eventTypeId=5413988&start={{ DateTime.fromISO($('setarInformacoes').item.json.inicio_reuniao, { setZone: true }).startOf('day').toUTC().toISO() }}&end={{ DateTime.fromISO($('setarInformacoes').item.json.inicio_reuniao, { setZone: true }).endOf('day').toUTC().toISO() }}&timeZone=America/Bahia",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer cal_live_adeb50383f3680b1b5fb4c3f5a36a798"
+            },
+            {
+              "name": "cal-api-version",
+              "value": "2024-09-04"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -432,
+        768
+      ],
+      "id": "df5c98b7-283b-4abd-853e-9fee8a986185",
+      "name": "ListarHorarioReagendar"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "if6-cond",
+              "leftValue": "={{ Object.values($json.data)[0].some(slot => slot.start.substring(0, 16) === $('setarInformacoes').first().json.inicio_reuniao.substring(0, 16)) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -208,
+        768
+      ],
+      "id": "cd00f541-26d8-4ba2-8848-03589a52ec64",
+      "name": "If6"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.cal.com/v2/bookings/{{ $('setarInformacoes').item.json.id_agendamento }}/reschedule",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer cal_live_adeb50383f3680b1b5fb4c3f5a36a798"
+            },
+            {
+              "name": "cal-api-version",
+              "value": "2024-08-13"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "start",
+              "value": "={{ $('setarInformacoes').item.json.inicio_reuniao }}"
+            },
+            {
+              "name": "reschedulingReason",
+              "value": "Solicitou um novo horário"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        16,
+        752
+      ],
+      "id": "1ac06abc-3d3c-4130-a7c3-45bd3571a006",
+      "name": "Reagendar"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "leads",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "whatsapp_lead",
+              "condition": "eq",
+              "keyValue": "={{ $('setarInformacoes').item.json.whatsapp_lead }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "data_agendamento",
+              "fieldValue": "={{ $json.data.start }}"
+            },
+            {
+              "fieldId": "id_agendamento",
+              "fieldValue": "={{ $json.data.uid }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        224,
+        752
+      ],
+      "id": "83d56348-7cf9-4035-9834-4d59b89827f2",
+      "name": "atualizar_data",
+      "credentials": {
+        "supabaseApi": {
+          "id": "ycZIGpAXZd31iIEF",
+          "name": "Supabase | Heroic Leap"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ef2",
+              "name": "response",
+              "value": "=Reagendamento concluído para o dia: {{ DateTime.fromISO($('Reagendar').item.json.data.start).setZone('America/Bahia').toFormat(\"dd/MM 'às' HH:mm\") }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        624,
+        752
+      ],
+      "id": "108870ee-32d6-479c-99a9-d1183bd4bfb3",
+      "name": "Edit Fields2"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ef9",
+              "name": "response",
+              "value": "Horário não disponível. Por favor, peça ao cliente um novo horário.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        16,
+        928
+      ],
+      "id": "3e009b92-b125-4fb5-b87e-9497f62f3260",
+      "name": "Edit Fields9"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.cal.com/v2/slots?eventTypeId=5413988&start={{ $('setarInformacoes').item.json.inicio_reuniao.split('T')[0] }}&end={{ $('setarInformacoes').item.json.final_reuniao.split('T')[0] }}&timeZone=America/Bahia",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer cal_live_adeb50383f3680b1b5fb4c3f5a36a798"
+            },
+            {
+              "name": "cal-api-version",
+              "value": "2024-09-04"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -432,
+        1104
+      ],
+      "id": "7f0fd641-17b3-46f1-be13-413ef10f851b",
+      "name": "ListarHorariosDisponiveis"
+    },
+    {
+      "parameters": {
+        "jsCode": "const availability = $input.first().json.data;\nconst result = {};\n\nfor (const date in availability) {\n  result[date] = availability[date].map(slot => {\n    const d = new Date(slot.start);\n    return d.toLocaleTimeString('pt-BR', {\n      timeZone: 'America/Bahia',\n      hour: '2-digit',\n      minute: '2-digit'\n    });\n  });\n}\n\nreturn [{ json: { slots: result } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -208,
+        1104
+      ],
+      "id": "f6a812f1-e624-4995-adea-711d2d95f3d9",
+      "name": "FormatarHorarios"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ef1",
+              "name": "response",
+              "value": "={{ Object.entries($json.slots).map(([data, horas]) => { const d = DateTime.fromISO(data).setLocale('pt-BR'); return `*${d.toFormat(\"dd/MM (cccc)\")}*\\n` + horas.join(' | ') }).join('\\n\\n') }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        16,
+        1104
+      ],
+      "id": "52caea80-6457-43e5-976f-6c4dfd49ce74",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "leads",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "whatsapp_lead",
+              "condition": "eq",
+              "keyValue": "={{ $('setarInformacoes').item.json.whatsapp_lead }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "status",
+              "fieldValue": "agendado"
+            },
+            {
+              "fieldId": "data_agendamento",
+              "fieldValue": "={{ $json.data_agendada }}"
+            },
+            {
+              "fieldId": "id_agendamento",
+              "fieldValue": "={{ $json.id_agendamento }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        448,
+        0
+      ],
+      "id": "eb599dd7-c346-45cd-9f4c-51f278db693c",
+      "name": "status_agendado1",
+      "credentials": {
+        "supabaseApi": {
+          "id": "ycZIGpAXZd31iIEF",
+          "name": "Supabase | Heroic Leap"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://api.cal.com/v2/slots?eventTypeId=5413988&start={{ DateTime.fromISO($('setarInformacoes').item.json.inicio_reuniao, { setZone: true }).startOf('day').toUTC().toISO() }}&end={{ DateTime.fromISO($('setarInformacoes').item.json.inicio_reuniao, { setZone: true }).endOf('day').toUTC().toISO() }}&timeZone=America/Bahia",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer cal_live_adeb50383f3680b1b5fb4c3f5a36a798"
+            },
+            {
+              "name": "cal-api-version",
+              "value": "2024-09-04"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -432,
+        160
+      ],
+      "id": "94fb91d5-fc0b-4036-b0c8-d58520a5d200",
+      "name": "Já tem um evento",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "tableId": "agendamentos",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "lead_id",
+              "fieldValue": "={{ $('status_agendado1').item.json.id }}"
+            },
+            {
+              "fieldId": "nome_lead",
+              "fieldValue": "={{ $('setarInfo').item.json.link_meet ? $('setarInformacoes').item.json.nome_lead : '' }}"
+            },
+            {
+              "fieldId": "whatsapp_lead",
+              "fieldValue": "={{ $('setarInformacoes').item.json.whatsapp_lead }}"
+            },
+            {
+              "fieldId": "data_hora_inicio",
+              "fieldValue": "={{ $('setarInformacoes').item.json.inicio_reuniao }}"
+            },
+            {
+              "fieldId": "data_hora_fim",
+              "fieldValue": "={{ $('setarInformacoes').item.json.final_reuniao }}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "agendado"
+            },
+            {
+              "fieldId": "calcom_uid",
+              "fieldValue": "={{ $('setarInfo').item.json.id_agendamento }}"
+            },
+            {
+              "fieldId": "procedimento_nome",
+              "fieldValue": "={{ $('setarInformacoes').item.json.assunto }}"
+            },
+            {
+              "fieldId": "agenda_id",
+              "fieldValue": "7c34a0ca-5748-4f21-aa9a-41edf5754244"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        656,
+        0
+      ],
+      "id": "a98666f1-857f-414d-9cc1-d3f17bcd8617",
+      "name": "Create a row",
+      "credentials": {
+        "supabaseApi": {
+          "id": "ycZIGpAXZd31iIEF",
+          "name": "Supabase | Heroic Leap"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "agendamentos",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "calcom_uid",
+              "condition": "eq",
+              "keyValue": "={{ $('setarInformacoes').item.json.id_agendamento }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "lead_id",
+              "fieldValue": "={{ $json.id }}"
+            },
+            {
+              "fieldId": "nome_lead",
+              "fieldValue": "={{ $json.nome_lead }}"
+            },
+            {
+              "fieldId": "whatsapp_lead",
+              "fieldValue": "={{ $('setarInformacoes').item.json.whatsapp_lead }}"
+            },
+            {
+              "fieldId": "data_hora_inicio",
+              "fieldValue": "=={{ $('Reagendar').item.json.data.start }}"
+            },
+            {
+              "fieldId": "data_hora_fim",
+              "fieldValue": "=={{ $('Reagendar').item.json.data.end }}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "agendado"
+            },
+            {
+              "fieldId": "calcom_uid",
+              "fieldValue": "=={{ $('Reagendar').item.json.data.uid }}"
+            },
+            {
+              "fieldId": "procedimento_nome",
+              "fieldValue": "={{ $('setarInformacoes').item.json.assunto }}"
+            },
+            {
+              "fieldId": "agenda_id",
+              "fieldValue": "7c34a0ca-5748-4f21-aa9a-41edf5754244"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        432,
+        752
+      ],
+      "id": "8b5d473f-240e-4143-8055-ee88e7eee082",
+      "name": "Update a row",
+      "credentials": {
+        "supabaseApi": {
+          "id": "ycZIGpAXZd31iIEF",
+          "name": "Supabase | Heroic Leap"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "agendamentos",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "calcom_uid",
+              "condition": "eq",
+              "keyValue": "={{ $('setarInformacoes').item.json.id_agendamento }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "lead_id",
+              "fieldValue": "={{ $('status_agendado1').item.json.id }}"
+            },
+            {
+              "fieldId": "nome_lead",
+              "fieldValue": "={{ $('setarInfo').item.json.link_meet ? $('setarInformacoes').item.json.nome_lead : '' }}"
+            },
+            {
+              "fieldId": "whatsapp_lead",
+              "fieldValue": "={{ $('setarInformacoes').item.json.whatsapp_lead }}"
+            },
+            {
+              "fieldId": "data_hora_inicio",
+              "fieldValue": "={{ $('setarInformacoes').item.json.inicio_reuniao }}"
+            },
+            {
+              "fieldId": "data_hora_fim",
+              "fieldValue": "={{ $('setarInformacoes').item.json.final_reuniao }}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "cancelado"
+            },
+            {
+              "fieldId": "calcom_uid",
+              "fieldValue": "={{ $('setarInfo').item.json.id_agendamento }}"
+            },
+            {
+              "fieldId": "procedimento_nome",
+              "fieldValue": "={{ $('setarInformacoes').item.json.assunto }}"
+            },
+            {
+              "fieldId": "agenda_id",
+              "fieldValue": "7c34a0ca-5748-4f21-aa9a-41edf5754244"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        0,
+        528
+      ],
+      "id": "7614f671-b7bc-4fff-80e8-99ba27207fd6",
+      "name": "Update a row1",
+      "credentials": {
+        "supabaseApi": {
+          "id": "ycZIGpAXZd31iIEF",
+          "name": "Supabase | Heroic Leap"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "exec workflow": {
+      "main": [
+        [
+          {
+            "node": "setarInformacoes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "setarInformacoes": {
+      "main": [
+        [
+          {
+            "node": "Switch4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch4": {
+      "main": [
+        [
+          {
+            "node": "Já tem um evento",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Cancelar",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "ListarHorarioReagendar",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "ListarHorariosDisponiveis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If5": {
+      "main": [
+        [
+          {
+            "node": "Marca",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marca": {
+      "main": [
+        [
+          {
+            "node": "setarInfo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "setarInfo": {
+      "main": [
+        [
+          {
+            "node": "status_agendado1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "etiqueta_reuniao_marcada": {
+      "main": [
+        [
+          {
+            "node": "response1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cancelar": {
+      "main": [
+        [
+          {
+            "node": "tirar_data_agendamento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "tirar_data_agendamento": {
+      "main": [
+        [
+          {
+            "node": "Update a row1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ListarHorarioReagendar": {
+      "main": [
+        [
+          {
+            "node": "If6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If6": {
+      "main": [
+        [
+          {
+            "node": "Reagendar",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields9",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reagendar": {
+      "main": [
+        [
+          {
+            "node": "atualizar_data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "atualizar_data": {
+      "main": [
+        [
+          {
+            "node": "Update a row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ListarHorariosDisponiveis": {
+      "main": [
+        [
+          {
+            "node": "FormatarHorarios",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FormatarHorarios": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "status_agendado1": {
+      "main": [
+        [
+          {
+            "node": "Create a row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Já tem um evento": {
+      "main": [
+        [
+          {
+            "node": "If5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a row": {
+      "main": [
+        [
+          {
+            "node": "etiqueta_reuniao_marcada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update a row": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update a row1": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields7",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "timezone": "America/Sao_Paulo",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "85c04087-74c4-4fc7-9b20-caceec8d145a",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "bd23b4d0be4dd939efa78787b912105fba074f6766a8c4ab96351fd4f3b4ddad"
+  },
+  "id": "gpK4xb97Yv1b8KA5",
+  "tags": []
+}
