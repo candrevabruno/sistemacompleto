@@ -6,7 +6,7 @@ import { Input } from '../components/ui/Input';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Modal } from '../components/ui/Modal';
-import { Copy, Plus, Trash2, PowerOff } from 'lucide-react';
+import { Copy, Plus, Trash2, PowerOff, Pencil } from 'lucide-react';
 
 // For simplicity in this giant file, we will put everything here.
 export function Configuracoes() {
@@ -460,6 +460,7 @@ function AbaAgendas() {
   const [openNew, setOpenNew] = useState(false);
   const [form, setForm] = useState({ nome: '', cor: '#C47E7E', calcom_link: '' });
   const [loading, setLoading] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const loadAgendas = async () => {
     const { data } = await supabase.from('agendas').select('*').order('created_at', { ascending: false });
@@ -470,20 +471,39 @@ function AbaAgendas() {
   const saveAgenda = async () => {
     if (!form.nome) return;
     setLoading(true);
-    const { error } = await supabase.from('agendas').insert({
-      nome: form.nome,
-      cor: form.cor,
-      calcom_link: form.calcom_link,
-      ativo: true
-    });
+    
+    let res;
+    if (editingId) {
+      res = await supabase.from('agendas').update({
+        nome: form.nome,
+        cor: form.cor,
+        calcom_link: form.calcom_link
+      }).eq('id', editingId);
+    } else {
+      res = await supabase.from('agendas').insert({
+        nome: form.nome,
+        cor: form.cor,
+        calcom_link: form.calcom_link,
+        ativo: true
+      });
+    }
+
     setLoading(false);
-    if (error) {
-      alert(`Erro: ${error.message} (Lembre-se de rodar o migracao_google_calendar.sql no banco!)`);
+    if (res.error) {
+      alert(`Erro: ${res.error.message}`);
       return;
     }
+    
     setForm({ nome: '', cor: '#C47E7E', calcom_link: '' });
+    setEditingId(null);
     setOpenNew(false);
     loadAgendas();
+  };
+
+  const handleEdit = (ag: any) => {
+    setForm({ nome: ag.nome, cor: ag.cor, calcom_link: ag.calcom_link || '' });
+    setEditingId(ag.id);
+    setOpenNew(true);
   };
 
   const deleteAgenda = async (id: string) => {
@@ -519,9 +539,14 @@ function AbaAgendas() {
                     <span className="truncate">{ag.calcom_link || <span className="text-red-400 italic">Não configurado</span>}</span>
                   </div>
                 </div>
-                <button onClick={() => deleteAgenda(ag.id)} className="p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors rounded">
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                <div className="flex gap-1">
+                  <button onClick={() => handleEdit(ag)} className="p-1.5 text-gray-400 hover:bg-amber-50 hover:text-amber-600 transition-colors rounded" title="Editar">
+                    <Pencil className="w-4 h-4" />
+                  </button>
+                  <button onClick={() => deleteAgenda(ag.id)} className="p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors rounded" title="Excluir">
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             </div>
           ))}
@@ -532,7 +557,11 @@ function AbaAgendas() {
           )}
         </div>
 
-        <Modal isOpen={openNew} onClose={() => setOpenNew(false)} title="Adicionar Agenda">
+        <Modal 
+          isOpen={openNew} 
+          onClose={() => { setOpenNew(false); setEditingId(null); setForm({ nome: '', cor: '#C47E7E', calcom_link: '' }); }} 
+          title={editingId ? "Editar Agenda" : "Adicionar Agenda"}
+        >
           <div className="space-y-4">
             <Input label="Nome da Cadeira / Profissional" placeholder="Ex: Dra. Juliana" value={form.nome} onChange={e=>setForm({...form, nome: e.target.value})}/>
             <div>
@@ -560,7 +589,7 @@ function AbaAgendas() {
             </div>
 
             <Button className="w-full" disabled={!form.nome || loading} onClick={saveAgenda}>
-              {loading ? 'Salvando...' : 'Adicionar Agenda'}
+              {loading ? 'Salvando...' : editingId ? 'Salvar Alterações' : 'Adicionar Agenda'}
             </Button>
           </div>
         </Modal>
