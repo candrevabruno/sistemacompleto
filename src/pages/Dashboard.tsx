@@ -336,7 +336,7 @@ export function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
         <Card className="col-span-3">
           <CardHeader>
-            <CardTitle>Procedimentos mais procurados</CardTitle>
+            <CardTitle>Serviços mais procurados</CardTitle>
             <p className="text-sm text-[var(--color-text-muted)]">Os serviços mais solicitados pelos seus leads no período</p>
           </CardHeader>
           <CardContent className="h-[300px]">
