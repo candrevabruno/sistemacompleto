@@ -16,10 +16,10 @@ const COLUMNS = [
   { id: 'conversando', title: 'Conversando', colorClass: 'border-[var(--color-text-main)]' },
   { id: 'agendado', title: 'Agendado', colorClass: 'border-emerald-500' },
   { id: 'reagendado', title: 'Reagendado', colorClass: 'border-amber-400' },
-  { id: 'converteu', title: 'Converteu', colorClass: 'border-green-600' },
-  { id: 'nao_converteu', title: 'Não Converteu', colorClass: 'border-rose-600' },
   { id: 'faltou', title: 'Faltou', colorClass: 'border-slate-500' },
-  { id: 'cancelou_agendamento', title: 'Cancelou Agendamento', colorClass: 'border-rose-400' }
+  { id: 'cancelou_agendamento', title: 'Cancelou Agendamento', colorClass: 'border-rose-400' },
+  { id: 'converteu', title: 'Converteu (Venda)', colorClass: 'border-green-600 font-bold' },
+  { id: 'nao_converteu', title: 'Não Converteu', colorClass: 'border-rose-600' }
 ];
 
 export function CRM() {
@@ -64,6 +64,26 @@ export function CRM() {
   };
 
   const handleStatusChange = async (leadId: string, newStatus: string) => {
+    // Se for um status que exige modal, abrimos o modal em vez de salvar direto
+    const lead = leads.find(l => l.id === leadId);
+    if (!lead) return;
+
+    if (newStatus === 'converteu') {
+      setConverteuForm({ servico: lead.procedimento_interesse || '', valor: String(lead.valor_pago || ''), observacao: '' });
+      setConfirmConverteu({ leadId, sourceCol: lead.status, lead });
+      return;
+    }
+    if (newStatus === 'nao_converteu') {
+      setNaoConverteuForm({ motivo: lead.motivo_perda || '' });
+      setConfirmNaoConverteu({ leadId, sourceCol: lead.status, lead });
+      return;
+    }
+    if (newStatus === 'agendado') {
+        setAgendadoForm({ dataHora: '', procedimento: lead.procedimento_interesse || '', agendaId: agendas[0]?.id || '', modalidade: 'presencial' });
+        setConfirmAgendado({ leadId, sourceCol: lead.status, lead });
+        return;
+    }
+
     setSavingStatus(true);
     await supabase.from('leads').update({ status: newStatus }).eq('id', leadId);
     setLeads(prev => prev.map(l => l.id === leadId ? { ...l, status: newStatus } : l));
@@ -391,14 +411,81 @@ export function CRM() {
 
       <Modal isOpen={openLeadDetails} onClose={() => setOpenLeadDetails(false)} title="Detalhes do Contato">
         {selectedLead && (
-          <div className="space-y-6 max-h-[70vh] overflow-y-auto pr-2">
-            <div className="bg-gray-50 p-4 rounded-[12px] border">
-               <h2 className="font-cormorant text-2xl font-bold">{selectedLead.nome_lead || 'Lead sem nome'}</h2>
-               <p className="text-sm opacity-80">{selectedLead.whatsapp_lead}</p>
+          <div className="space-y-6 max-h-[75vh] overflow-y-auto pr-2 custom-scrollbar">
+            {/* Header com Status */}
+            <div className="bg-gray-50 p-5 rounded-[16px] border border-[var(--color-border-card)] shadow-sm">
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <h2 className="font-cormorant text-2xl font-bold text-[var(--color-text-main)]">{selectedLead.nome_lead || 'Lead sem nome'}</h2>
+                    <p className="text-sm text-[var(--color-text-muted)] font-medium">{selectedLead.whatsapp_lead}</p>
+                  </div>
+                  <Badge variant={selectedLead.status}>{COLUMNS.find(c => c.id === selectedLead.status)?.title}</Badge>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] uppercase font-bold text-[var(--color-text-muted)] tracking-wider">Alterar Estágio no Funil</label>
+                  <select 
+                    value={selectedLead.status} 
+                    onChange={(e) => handleStatusChange(selectedLead.id, e.target.value)}
+                    disabled={savingStatus}
+                    className="w-full bg-white border border-[var(--color-border-card)] rounded-[8px] px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-[var(--color-primary)] outline-none transition-all"
+                  >
+                    {COLUMNS.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+                  </select>
+                </div>
             </div>
-            {selectedLead.resumo_conversa && <div className="p-3 border rounded bg-white"><span className="text-xs text-gray-400 font-bold uppercase">Resumo</span><p className="text-sm italic mt-1">{selectedLead.resumo_conversa}</p></div>}
-            {selectedLead.status === 'nao_converteu' && <div className="p-3 border border-rose-200 bg-rose-50 rounded"><span className="text-xs text-rose-600 font-bold uppercase">Motivo Perda</span><p className="text-sm font-medium mt-1">{selectedLead.motivo_perda}</p></div>}
-            {selectedLead.status === 'converteu' && <div className="p-3 border border-green-200 bg-green-50 rounded"><span className="text-xs text-green-600 font-bold uppercase">Dados da Venda</span><div className="grid grid-cols-2 gap-2 mt-1"><div><p className="text-[10px] text-gray-500">Serviço</p><p className="text-sm font-bold">{selectedLead.procedimento_interesse}</p></div><div><p className="text-[10px] text-gray-500">Valor</p><p className="text-sm font-bold text-green-700">R$ {selectedLead.valor_pago?.toLocaleString('pt-BR')}</p></div></div></div>}
+
+            {/* Grid de Informações */}
+            <div className="grid grid-cols-2 gap-4">
+               <div className="p-3 bg-[var(--color-bg-base)] rounded-[12px] border border-[var(--color-border-card)]">
+                  <span className="text-[10px] text-[var(--color-text-muted)] font-bold uppercase">Gênero</span>
+                  <p className="text-sm font-medium mt-1">{selectedLead.genero || 'Não informado'}</p>
+               </div>
+               <div className="p-3 bg-[var(--color-bg-base)] rounded-[12px] border border-[var(--color-border-card)]">
+                  <span className="text-[10px] text-[var(--color-text-muted)] font-bold uppercase">Nascimento</span>
+                  <p className="text-sm font-medium mt-1">{selectedLead.data_nascimento ? format(parseISO(selectedLead.data_nascimento), 'dd/MM/yyyy') : 'Não informado'}</p>
+               </div>
+               <div className="p-3 bg-[var(--color-bg-base)] rounded-[12px] border border-[var(--color-border-card)]">
+                  <span className="text-[10px] text-[var(--color-text-muted)] font-bold uppercase">Procedimento</span>
+                  <p className="text-sm font-medium mt-1">{selectedLead.procedimento_interesse || 'Não informado'}</p>
+               </div>
+               <div className="p-3 bg-[var(--color-bg-base)] rounded-[12px] border border-[var(--color-border-card)]">
+                  <span className="text-[10px] text-[var(--color-text-muted)] font-bold uppercase">Agendamento</span>
+                  <p className="text-sm font-medium mt-1">{selectedLead.data_agendamento ? format(parseISO(selectedLead.data_agendamento), "dd/MM 'às' HH:mm", { locale: ptBR }) : 'Sem agendamento'}</p>
+               </div>
+            </div>
+
+            {/* Resumo e Observações */}
+            <div className="space-y-4">
+              {selectedLead.resumo_conversa && (
+                <div className="p-4 border border-[var(--color-border-card)] rounded-[12px] bg-white relative">
+                  <span className="absolute -top-2 left-3 bg-white px-2 text-[10px] text-[var(--color-primary)] font-bold uppercase tracking-tight">IA - Resumo Automático</span>
+                  <p className="text-sm text-[var(--color-text-main)] italic leading-relaxed pt-1">"{selectedLead.resumo_conversa}"</p>
+                </div>
+              )}
+
+              {selectedLead.motivo_perda && (
+                <div className="p-4 border-l-4 border-rose-500 bg-rose-50 rounded-[12px]">
+                   <span className="text-[10px] text-rose-600 font-bold uppercase tracking-wider">Motivo da Não Conversão</span>
+                   <p className="text-sm font-medium text-rose-900 mt-1">{selectedLead.motivo_perda}</p>
+                </div>
+              )}
+
+              {selectedLead.valor_pago > 0 && (
+                <div className="p-4 border-l-4 border-green-500 bg-green-50 rounded-[12px] flex justify-between items-center">
+                   <div>
+                     <span className="text-[10px] text-green-600 font-bold uppercase tracking-wider">Negócio Fechado</span>
+                     <p className="text-lg font-bold text-green-900 mt-1">R$ {selectedLead.valor_pago.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                   </div>
+                   <DollarSign className="w-8 h-8 text-green-200" />
+                </div>
+              )}
+
+              <div className="p-4 bg-gray-50 rounded-[12px] border border-[var(--color-border-card)]">
+                <span className="text-[10px] text-[var(--color-text-muted)] font-bold uppercase tracking-wider">Histórico / Observações Manuais</span>
+                <p className="text-sm text-[var(--color-text-main)] mt-2 whitespace-pre-wrap">{selectedLead.observacoes || 'Nenhuma observação manual registrada.'}</p>
+              </div>
+            </div>
           </div>
         )}
       </Modal>
