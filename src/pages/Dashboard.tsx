@@ -167,7 +167,7 @@ export function Dashboard() {
     if (!proc) return;
     procMap[proc] = (procMap[proc] || 0) + 1;
   });
-  const sortedProcs = Object.keys(procMap).map(k => ({ proc: k, count: procMap[k] })).sort((a,b) => b.count - a.count).slice(0, 8);
+  const sortedProcs = Object.keys(procMap).map(k => ({ proc: k.length > 22 ? k.substring(0, 22) + '…' : k, count: procMap[k] })).sort((a,b) => b.count - a.count).slice(0, 8);
   const maxProcCount = sortedProcs[0]?.count || 1;
 
   // 5. Funil de Vendas — usa status dos leads (espelho do CRM Kanban)

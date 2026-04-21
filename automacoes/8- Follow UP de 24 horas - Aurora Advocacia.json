@@ -1,5 +1,5 @@
 {
-  "name": "3- Follow UP de 36 horas - Aurora Advocacia",
+  "name": "8- Follow UP de 24 horas - Aurora Advocacia",
   "nodes": [
     {
       "parameters": {
@@ -12,7 +12,7 @@
         1072,
         640
       ],
-      "id": "1765eaa4-1663-4c30-bbc1-6950b58a0e31",
+      "id": "4cd164e9-e839-4dfb-865c-0bcba51c7584",
       "name": "OpenAI Chat Model3",
       "credentials": {
         "openAiApi": {
@@ -38,7 +38,7 @@
         -2064,
         416
       ],
-      "id": "5ca9c9d9-7cb3-42e3-a492-fef33faf7858",
+      "id": "9404a785-287e-4fe7-98a2-c9d8d5aca4dd",
       "name": "Schedule Trigger1"
     },
     {
@@ -51,7 +51,7 @@
         704,
         400
       ],
-      "id": "0bee2485-1026-44d6-ba27-7bca12cb7ce4",
+      "id": "0b5f7a7b-d913-4c2f-a770-4b3be1e077bf",
       "name": "Chat Memory Manager"
     },
     {
@@ -64,7 +64,7 @@
         400,
         384
       ],
-      "id": "f3f2101c-f146-4de5-879d-ca110d7783d7",
+      "id": "e4d99465-403c-4fcd-9d06-876a14cbb14b",
       "name": "Loop"
     },
     {
@@ -94,7 +94,7 @@
         1472,
         400
       ],
-      "id": "b8a7999a-4fec-4dbd-9915-ab805d4a38a0",
+      "id": "dc970b4c-1a5a-41a3-b186-48a158b79729",
       "name": "enviarMsgLead",
       "credentials": {
         "httpHeaderAuth": {
@@ -113,7 +113,7 @@
         1984,
         400
       ],
-      "id": "7b8c4dd0-bc0d-458d-bdf5-01efd71746d2",
+      "id": "fbd72f2d-c8a6-4f09-a411-27be7e42043d",
       "name": "Wait",
       "webhookId": "b6f37c6e-976c-467d-be46-f84c38c324fa"
     },
@@ -129,7 +129,7 @@
         704,
         640
       ],
-      "id": "ae6bc329-d808-4f33-826f-0c09b0ab0d1a",
+      "id": "34e40349-bf53-4b72-b8ef-d458c83a0f7b",
       "name": "memoriaLead",
       "credentials": {
         "postgres": {
@@ -202,7 +202,7 @@
         -560,
         352
       ],
-      "id": "aa0cf649-4eba-4a38-9930-b36f600e3ab1",
+      "id": "fe861a38-d5e1-4a3e-865f-540468bc1a8b",
       "name": "verificarChatWoot"
     },
     {
@@ -213,7 +213,7 @@
         -272,
         512
       ],
-      "id": "0663efeb-09e6-49ec-83e8-53516c31db9e",
+      "id": "c7b64d15-f0c2-40c0-a62e-804582d9cd4a",
       "name": "não fazer nada"
     },
     {
@@ -229,7 +229,7 @@
         192
       ],
       "typeVersion": 1,
-      "id": "e6d0ba8d-4f4c-4871-8c3c-e6f9016614a9",
+      "id": "d351c785-e344-4f7d-b649-57de164a27b2",
       "name": "Sticky Note2"
     },
     {
@@ -282,7 +282,7 @@
         80,
         384
       ],
-      "id": "ad49aaa2-4a50-4c27-8a52-30bca13913be",
+      "id": "40e4a093-57f4-4522-8eb4-86b09d674cd4",
       "name": "setarInformacoes"
     },
     {
@@ -295,7 +295,7 @@
             {
               "keyName": "minutos_ultima_mensagem",
               "condition": "gte",
-              "keyValue": "2160"
+              "keyValue": "1440"
             }
           ]
         }
@@ -306,7 +306,7 @@
         -1712,
         416
       ],
-      "id": "8ba795f6-a76b-4401-bd89-66d5f3955f2f",
+      "id": "9a7799b8-96b9-45bc-a799-bd68c52bd13a",
       "name": "PuxarDadosLead",
       "alwaysOutputData": false,
       "credentials": {
@@ -336,7 +336,7 @@
               }
             },
             {
-              "id": "ba25351d-1797-47e5-9f4a-817db3e878b0",
+              "id": "eba999a3-90ae-4a4c-892b-da2c9775a053",
               "leftValue": "={{ $json.status }}",
               "rightValue": "reagendado",
               "operator": {
@@ -355,7 +355,7 @@
         -1328,
         480
       ],
-      "id": "579a72d0-fc8d-4412-ab06-1889e7ffac72",
+      "id": "015feafa-dd9b-450c-b308-cac98195a3fd",
       "name": "Filter"
     },
     {
@@ -389,7 +389,7 @@
         -976,
         480
       ],
-      "id": "cd1e67e0-8fc2-4604-b26a-a7dbe52b73c5",
+      "id": "8861e352-03ea-4b0c-98b2-4d329317dec5",
       "name": "If"
     },
     {
@@ -405,7 +405,7 @@
         192
       ],
       "typeVersion": 1,
-      "id": "d657da30-9f7e-483a-bddc-f0e3b8f8781f",
+      "id": "f28cb858-bb16-4911-8168-9db3f9eb2bba",
       "name": "Sticky Note9"
     },
     {
@@ -421,7 +421,7 @@
         192
       ],
       "typeVersion": 1,
-      "id": "8edcf73b-459b-4075-a138-41bc7ddb126d",
+      "id": "55d45696-113f-4832-96ee-35115da63261",
       "name": "Sticky Note3"
     },
     {
@@ -437,7 +437,7 @@
         192
       ],
       "typeVersion": 1,
-      "id": "2a8f5f6a-df20-4e1a-a182-0295d05d53b8",
+      "id": "7347ebd7-7a28-49d3-acde-791dbdefb27b",
       "name": "Sticky Note"
     },
     {
@@ -452,7 +452,7 @@
         192
       ],
       "typeVersion": 1,
-      "id": "ca294ac4-b805-400a-863e-62cecb99aec1",
+      "id": "ff2f19ee-663b-43d6-860c-9a07f2d3907b",
       "name": "Sticky Note4"
     },
     {
@@ -468,7 +468,7 @@
         192
       ],
       "typeVersion": 1,
-      "id": "be7300e7-e748-4f80-baaa-b43a234209cd",
+      "id": "1468d909-9fcb-4742-ba20-d360625d9ffb",
       "name": "Sticky Note5"
     },
     {
@@ -484,7 +484,7 @@
         192
       ],
       "typeVersion": 1,
-      "id": "d3e0849b-e802-4d87-91e4-f6ab130d0a7b",
+      "id": "80d8c930-ba31-43a1-84c9-7f4b0fa5ac47",
       "name": "Sticky Note58"
     },
     {
@@ -499,7 +499,7 @@
         1280,
         656
       ],
-      "id": "81312a9a-7512-4576-a83b-72df8bdcd00b",
+      "id": "823abaf4-7f6a-4e88-9084-4b1e50015ffa",
       "name": "memoriaLead1",
       "credentials": {
         "postgres": {
@@ -541,7 +541,7 @@
         1744,
         400
       ],
-      "id": "657d607f-356b-4a21-a05e-4e142e58a9e3",
+      "id": "060e4455-c4ef-4cc3-9382-cca2c05df962",
       "name": "marcar_follow_up",
       "alwaysOutputData": false,
       "credentials": {
@@ -564,7 +564,7 @@
         0
       ],
       "typeVersion": 1,
-      "id": "28a61c09-35af-49ad-881b-dfba7581829e",
+      "id": "7a2daf51-04bf-4af8-a0ac-2752fa171e48",
       "name": "Sticky Note1"
     },
     {
@@ -581,8 +581,8 @@
         1120,
         400
       ],
-      "id": "d88e3e81-189c-4234-a13a-0d79beaaee6a",
-      "name": "Follow UP 3"
+      "id": "9a4858b1-f022-43cf-a634-86971395a66e",
+      "name": "Follow UP 2"
     }
   ],
   "pinData": {},
@@ -591,7 +591,7 @@
       "ai_languageModel": [
         [
           {
-            "node": "Follow UP 3",
+            "node": "Follow UP 2",
             "type": "ai_languageModel",
             "index": 0
           }
@@ -613,7 +613,7 @@
       "main": [
         [
           {
-            "node": "Follow UP 3",
+            "node": "Follow UP 2",
             "type": "main",
             "index": 0
           }
@@ -731,7 +731,7 @@
       "ai_memory": [
         [
           {
-            "node": "Follow UP 3",
+            "node": "Follow UP 2",
             "type": "ai_memory",
             "index": 0
           }
@@ -749,7 +749,7 @@
         ]
       ]
     },
-    "Follow UP 3": {
+    "Follow UP 2": {
       "main": [
         [
           {
@@ -770,11 +770,11 @@
     "callerPolicy": "workflowsFromSameOwner",
     "availableInMCP": false
   },
-  "versionId": "bb8d6700-2d44-4bb7-b627-539f4f779bbd",
+  "versionId": "3fe4466d-f6ba-4259-a78d-96aeeb280f11",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "bd23b4d0be4dd939efa78787b912105fba074f6766a8c4ab96351fd4f3b4ddad"
   },
-  "id": "0sGThCBAOtGH68Rw",
+  "id": "KrVqcFmsnXD56rry",
   "tags": []
 }

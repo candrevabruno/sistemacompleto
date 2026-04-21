@@ -1,5 +1,5 @@
 {
-  "name": "4- Marcação de consulta - Escritorio de Advocacia",
+  "name": "5- Marcação de consulta - Escritorio de Advocacia",
   "nodes": [
     {
       "parameters": {
@@ -243,7 +243,7 @@
           "conditions": [
             {
               "id": "if5-cond",
-              "leftValue": "={{ Object.values($('Já tem um evento').first().json.data)[0].some(slot => slot.start.substring(0, 16) === $('setarInformacoes').first().json.inicio_reuniao.substring(0, 16)) }}",
+              "leftValue": "={{ Object.values($json.data)[0].some(slot => DateTime.fromISO(slot.start).toMillis() === DateTime.fromISO($('setarInformacoes').first().json.inicio_reuniao).toMillis()) }}",
               "rightValue": "",
               "operator": {
                 "type": "boolean",
@@ -272,7 +272,7 @@
             {
               "id": "ef6",
               "name": "response",
-              "value": "=Você já tem uma reunião agendada para o dia: {{ DateTime.fromISO($('setarInformacoes').item.json.inicio_reuniao).setZone('America/Bahia').toFormat(\"dd/MM 'às' HH:mm\") }}. Gostaria de reagendar?",
+              "value": "=O horário solicitado ({{ DateTime.fromISO($('setarInformacoes').item.json.inicio_reuniao).setZone('America/Bahia').toFormat(\"dd/MM 'às' HH:mm\") }}) já não está mais disponível no calendário ou é um horário fora de expediente. Diga que está indisponível e peça para o lead escolher alguma outra opção.",
               "type": "string"
             }
           ]
@@ -311,7 +311,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"eventTypeId\": 5413988,\n  \"start\": \"{{ $('setarInformacoes').item.json.inicio_reuniao }}\",\n  \"attendee\": {\n    \"name\": \"{{ $('setarInformacoes').item.json.nome_lead }}\",\n    \"email\": \"placeholder@agendamento.com\",\n    \"timeZone\": \"America/Bahia\"\n  }\n}",
+        "jsonBody": "={\n  \"eventTypeId\": 5413988,\n  \"start\": \"{{ $('setarInformacoes').item.json.inicio_reuniao }}\",\n  \"attendee\": {\n    \"name\": \"{{ $('setarInformacoes').item.json.nome_lead }}\",\n    \"email\": \"placeholder@agendamento.com\",\n    \"timeZone\": \"America/Bahia\"\n  }\n}\n\n",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -495,7 +495,7 @@
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        -208,
+        -240,
         528
       ],
       "id": "5b0e5d7a-7113-4328-b4f0-f492e185baad",
@@ -524,7 +524,7 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        224,
+        384,
         528
       ],
       "id": "aea15de1-ec16-43e1-9098-d38b5f98afb5",
@@ -563,13 +563,13 @@
           "options": {
             "caseSensitive": true,
             "leftValue": "",
-            "typeValidation": "strict",
+            "typeValidation": "loose",
             "version": 2
           },
           "conditions": [
             {
               "id": "if6-cond",
-              "leftValue": "={{ Object.values($json.data)[0].some(slot => slot.start.substring(0, 16) === $('setarInformacoes').first().json.inicio_reuniao.substring(0, 16)) }}",
+              "leftValue": "=={{ Object.values($json.data)[0].some(slot => DateTime.fromISO(slot.start).toMillis() === DateTime.fromISO($('setarInformacoes').first().json.inicio_reuniao).toMillis()) }}",
               "rightValue": "",
               "operator": {
                 "type": "boolean",
@@ -580,6 +580,7 @@
           ],
           "combinator": "and"
         },
+        "looseTypeValidation": true,
         "options": {}
       },
       "type": "n8n-nodes-base.if",
@@ -721,7 +722,7 @@
     },
     {
       "parameters": {
-        "url": "=https://api.cal.com/v2/slots?eventTypeId=5413988&start={{ $('setarInformacoes').item.json.inicio_reuniao.split('T')[0] }}&end={{ $('setarInformacoes').item.json.final_reuniao.split('T')[0] }}&timeZone=America/Bahia",
+        "url": "=https://api.cal.com/v2/slots?eventTypeId=5413988&start={{ $('setarInformacoes').item.json.inicio_reuniao.split('T')[0] }}&end={{ DateTime.fromISO($('setarInformacoes').item.json.inicio_reuniao).plus({days: 7}).toISODate() }}&timeZone=America/Bahia",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -808,6 +809,10 @@
             {
               "fieldId": "id_agendamento",
               "fieldValue": "={{ $json.id_agendamento }}"
+            },
+            {
+              "fieldId": "nome_lead",
+              "fieldValue": "={{ $('setarInformacoes').item.json.nome_lead }}"
             }
           ]
         }
@@ -943,11 +948,11 @@
             },
             {
               "fieldId": "data_hora_inicio",
-              "fieldValue": "=={{ $('Reagendar').item.json.data.start }}"
+              "fieldValue": "={{ $('Reagendar').item.json.data.start }}"
             },
             {
               "fieldId": "data_hora_fim",
-              "fieldValue": "=={{ $('Reagendar').item.json.data.end }}"
+              "fieldValue": "={{ $('Reagendar').item.json.data.end }}"
             },
             {
               "fieldId": "status",
@@ -955,7 +960,7 @@
             },
             {
               "fieldId": "calcom_uid",
-              "fieldValue": "=={{ $('Reagendar').item.json.data.uid }}"
+              "fieldValue": "={{ $('Reagendar').item.json.data.uid }}"
             },
             {
               "fieldId": "procedimento_nome",
@@ -999,32 +1004,16 @@
         "fieldsUi": {
           "fieldValues": [
             {
-              "fieldId": "lead_id",
-              "fieldValue": "={{ $('status_agendado1').item.json.id }}"
-            },
-            {
-              "fieldId": "nome_lead",
-              "fieldValue": "={{ $('setarInfo').item.json.link_meet ? $('setarInformacoes').item.json.nome_lead : '' }}"
-            },
-            {
               "fieldId": "whatsapp_lead",
               "fieldValue": "={{ $('setarInformacoes').item.json.whatsapp_lead }}"
             },
             {
-              "fieldId": "data_hora_inicio",
-              "fieldValue": "={{ $('setarInformacoes').item.json.inicio_reuniao }}"
-            },
-            {
-              "fieldId": "data_hora_fim",
-              "fieldValue": "={{ $('setarInformacoes').item.json.final_reuniao }}"
-            },
-            {
               "fieldId": "status",
-              "fieldValue": "cancelado"
+              "fieldValue": "cancelou_agendamento"
             },
             {
               "fieldId": "calcom_uid",
-              "fieldValue": "={{ $('setarInfo').item.json.id_agendamento }}"
+              "fieldValue": "={{ $('setarInformacoes').item.json.id_agendamento }}"
             },
             {
               "fieldId": "procedimento_nome",
@@ -1040,7 +1029,7 @@
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        0,
+        -32,
         528
       ],
       "id": "7614f671-b7bc-4fff-80e8-99ba27207fd6",
@@ -1051,9 +1040,102 @@
           "name": "Supabase | Heroic Leap"
         }
       }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "leads",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "whatsapp_lead",
+              "condition": "eq",
+              "keyValue": "={{ $('setarInformacoes').item.json.whatsapp_lead }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "id_agendamento",
+              "fieldValue": "={{ $('Reagendar').item.json.data.uid }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        832,
+        752
+      ],
+      "id": "c7fcf9aa-e3e6-4cd7-a823-70902928559c",
+      "name": "Atualiza ID na Leads",
+      "credentials": {
+        "supabaseApi": {
+          "id": "ycZIGpAXZd31iIEF",
+          "name": "Supabase | Heroic Leap"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "leads",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "whatsapp_lead",
+              "condition": "eq",
+              "keyValue": "={{ $('setarInformacoes').item.json.whatsapp_lead }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "status",
+              "fieldValue": "cancelou_agendamento"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        176,
+        528
+      ],
+      "id": "1df0bccd-528e-45d3-9fb9-47719c0b1f93",
+      "name": "Atualiza leads cancelamento",
+      "credentials": {
+        "supabaseApi": {
+          "id": "ycZIGpAXZd31iIEF",
+          "name": "Supabase | Heroic Leap"
+        }
+      }
     }
   ],
-  "pinData": {},
+  "pinData": {
+    "exec workflow": [
+      {
+        "json": {
+          "whatsapp_lead": "5521981631124",
+          "evento": "cancelamento",
+          "inicio_reuniao": null,
+          "final_reuniao": null,
+          "tipo_consulta": null,
+          "assunto": null,
+          "id_agendamento": "nnoWWfaopf4f9Svmu6W7LJ",
+          "nome_lead": null,
+          "url_chatwoot": null
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
   "connections": {
     "exec workflow": {
       "main": [
@@ -1303,6 +1385,28 @@
       "main": [
         [
           {
+            "node": "Atualiza leads cancelamento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields2": {
+      "main": [
+        [
+          {
+            "node": "Atualiza ID na Leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Atualiza leads cancelamento": {
+      "main": [
+        [
+          {
             "node": "Edit Fields7",
             "type": "main",
             "index": 0
@@ -1320,7 +1424,7 @@
     "callerPolicy": "workflowsFromSameOwner",
     "availableInMCP": false
   },
-  "versionId": "85c04087-74c4-4fc7-9b20-caceec8d145a",
+  "versionId": "4e415405-7c84-46da-b1ac-6b0b137008fc",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "bd23b4d0be4dd939efa78787b912105fba074f6766a8c4ab96351fd4f3b4ddad"
