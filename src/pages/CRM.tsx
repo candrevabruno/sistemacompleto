@@ -426,8 +426,6 @@ export function CRM() {
         <div className="space-y-4">
           <Input label="WhatsApp (Obrigatório)" placeholder="+5511999999999" value={newLeadForm.whatsapp} onChange={e => setNewLeadForm({...newLeadForm, whatsapp: e.target.value})} />
           <Input label="Nome do lead" placeholder="Ex: Maria" value={newLeadForm.nome} onChange={e => setNewLeadForm({...newLeadForm, nome: e.target.value})} />
-          <Input label="Serviço de interesse" placeholder="Ex: Inventário, Divórcio, Consultoria" value={newLeadForm.procedimento} onChange={e => setNewLeadForm({...newLeadForm, procedimento: e.target.value})} />
-          <Input label="Motivo do contato" placeholder="Ex: Veio pelo Instagram" value={newLeadForm.motivo} onChange={e => setNewLeadForm({...newLeadForm, motivo: e.target.value})} />
           <Button onClick={handleSaveNewLead} className="w-full" disabled={!newLeadForm.whatsapp}>Criar Lead</Button>
         </div>
       </Modal>
@@ -610,8 +608,12 @@ export function CRM() {
             <div className="space-y-3">
               <h3 className="font-semibold text-sm border-b pb-1">Informações de Negócio</h3>
               <div className="flex flex-col gap-2">
-                <div className="flex flex-col p-2 border rounded bg-white gap-1"><span className="text-xs text-gray-500">Serviço de interesse</span><span className="text-sm font-medium">{selectedLead.procedimento_interesse || '-'}</span></div>
-                <div className="flex flex-col p-2 border rounded bg-white gap-1"><span className="text-xs text-gray-500">Motivo do contato</span><span className="text-sm font-medium">{selectedLead.motivo_contato || '-'}</span></div>
+                <div className="flex flex-col p-3 border rounded bg-white gap-2 border-l-4 border-l-[var(--color-primary)] mb-2 shadow-sm">
+                  <span className="text-xs text-gray-500 font-semibold uppercase tracking-wider">📄 Resumo da Conversa</span>
+                  <p className="text-sm italic leading-relaxed text-[var(--color-text-main)]">
+                    {selectedLead.resumo_conversa ? `"${selectedLead.resumo_conversa}"` : 'Nenhum resumo gerado para esta conversa.'}
+                  </p>
+                </div>
                 {selectedLead.data_agendamento && (
                   <>
                     <div className="flex flex-col p-2 border rounded bg-white gap-1">

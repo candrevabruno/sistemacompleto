@@ -241,18 +241,6 @@ export function Dashboard() {
         ))}
       </div>
 
-      {leadsFora > 0 && (
-        <div className="bg-[var(--color-primary-light)] border-l-4 border-[var(--color-primary)] p-4 rounded-r-[12px] flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-          <div className="p-2 bg-white rounded-full text-[var(--color-primary)] shadow-sm shrink-0">
-            <Bot className="w-6 h-6" />
-          </div>
-          <div className="text-[var(--color-text-main)] text-sm font-medium">
-            <strong className="text-[var(--color-primary)] text-lg mr-1">{leadsFora}</strong> 
-            pessoas tentaram falar com sua empresa fora do horário de atendimento neste período. Sem o agente de IA no WhatsApp, esses contatos teriam ido embora sem resposta — e provavelmente procurado a concorrência.
-          </div>
-        </div>
-      )}
-
       <div className="grid grid-cols-1 gap-6">
         <Card>
           <CardHeader>
@@ -275,15 +263,15 @@ export function Dashboard() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-        <Card className="col-span-3">
+      <div className="grid grid-cols-1 gap-6">
+        <Card>
           <CardHeader>
             <CardTitle>Dias com mais movimento</CardTitle>
             <p className="text-sm text-[var(--color-text-muted)]">Veja em quais dias da semana sua clínica recebe mais contatos</p>
           </CardHeader>
-          <CardContent className="h-[300px]">
+          <CardContent className="h-[350px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chart2Data}>
+              <BarChart data={chart2Data} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border-card)" />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} />
                 <YAxis axisLine={false} tickLine={false} />
@@ -292,22 +280,24 @@ export function Dashboard() {
                   contentStyle={{ color: 'var(--color-text-main)', borderRadius: '8px', border: '1px solid var(--color-border-card)', boxShadow: 'var(--shadow-dropdown)', background: 'var(--color-bg-base)' }}
                   itemStyle={{ color: 'var(--color-text-main)' }}
                 />
-                <Bar dataKey="valor" fill="var(--color-primary)" radius={[4, 4, 0, 0]} barSize={24} label={{ position: 'top', fill: 'var(--color-primary)', fontSize: 13, fontWeight: 'bold' }} />
+                <Bar dataKey="valor" fill="var(--color-primary)" radius={[4, 4, 0, 0]} barSize={40} label={{ position: 'top', fill: 'var(--color-primary)', fontSize: 13, fontWeight: 'bold' }} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
+      </div>
 
-        <Card className="col-span-2">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card>
           <CardHeader>
             <CardTitle>Horário dos contatos</CardTitle>
             <p className="text-sm text-[var(--color-text-muted)]">Contatos dentro e fora do horário de funcionamento</p>
           </CardHeader>
-          <CardContent className="h-[300px] flex flex-col">
+          <CardContent className="h-[350px] flex flex-col">
             <div className="flex-1">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie data={chart3Data} cx="50%" cy="50%" innerRadius="50%" outerRadius="80%" paddingAngle={5} dataKey="value" label={({ name, value }) => value > 0 ? `${value}` : ''}>
+                  <Pie data={chart3Data} cx="50%" cy="50%" innerRadius="60%" outerRadius="90%" paddingAngle={5} dataKey="value" label={({ name, value }) => value > 0 ? `${value}` : ''}>
                     {chart3Data.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index]} />)}
                   </Pie>
                   <Tooltip />
@@ -320,59 +310,57 @@ export function Dashboard() {
             </div>
           </CardContent>
         </Card>
-      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-        <Card className="col-span-1 md:col-span-5 overflow-hidden">
+        <Card className="overflow-hidden">
           <CardHeader>
             <CardTitle>Funil de Vendas</CardTitle>
             <p className="text-sm text-[var(--color-text-muted)]">Conversão geral no período</p>
           </CardHeader>
-          <CardContent className="space-y-6 pb-6 px-4 flex flex-col items-center">
+          <CardContent className="space-y-4 pb-6 px-4 flex flex-col items-center">
             {/* Leads */}
-            <div className="bg-[var(--color-bg-base)] p-4 sm:p-5 rounded-lg border border-[var(--color-border-card)] w-full max-w-[600px]">
+            <div className="bg-[var(--color-bg-base)] p-3 sm:p-4 rounded-lg border border-[var(--color-border-card)] w-full">
               <div className="flex justify-between items-center mb-1">
                 <span className="font-semibold text-[var(--color-text-main)] flex items-center gap-2 truncate pr-2"><div className="w-6 h-6 rounded-full bg-[var(--color-border-card)] flex items-center justify-center text-xs shrink-0">1</div> <span className="truncate">Leads</span></span>
-                <span className="font-bold text-xl shrink-0">{totalLeads}</span>
+                <span className="font-bold text-lg shrink-0">{totalLeads}</span>
               </div>
-              <div className="flex flex-col text-sm mt-3 border-t border-[var(--color-border-card)] pt-3 gap-2 w-full">
+              <div className="flex flex-col text-xs mt-2 border-t border-[var(--color-border-card)] pt-2 gap-1 w-full">
                 <div className="flex justify-between items-center text-[var(--color-success)]"><span className="font-medium truncate pr-2">Qualificados</span> <span className="shrink-0 whitespace-nowrap">{leadsQualificados} ({pctQualificados}%)</span></div>
                 <div className="flex justify-between items-center text-[var(--color-error)] opacity-80"><span className="truncate pr-2">Abandonaram</span> <span className="shrink-0 whitespace-nowrap">{leadsNaoQualificados} ({pctNaoQualificados}%)</span></div>
               </div>
             </div>
 
             {/* Agendamentos */}
-            <div className="bg-[var(--color-bg-base)] p-3 sm:p-4 rounded-lg border border-[var(--color-border-card)] w-[95%] sm:w-[calc(100%-1.5rem)] ml-auto relative max-w-[450px]">
+            <div className="bg-[var(--color-bg-base)] p-3 rounded-lg border border-[var(--color-border-card)] w-[95%] ml-auto relative">
               <div className="hidden sm:block absolute -left-[25px] top-[-16px] w-[25px] h-[40px] border-l-2 border-b-2 border-[var(--color-border-card)] rounded-bl-lg z-[0]"></div>
               <div className="flex justify-between items-center gap-2">
                 <span className="font-semibold text-[var(--color-text-main)] flex items-center gap-2 truncate"><div className="w-6 h-6 rounded-full bg-[var(--color-border-card)] flex items-center justify-center text-xs shrink-0">2</div> <span className="truncate">Agendamentos</span></span>
                 <div className="text-right flex items-center shrink-0">
                   <span className="font-bold text-lg">{leadsAgendados}</span>
-                  <span className="text-xs text-[var(--color-primary)] ml-2 font-medium bg-[var(--color-primary-light)] px-1.5 py-0.5 rounded shrink-0">+{pctAgendaram}%</span>
+                  <span className="text-[10px] text-[var(--color-primary)] ml-2 font-medium bg-[var(--color-primary-light)] px-1.5 py-0.5 rounded shrink-0">+{pctAgendaram}%</span>
                 </div>
               </div>
             </div>
 
             {/* Comparecimentos */}
-            <div className="bg-[var(--color-bg-base)] p-3 sm:p-4 rounded-lg border border-[var(--color-border-card)] w-[90%] sm:w-[calc(100%-3rem)] ml-auto relative max-w-[450px]">
+            <div className="bg-[var(--color-bg-base)] p-3 rounded-lg border border-[var(--color-border-card)] w-[90%] ml-auto relative">
               <div className="hidden sm:block absolute -left-[25px] top-[-16px] w-[25px] h-[40px] border-l-2 border-b-2 border-[var(--color-border-card)] rounded-bl-lg z-[0]"></div>
               <div className="flex justify-between items-center gap-2">
                 <span className="font-semibold text-[var(--color-text-main)] flex items-center gap-2 truncate"><div className="w-6 h-6 rounded-full bg-[var(--color-border-card)] flex items-center justify-center text-xs shrink-0">3</div> <span className="truncate">Confirmados</span></span>
                 <div className="text-right flex items-center shrink-0">
                   <span className="font-bold text-lg">{leadsCompareceram}</span>
-                  <span className="text-xs text-[var(--color-success)] ml-2 font-medium bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 rounded shrink-0">+{pctCompareceram}%</span>
+                  <span className="text-[10px] text-[var(--color-success)] ml-2 font-medium bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 rounded shrink-0">+{pctCompareceram}%</span>
                 </div>
               </div>
             </div>
 
             {/* Conversao */}
-            <div className="bg-[var(--color-primary)] text-[var(--color-text-main)] p-3 sm:p-4 rounded-lg w-[85%] sm:w-[calc(100%-4.5rem)] ml-auto shadow-sm relative max-w-[450px]">
+            <div className="bg-[var(--color-primary)] text-[var(--color-text-main)] p-3 rounded-lg w-[85%] ml-auto shadow-sm relative">
               <div className="hidden sm:block absolute -left-[25px] top-[-16px] w-[25px] h-[40px] border-l-2 border-b-2 border-black/10 rounded-bl-lg z-[0]"></div>
               <div className="flex justify-between items-center gap-2">
-                <span className="font-semibold flex items-center gap-2 text-base truncate"><div className="w-6 h-6 rounded-full bg-black/10 flex items-center justify-center text-xs shrink-0">4</div> <span className="truncate">Conversões</span></span>
+                <span className="font-semibold flex items-center gap-2 text-sm truncate"><div className="w-6 h-6 rounded-full bg-black/10 flex items-center justify-center text-xs shrink-0">4</div> <span className="truncate">Conversões</span></span>
                 <div className="text-right flex items-center shrink-0">
-                  <span className="font-bold text-xl">{metrics.clientes}</span>
-                  <span className="text-xs font-bold bg-black/10 px-1.5 py-0.5 rounded ml-2 mt-0.5 shrink-0">+{pctConverteram}%</span>
+                  <span className="font-bold text-lg">{metrics.clientes}</span>
+                  <span className="text-[10px] font-bold bg-black/10 px-1.5 py-0.5 rounded ml-2 mt-0.5 shrink-0">+{pctConverteram}%</span>
                 </div>
               </div>
             </div>
