@@ -6,7 +6,7 @@ import { Modal } from '../components/ui/Modal';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
-import { CalendarCheck, Phone, Clock, ChevronDown, RefreshCw, CheckCircle, XCircle, UserCheck, CalendarIcon } from 'lucide-react';
+import { CalendarCheck, Phone, Clock, ChevronDown, RefreshCw, CheckCircle, XCircle, UserCheck, CalendarIcon, Monitor, MapPin, ExternalLink } from 'lucide-react';
 
 type Filtro = 'hoje' | 'amanha' | '7_dias' | '14_dias' | 'mes' | 'custom';
 type StatusAgendamento = 'agendado' | 'confirmado' | 'compareceu' | 'faltou' | 'cancelado';
@@ -47,6 +47,9 @@ export function CentralAgendamentos() {
   // Modal confirmação de ação
   const [acaoModal, setAcaoModal] = useState<{ agendamento: any, acao: string } | null>(null);
   const [processando, setProcessando] = useState(false);
+
+  // Modal de detalhes do Lead
+  const [detalhesAg, setDetalhesAg] = useState<any>(null);
 
   const getDateRange = () => {
     const now = new Date();
@@ -266,12 +269,24 @@ export function CentralAgendamentos() {
                     <div>
                       <div className="font-bold text-sm">{format(parseISO(ag.data_hora_inicio), 'HH:mm')}</div>
                       <div className="text-xs text-[var(--color-text-muted)]">{format(parseISO(ag.data_hora_inicio), 'dd/MM/yyyy')}</div>
+                      {ag.modalidade && (
+                        <div className={`mt-1 text-[10px] px-1.5 py-0.5 rounded-full font-medium inline-flex items-center gap-1 ${ag.modalidade === 'online' ? 'bg-blue-50 text-blue-600 border border-blue-100' : 'bg-orange-50 text-orange-600 border border-orange-100'}`}>
+                          {ag.modalidade === 'online' ? <Monitor className="w-2.5 h-2.5"/> : <MapPin className="w-2.5 h-2.5"/>}
+                          {ag.modalidade === 'online' ? 'Online' : 'Presencial'}
+                        </div>
+                      )}
                     </div>
                   </div>
 
                   {/* Dados do cliente */}
                   <div className="flex-1 min-w-0">
-                    <div className="font-semibold text-sm">{ag.nome_lead || 'Cliente não informado'}</div>
+                    <button 
+                      onClick={() => setDetalhesAg(ag)}
+                      className="font-semibold text-sm hover:text-[var(--color-primary)] transition-colors text-left group flex items-center gap-2"
+                    >
+                      {ag.nome_lead || 'Cliente não informado'}
+                      <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </button>
                     <div className="flex items-center gap-4 mt-1 flex-wrap">
                       {ag.whatsapp_lead && (
                         <a href={`https://wa.me/${ag.whatsapp_lead.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"
@@ -406,6 +421,63 @@ export function CentralAgendamentos() {
             </Button>
           </div>
         </div>
+      </Modal>
+
+      {/* MODAL DETALHES DO AGENDAMENTO */}
+      <Modal
+        isOpen={!!detalhesAg}
+        onClose={() => setDetalhesAg(null)}
+        title="Detalhes da Consulta"
+      >
+        {detalhesAg && (
+          <div className="space-y-6">
+            <div className="border-b pb-4">
+              <h2 className="font-cormorant text-2xl font-bold text-[var(--color-text-main)]">{detalhesAg.nome_lead || 'Sem Nome'}</h2>
+              <div className="flex items-center gap-3 mt-2">
+                 <Badge variant={detalhesAg.status}>{STATUS_LABELS[detalhesAg.status]}</Badge>
+                 {detalhesAg.modalidade && (
+                   <span className={`text-[10px] px-2 py-1 rounded font-medium flex items-center gap-1.5 ${detalhesAg.modalidade === 'online' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}`}>
+                      {detalhesAg.modalidade === 'online' ? <Monitor className="w-3 h-3"/> : <MapPin className="w-3 h-3"/>}
+                      {detalhesAg.modalidade === 'online' ? 'Atendimento Online' : 'Atendimento Presencial'}
+                   </span>
+                 )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-3 bg-gray-50 rounded-[8px] border">
+                <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1 font-semibold">Contato</div>
+                <div className="text-sm font-medium flex items-center gap-2">
+                  <Phone className="w-3.5 h-3.5 text-green-600" />
+                  {detalhesAg.whatsapp_lead}
+                </div>
+              </div>
+              <div className="p-3 bg-gray-50 rounded-[8px] border">
+                <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1 font-semibold">Profissional / Agenda</div>
+                <div className="text-sm font-medium flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: detalhesAg.agendas?.cor }}></div>
+                  {detalhesAg.agendas?.nome || 'Não definido'}
+                </div>
+              </div>
+            </div>
+
+            <div className="p-4 bg-white border-l-4 border-[var(--color-primary)] rounded shadow-sm">
+              <div className="text-[10px] text-gray-400 uppercase tracking-wider mb-2 font-bold">Resumo da Conversa (I.A.)</div>
+              <p className="text-sm italic text-gray-700 leading-relaxed">
+                "{detalhesAg.resumo_conversa || detalhesAg.leads?.resumo_conversa || detalhesAg.procedimento_nome || 'Nenhum resumo disponível para esta consulta.'}"
+              </p>
+            </div>
+
+            <div className="pt-4 flex gap-3">
+               <Button className="w-full" onClick={() => setDetalhesAg(null)}>Fechar</Button>
+               {detalhesAg.whatsapp_lead && (
+                 <Button variant="secondary" className="w-full flex items-center justify-center gap-2" onClick={() => window.open(`https://wa.me/${detalhesAg.whatsapp_lead.replace(/\D/g, '')}`, '_blank')}>
+                   <Phone className="w-4 h-4" /> Abrir WhatsApp
+                 </Button>
+               )}
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );
