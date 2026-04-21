@@ -385,9 +385,9 @@ export function CRM() {
                                   <div className="font-semibold text-sm line-clamp-1 mb-1">{card.nome_lead || 'Lead sem nome'}</div>
                                   <div className="text-xs text-[var(--color-text-muted)] mb-3">{card.whatsapp_lead}</div>
 
-                                  {card.procedimento_interesse && (
-                                    <div className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded mb-2 truncate border">
-                                      {card.procedimento_interesse}
+                                  {card.resumo_conversa && (
+                                    <div className="text-[11px] text-[var(--color-text-muted)] line-clamp-2 mb-3 italic leading-relaxed border-l-2 border-[var(--color-primary-light)] pl-2">
+                                      "{card.resumo_conversa}"
                                     </div>
                                   )}
 

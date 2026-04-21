@@ -159,18 +159,7 @@ export function Dashboard() {
   ];
   const COLORS = ['var(--color-success)', 'var(--color-warning)'];
 
-  // 4. Barras Horiz - Procedimentos procurados
-  const procMap: Record<string, number> = {};
-  agendamentosData.forEach(a => {
-    if (!a.procedimento_nome) return;
-    const proc = a.procedimento_nome.trim();
-    if (!proc) return;
-    procMap[proc] = (procMap[proc] || 0) + 1;
-  });
-  const sortedProcs = Object.keys(procMap).map(k => ({ proc: k.length > 22 ? k.substring(0, 22) + '…' : k, count: procMap[k] })).sort((a,b) => b.count - a.count).slice(0, 8);
-  const maxProcCount = sortedProcs[0]?.count || 1;
-
-  // 5. Funil de Vendas — usa status dos leads (espelho do CRM Kanban)
+  // 4. Funil de Vendas — usa status dos leads (espelho do CRM Kanban)
   const totalLeads = leadsData.length;
   const leadsNaoQualificados = leadsData.filter(l => l.status === 'abandonou_conversa').length;
   const leadsQualificados = totalLeads - leadsNaoQualificados;
@@ -334,37 +323,19 @@ export function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-        <Card className="col-span-3">
-          <CardHeader>
-            <CardTitle>Serviços mais procurados</CardTitle>
-            <p className="text-sm text-[var(--color-text-muted)]">Os serviços mais solicitados pelos seus leads no período</p>
-          </CardHeader>
-          <CardContent className="h-[300px]">
-             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={sortedProcs} layout="vertical" margin={{ left: 80 }}>
-                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--color-border-card)" />
-                <XAxis type="number" hide />
-                <YAxis dataKey="proc" type="category" axisLine={false} tickLine={false} width={100} style={{ fontSize: '11px' }}/>
-                <Tooltip cursor={{ fill: 'var(--color-border-card)', opacity: 0.4 }} />
-                <Bar dataKey="count" fill="var(--color-primary)" radius={[0, 4, 4, 0]} barSize={20} label={{ position: 'right', fill: 'var(--color-primary)', fontSize: 12, fontWeight: 'bold' }} />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        <Card className="col-span-1 md:col-span-2 overflow-hidden">
+        <Card className="col-span-1 md:col-span-5 overflow-hidden">
           <CardHeader>
             <CardTitle>Funil de Vendas</CardTitle>
             <p className="text-sm text-[var(--color-text-muted)]">Conversão geral no período</p>
           </CardHeader>
-          <CardContent className="space-y-4 pb-4 px-4 flex flex-col items-center">
+          <CardContent className="space-y-6 pb-6 px-4 flex flex-col items-center">
             {/* Leads */}
-            <div className="bg-[var(--color-bg-base)] p-3 sm:p-4 rounded-lg border border-[var(--color-border-card)] w-full max-w-[450px]">
+            <div className="bg-[var(--color-bg-base)] p-4 sm:p-5 rounded-lg border border-[var(--color-border-card)] w-full max-w-[600px]">
               <div className="flex justify-between items-center mb-1">
                 <span className="font-semibold text-[var(--color-text-main)] flex items-center gap-2 truncate pr-2"><div className="w-6 h-6 rounded-full bg-[var(--color-border-card)] flex items-center justify-center text-xs shrink-0">1</div> <span className="truncate">Leads</span></span>
-                <span className="font-bold text-lg shrink-0">{totalLeads}</span>
+                <span className="font-bold text-xl shrink-0">{totalLeads}</span>
               </div>
-              <div className="flex flex-col text-xs mt-2 border-t border-[var(--color-border-card)] pt-2 gap-1 w-full">
+              <div className="flex flex-col text-sm mt-3 border-t border-[var(--color-border-card)] pt-3 gap-2 w-full">
                 <div className="flex justify-between items-center text-[var(--color-success)]"><span className="font-medium truncate pr-2">Qualificados</span> <span className="shrink-0 whitespace-nowrap">{leadsQualificados} ({pctQualificados}%)</span></div>
                 <div className="flex justify-between items-center text-[var(--color-error)] opacity-80"><span className="truncate pr-2">Abandonaram</span> <span className="shrink-0 whitespace-nowrap">{leadsNaoQualificados} ({pctNaoQualificados}%)</span></div>
               </div>
