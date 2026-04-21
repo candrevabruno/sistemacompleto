@@ -237,6 +237,7 @@ export type Database = {
           procedimento_interesse: string | null
           resumo_conversa: string | null
           status: Database["public"]["Enums"]["lead_status"]
+          motivo_perda: string | null
           ultima_mensagem: string | null
           valor_pago: number | null
           whatsapp_lead: string
@@ -372,7 +373,8 @@ export type Database = {
         | "iniciou_atendimento"
         | "conversando"
         | "agendado"
-        | "compareceu"
+        | "converteu"
+        | "nao_converteu"
         | "cancelou_agendamento"
         | "follow_up"
         | "abandonou_conversa"

@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Input } from '../components/ui/Input';
-import { Calendar as CalendarIcon, Users, UserCheck, Bot, Activity, Clock } from 'lucide-react';
+import { Calendar as CalendarIcon, Users, UserCheck, Bot, Activity, Clock, DollarSign } from 'lucide-react';
 import { 
   startOfToday, endOfToday, startOfYesterday, endOfYesterday, subDays, startOfMonth, 
   endOfMonth, startOfYear, endOfYear, isWithinInterval, parseISO, format, getDay, setHours, setMinutes
@@ -23,7 +23,7 @@ export function Dashboard() {
   const [customEnd, setCustomEnd] = useState(format(endOfToday(), 'yyyy-MM-dd'));
   
   const [loading, setLoading] = useState(true);
-  const [metrics, setMetrics] = useState({ agendamentos: 0, comparecimentos: 0, leads: 0, clientes: 0 });
+  const [metrics, setMetrics] = useState({ agendamentos: 0, comparecimentos: 0, leads: 0, clientes: 0, faturamento: 0 });
   const [clinicHours, setClinicHours] = useState<any[]>([]);
   const [leadsData, setLeadsData] = useState<any[]>([]);
   const [agendamentosData, setAgendamentosData] = useState<any[]>([]);
@@ -94,9 +94,10 @@ export function Dashboard() {
 
       setMetrics({
         agendamentos: agendamentos.length,
-        comparecimentos: agendamentos.filter(a => a.status === 'compareceu').length,
+        comparecimentos: leads.filter(l => l.status === 'converteu' || l.status === 'nao_converteu' || l.status === 'faltou').length, // Considera quem passou da etapa de agendado
         leads: leads.length,
-        clientes: clientes.length
+        clientes: leads.filter(l => l.status === 'converteu').length,
+        faturamento: leads.reduce((acc, current) => acc + (current.valor_pago || 0), 0)
       });
     } catch (error) {
       console.error("Dashboard fetch error:", error);
@@ -154,28 +155,28 @@ export function Dashboard() {
     }
   });
   const chart3Data = [
-    { name: 'No Horário', value: leadsDentro },
+    { name: 'Dentro do Horário', value: leadsDentro },
     { name: 'Fora do Horário', value: leadsFora }
   ];
-  const COLORS = ['var(--color-success)', 'var(--color-warning)'];
+  const COLORS = ['#22c55e', '#f97316']; // Verde sólido e Laranja sólido para contraste profissional
 
   // 4. Funil de Vendas — usa status dos leads (espelho do CRM Kanban)
   const totalLeads = leadsData.length;
   const leadsNaoQualificados = leadsData.filter(l => l.status === 'abandonou_conversa').length;
   const leadsQualificados = totalLeads - leadsNaoQualificados;
-  // Agendados = leads que chegaram a 'agendado', 'compareceu' ou 'cancelou_agendamento'
+  // Agendados = leads que chegaram a ter um agendamento (qualquer status pós-conversa)
   const leadsAgendados = leadsData.filter(l =>
-    ['agendado', 'compareceu', 'cancelou_agendamento'].includes(l.status)
+    ['agendado', 'reagendado', 'converteu', 'nao_converteu', 'faltou', 'cancelou_agendamento'].includes(l.status)
   ).length;
-  // Compareceram = leads com status 'compareceu'
-  const leadsCompareceram = leadsData.filter(l => l.status === 'compareceu').length;
+
+  // Conversões = leads com status 'converteu'
+  const leadsConverteu = leadsData.filter(l => l.status === 'converteu').length;
 
   const pctQualificados = totalLeads ? Math.round((leadsQualificados / totalLeads) * 100) : 0;
   const pctNaoQualificados = totalLeads ? Math.round((leadsNaoQualificados / totalLeads) * 100) : 0;
 
   const pctAgendaram = leadsQualificados ? Math.round((leadsAgendados / leadsQualificados) * 100) : 0;
-  const pctCompareceram = leadsAgendados ? Math.round((leadsCompareceram / leadsAgendados) * 100) : 0;
-  const pctConverteram = leadsCompareceram ? Math.round((metrics.clientes / leadsCompareceram) * 100) : 0;
+  const pctConverteram = leadsAgendados ? Math.round((leadsConverteu / leadsAgendados) * 100) : 0;
 
   return (
     <div className="space-y-6">
@@ -223,9 +224,9 @@ export function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {[
           { label: 'Novos leads', value: metrics.leads, icon: Users },
-          { label: 'Agendamentos do período', value: metrics.agendamentos, icon: CalendarIcon },
-          { label: 'Comparecimentos', value: metrics.comparecimentos, icon: UserCheck },
-          { label: 'Novos clientes', value: metrics.clientes, icon: Activity }
+          { label: 'Agendamentos', value: metrics.agendamentos, icon: CalendarIcon },
+          { label: 'Conversões', value: metrics.clientes, icon: UserCheck },
+          { label: 'Faturamento Total', value: `R$ ${metrics.faturamento.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, icon: DollarSign }
         ].map((m, i) => (
           <Card key={i}>
             <CardContent className="p-6 flex items-center gap-4">
@@ -256,7 +257,14 @@ export function Dashboard() {
                 <Tooltip 
                   contentStyle={{ borderRadius: '8px', border: '1px solid var(--color-border-card)', boxShadow: 'var(--shadow-dropdown)' }} 
                 />
-                <Line type="monotone" dataKey="leads" stroke="var(--color-primary)" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                <Line 
+                  type="monotone" 
+                  dataKey="leads" 
+                  stroke="var(--color-primary)" 
+                  strokeWidth={3} 
+                  dot={{ r: 4, fill: 'var(--color-primary)', strokeWidth: 2, stroke: '#fff' }} 
+                  activeDot={{ r: 6, strokeWidth: 0 }} 
+                />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
@@ -280,7 +288,13 @@ export function Dashboard() {
                   contentStyle={{ color: 'var(--color-text-main)', borderRadius: '8px', border: '1px solid var(--color-border-card)', boxShadow: 'var(--shadow-dropdown)', background: 'var(--color-bg-base)' }}
                   itemStyle={{ color: 'var(--color-text-main)' }}
                 />
-                <Bar dataKey="valor" fill="var(--color-primary)" radius={[4, 4, 0, 0]} barSize={40} label={{ position: 'top', fill: 'var(--color-primary)', fontSize: 13, fontWeight: 'bold' }} />
+                <Bar 
+                  dataKey="valor" 
+                  fill="var(--color-primary)" 
+                  radius={[6, 6, 0, 0]} 
+                  barSize={32} 
+                  label={{ position: 'top', fill: 'var(--color-text-muted)', fontSize: 12, fontWeight: '500' }} 
+                />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -297,11 +311,23 @@ export function Dashboard() {
             <div className="flex-1">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie data={chart3Data} cx="50%" cy="50%" innerRadius="60%" outerRadius="90%" paddingAngle={5} dataKey="value" label={({ name, value }) => value > 0 ? `${value}` : ''}>
+                  <Pie 
+                    data={chart3Data} 
+                    cx="50%" 
+                    cy="50%" 
+                    innerRadius="70%" 
+                    outerRadius="90%" 
+                    paddingAngle={5} 
+                    dataKey="value"
+                    stroke="none"
+                  >
                     {chart3Data.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index]} />)}
                   </Pie>
-                  <Tooltip />
-                  <Legend verticalAlign="bottom" height={40} style={{ paddingBottom: '10px' }} />
+                  <Tooltip 
+                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: 'var(--shadow-dropdown)', backgroundColor: 'rgba(255,255,255,0.95)' }}
+                    itemStyle={{ fontWeight: 'bold' }}
+                  />
+                  <Legend verticalAlign="bottom" height={40} />
                 </PieChart>
               </ResponsiveContainer>
             </div>
@@ -341,26 +367,28 @@ export function Dashboard() {
               </div>
             </div>
 
-            {/* Comparecimentos */}
+            {/* Conversão (Substituiu Compareceu) */}
             <div className="bg-[var(--color-bg-base)] p-3 rounded-lg border border-[var(--color-border-card)] w-[90%] ml-auto relative">
               <div className="hidden sm:block absolute -left-[25px] top-[-16px] w-[25px] h-[40px] border-l-2 border-b-2 border-[var(--color-border-card)] rounded-bl-lg z-[0]"></div>
               <div className="flex justify-between items-center gap-2">
-                <span className="font-semibold text-[var(--color-text-main)] flex items-center gap-2 truncate"><div className="w-6 h-6 rounded-full bg-[var(--color-border-card)] flex items-center justify-center text-xs shrink-0">3</div> <span className="truncate">Confirmados</span></span>
+                <span className="font-semibold text-[var(--color-text-main)] flex items-center gap-2 truncate"><div className="w-6 h-6 rounded-full bg-[var(--color-border-card)] flex items-center justify-center text-xs shrink-0">3</div> <span className="truncate">Conversão (Venda)</span></span>
                 <div className="text-right flex items-center shrink-0">
-                  <span className="font-bold text-lg">{leadsCompareceram}</span>
-                  <span className="text-[10px] text-[var(--color-success)] ml-2 font-medium bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 rounded shrink-0">+{pctCompareceram}%</span>
+                  <span className="font-bold text-lg">{leadsConverteu}</span>
+                  <span className="text-[10px] text-[var(--color-success)] ml-2 font-medium bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 rounded shrink-0">+{pctConverteram}%</span>
                 </div>
               </div>
             </div>
 
-            {/* Conversao */}
-            <div className="bg-[var(--color-primary)] text-[var(--color-text-main)] p-3 rounded-lg w-[85%] ml-auto shadow-sm relative">
-              <div className="hidden sm:block absolute -left-[25px] top-[-16px] w-[25px] h-[40px] border-l-2 border-b-2 border-black/10 rounded-bl-lg z-[0]"></div>
+            {/* Valor Faturado Final */}
+            <div className="bg-[var(--color-primary)] text-white p-4 rounded-lg w-[85%] ml-auto shadow-lg relative group transition-all hover:scale-[1.02]">
+              <div className="hidden sm:block absolute -left-[25px] top-[-16px] w-[25px] h-[40px] border-l-2 border-b-2 border-primary/20 rounded-bl-lg z-[0]"></div>
               <div className="flex justify-between items-center gap-2">
-                <span className="font-semibold flex items-center gap-2 text-sm truncate"><div className="w-6 h-6 rounded-full bg-black/10 flex items-center justify-center text-xs shrink-0">4</div> <span className="truncate">Conversões</span></span>
+                <span className="font-semibold flex items-center gap-2 text-sm truncate">
+                  <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center text-xs shrink-0 backdrop-blur-sm">4</div> 
+                  <span className="truncate">Valor Faturado</span>
+                </span>
                 <div className="text-right flex items-center shrink-0">
-                  <span className="font-bold text-lg">{metrics.clientes}</span>
-                  <span className="text-[10px] font-bold bg-black/10 px-1.5 py-0.5 rounded ml-2 mt-0.5 shrink-0">+{pctConverteram}%</span>
+                  <span className="font-bold text-xl">R$ {metrics.faturamento.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}</span>
                 </div>
               </div>
             </div>

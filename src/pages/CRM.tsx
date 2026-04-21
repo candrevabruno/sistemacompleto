@@ -16,11 +16,10 @@ const COLUMNS = [
   { id: 'conversando', title: 'Conversando', colorClass: 'border-[var(--color-text-main)]' },
   { id: 'agendado', title: 'Agendado', colorClass: 'border-emerald-500' },
   { id: 'reagendado', title: 'Reagendado', colorClass: 'border-amber-400' },
-  { id: 'compareceu', title: 'Compareceu', colorClass: 'border-green-600' },
+  { id: 'converteu', title: 'Converteu', colorClass: 'border-green-600' },
+  { id: 'nao_converteu', title: 'Não Converteu', colorClass: 'border-rose-600' },
   { id: 'faltou', title: 'Faltou', colorClass: 'border-slate-500' },
-  { id: 'cancelou_agendamento', title: 'Cancelou Agendamento', colorClass: 'border-rose-400' },
-  { id: 'follow_up', title: 'Follow Up', colorClass: 'border-sky-400' },
-  { id: 'abandonou_conversa', title: 'Abandonou', colorClass: 'border-gray-400' }
+  { id: 'cancelou_agendamento', title: 'Cancelou Agendamento', colorClass: 'border-rose-400' }
 ];
 
 export function CRM() {
@@ -37,8 +36,15 @@ export function CRM() {
   const [agendadoForm, setAgendadoForm] = useState({ dataHora: '', procedimento: '', agendaId: '', modalidade: 'presencial' });
   const [savingAgendado, setSavingAgendado] = useState(false);
 
-  // Compareceu Confirmation
-  const [confirmCompareceu, setConfirmCompareceu] = useState<{ leadId: string, sourceCol: string } | null>(null);
+  // Converteu Modal
+  const [confirmConverteu, setConfirmConverteu] = useState<{ leadId: string, sourceCol: string, lead: any } | null>(null);
+  const [converteuForm, setConverteuForm] = useState({ servico: '', valor: '', observacao: '' });
+  const [savingConverteu, setSavingConverteu] = useState(false);
+
+  // Não Converteu Modal
+  const [confirmNaoConverteu, setConfirmNaoConverteu] = useState<{ leadId: string, sourceCol: string, lead: any } | null>(null);
+  const [naoConverteuForm, setNaoConverteuForm] = useState({ motivo: '' });
+  const [savingNaoConverteu, setSavingNaoConverteu] = useState(false);
 
   // Reagendado Modal
   const [confirmReagendado, setConfirmReagendado] = useState<{ leadId: string, sourceCol: string, lead: any } | null>(null);
@@ -74,15 +80,13 @@ export function CRM() {
     fetchLeads();
     fetchAgendas();
 
-    // Sincronização em Tempo Real (Supabase Realtime)
     const leadsChannel = supabase
       .channel('crm-leads-changes')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'leads' },
-        (payload) => {
-          console.log('Mudança detectada no banco:', payload);
-          fetchLeads(); // Recarrega para garantir consistência total
+        () => {
+          fetchLeads();
         }
       )
       .subscribe();
@@ -101,16 +105,9 @@ export function CRM() {
     const oldStatus = source.droppableId;
     const newStatus = destination.droppableId;
 
-    console.log(`Movendo lead ${leadId} de ${oldStatus} para ${newStatus}`);
-
     const lead = leads.find(l => l.id === leadId);
-    if (!lead) {
-      console.error("Lead não encontrado no estado local!");
-      alert("Erro crítico: Lead não encontrado. Por favor, recarregue a página.");
-      return;
-    }
+    if (!lead) return;
 
-    // Agendado: abre modal para coletar dados do agendamento
     if (newStatus === 'agendado' && oldStatus !== 'agendado') {
       setAgendadoForm({
         dataHora: '',
@@ -122,13 +119,22 @@ export function CRM() {
       return;
     }
 
-    // Compareceu: confirma e aciona trigger DB
-    if (newStatus === 'compareceu' && oldStatus !== 'compareceu') {
-      setConfirmCompareceu({ leadId, sourceCol: oldStatus });
+    if (newStatus === 'converteu' && oldStatus !== 'converteu') {
+      setConverteuForm({
+        servico: lead.procedimento_interesse || '',
+        valor: String(lead.valor_pago || ''),
+        observacao: ''
+      });
+      setConfirmConverteu({ leadId, sourceCol: oldStatus, lead });
       return;
     }
 
-    // Reagendado: abre modal para nova data e sincroniza agendamento
+    if (newStatus === 'nao_converteu' && oldStatus !== 'nao_converteu') {
+      setNaoConverteuForm({ motivo: lead.motivo_perda || '' });
+      setConfirmNaoConverteu({ leadId, sourceCol: oldStatus, lead });
+      return;
+    }
+
     if (newStatus === 'reagendado') {
       const currentIso = lead.data_agendamento || null;
       setReagendadoForm({
@@ -140,11 +146,9 @@ export function CRM() {
       return;
     }
 
-    // Demais colunas: update simples
     updateLeadState(leadId, newStatus);
     const { error } = await supabase.from('leads').update({ status: newStatus }).eq('id', leadId);
     if (error) {
-       console.error('Erro ao mover lead no Supabase:', error);
        updateLeadState(leadId, oldStatus);
        alert(`Erro ao salvar status: ${error.message}`);
     }
@@ -154,14 +158,12 @@ export function CRM() {
     setLeads(prev => prev.map(l => l.id === id ? { ...l, status: newStatus } : l));
   };
 
-  // ── AGENDADO ──────────────────────────────────────────────────────────────
   const confirmAgendadoAction = async () => {
     if (!confirmAgendado || !agendadoForm.dataHora) return;
-    const { leadId, sourceCol, lead } = confirmAgendado;
+    const { leadId, lead } = confirmAgendado;
     setSavingAgendado(true);
 
     try {
-      // 1. Cria o agendamento na tabela agendamentos
       const { data: agendamento, error: agError } = await supabase
         .from('agendamentos')
         .insert({
@@ -177,13 +179,9 @@ export function CRM() {
         .select()
         .single();
 
-      if (agError) {
-        alert(`Erro ao criar agendamento: ${agError.message}`);
-        return;
-      }
+      if (agError) throw agError;
 
-      // 2. Atualiza o lead com referência ao agendamento
-      const { error: leadError } = await supabase
+      await supabase
         .from('leads')
         .update({
           status: 'agendado',
@@ -194,145 +192,92 @@ export function CRM() {
         })
         .eq('id', leadId);
 
-      if (leadError) {
-        console.error('Erro ao atualizar lead para agendado:', leadError);
-        alert(`Erro ao atualizar lead: ${leadError.message}`);
-        return;
-      }
-
       updateLeadState(leadId, 'agendado');
       setConfirmAgendado(null);
-      setAgendadoForm({ dataHora: '', procedimento: '', agendaId: '', modalidade: 'presencial' });
       fetchLeads();
+    } catch (err: any) {
+      alert(`Erro: ${err.message}`);
     } finally {
       setSavingAgendado(false);
     }
   };
 
-  const cancelAgendadoAction = () => {
-    setConfirmAgendado(null);
-    setAgendadoForm({ dataHora: '', procedimento: '', agendaId: '', modalidade: 'presencial' });
-  };
-
-  // ── COMPARECEU ───────────────────────────────────────────────────────────
-  const confirmCompareceuAction = async () => {
-    if (!confirmCompareceu) return;
-    const { leadId, sourceCol } = confirmCompareceu;
-
-    updateLeadState(leadId, 'compareceu');
-    setConfirmCompareceu(null);
-
-    const { error } = await supabase.from('leads').update({ status: 'compareceu' }).eq('id', leadId);
-    if (error) {
-       updateLeadState(leadId, sourceCol);
-       alert('Erro ao marcar comparecimento.');
-    }
-  };
-
-  const cancelCompareceuAction = () => {
-    setConfirmCompareceu(null);
-  };
-
-  // ── REAGENDADO ──────────────────────────────────────────────────────────
-  const confirmReagendadoAction = async () => {
-    if (!confirmReagendado || !reagendadoForm.dataHora) {
-      alert("Por favor, informe a nova data e horário.");
-      return;
-    }
-    const { leadId, sourceCol, lead } = confirmReagendado;
-    setSavingReagendado(true);
-
+  const confirmConverteuAction = async () => {
+    if (!confirmConverteu || !converteuForm.valor) return;
+    const { leadId } = confirmConverteu;
+    setSavingConverteu(true);
     try {
-      const novaData = new Date(reagendadoForm.dataHora).toISOString();
-
-      // 1. Atualizar o Agendamento vinculado
-      // Se tiver id_agendamento, usamos ele. Se não tiver, buscamos pelo lead_id com status ativo
-      let agId = lead.id_agendamento;
-      if (!agId) {
-        console.log("Buscando agendamento vinculado para o lead:", leadId);
-        const { data: searchAg, error: searchError } = await supabase
-          .from('agendamentos')
-          .select('id')
-          .eq('lead_id', leadId)
-          .in('status', ['agendado', 'confirmado']) // Aceita ambos os status ativos
-          .order('created_at', { ascending: false })
-          .limit(1);
-        
-        if (searchError) console.error("Erro na busca de agendamento:", searchError);
-        if (searchAg && searchAg.length > 0) {
-          agId = searchAg[0].id;
-          console.log("Agendamento encontrado:", agId);
-        }
-      }
-
-      if (agId) {
-        const { error: agUpdateError } = await supabase
-          .from('agendamentos')
-          .update({ 
-            data_hora_inicio: novaData,
-            status: 'reagendado'
-          })
-          .eq('id', agId);
-        
-        if (agUpdateError) {
-          console.error("Erro ao atualizar agendamento:", agUpdateError);
-          // Opcional: decidimos se paramos aqui ou continuamos apenas no CRM
-        }
-      } else {
-        console.warn("Nenhum agendamento vinculado encontrado para este lead. O status no CRM será atualizado sozinho.");
-      }
-
-      // 2. Atualizar o Lead
       const { error } = await supabase
         .from('leads')
-        .update({
-          status: 'reagendado',
-          data_agendamento: novaData,
-          id_agendamento: agId || lead.id_agendamento // Mantém o vínculo se acabamos de descobrir o ID
+        .update({ 
+          status: 'converteu',
+          valor_pago: parseFloat(converteuForm.valor.replace(',', '.')),
+          procedimento_interesse: converteuForm.servico,
+          observacoes: converteuForm.observacao ? `${confirmConverteu.lead.observacoes || ''}\nObs: ${converteuForm.observacao}` : confirmConverteu.lead.observacoes
         })
         .eq('id', leadId);
+      if (error) throw error;
+      updateLeadState(leadId, 'converteu');
+      setConfirmConverteu(null);
+      fetchLeads();
+    } catch (err: any) {
+      alert(`Erro: ${err.message}`);
+    } finally {
+      setSavingConverteu(false);
+    }
+  };
 
-      if (error) {
-        alert(`Erro ao reagendar no CRM: ${error.message}`);
-        return;
+  const confirmNaoConverteuAction = async () => {
+    if (!confirmNaoConverteu || !naoConverteuForm.motivo) return;
+    const { leadId } = confirmNaoConverteu;
+    setSavingNaoConverteu(true);
+    try {
+      const { error } = await supabase.from('leads').update({ status: 'nao_converteu', motivo_perda: naoConverteuForm.motivo }).eq('id', leadId);
+      if (error) throw error;
+      updateLeadState(leadId, 'nao_converteu');
+      setConfirmNaoConverteu(null);
+      fetchLeads();
+    } catch (err: any) {
+      alert(`Erro: ${err.message}`);
+    } finally {
+      setSavingNaoConverteu(false);
+    }
+  };
+
+  const confirmReagendadoAction = async () => {
+    if (!confirmReagendado || !reagendadoForm.dataHora) return;
+    const { leadId, lead } = confirmReagendado;
+    setSavingReagendado(true);
+    try {
+      const novaData = new Date(reagendadoForm.dataHora).toISOString();
+      if (lead.id_agendamento) {
+        await supabase.from('agendamentos').update({ data_hora_inicio: novaData, status: 'reagendado' }).eq('id', lead.id_agendamento);
       }
-
+      await supabase.from('leads').update({ status: 'reagendado', data_agendamento: novaData }).eq('id', leadId);
       updateLeadState(leadId, 'reagendado');
       setConfirmReagendado(null);
       fetchLeads();
     } catch (err: any) {
-      console.error("Erro interno ao reagendar:", err);
-      alert("Ocorreu um erro interno ao processar o reagendamento.");
+       console.error(err);
     } finally {
       setSavingReagendado(false);
     }
   };
 
-  // ── NOVO LEAD ─────────────────────────────────────────────────────────────
   const handleSaveNewLead = async () => {
     if (!newLeadForm.whatsapp) return;
-    const { error } = await supabase.from('leads').insert({
+    await supabase.from('leads').insert({
       whatsapp_lead: newLeadForm.whatsapp,
       nome_lead: newLeadForm.nome || null,
       procedimento_interesse: newLeadForm.procedimento || null,
       motivo_contato: newLeadForm.motivo || null,
       status: 'iniciou_atendimento'
     });
-    if (error) {
-      alert(`Erro ao criar lead: ${error.message}`);
-      return;
-    }
     setOpenNewLead(false);
     setNewLeadForm({ whatsapp: '', nome: '', procedimento: '', motivo: '' });
     fetchLeads();
   };
 
-  const openDrawer = (lead: any) => {
-    setSelectedLead(lead);
-    setOpenLeadDetails(true);
-  };
-
-  // Organize cards by column for performance
   const cardsByCol = COLUMNS.reduce((acc, col) => {
     acc[col.id] = leads.filter(l => l.status === col.id);
     return acc;
@@ -340,21 +285,17 @@ export function CRM() {
 
   return (
     <div className="flex flex-col h-full overflow-hidden bg-[var(--color-bg-base)]">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-          <div>
-             <p className="text-sm text-[var(--color-text-muted)] mt-1">Navegue os contatos pelos estágios de venda.</p>
-          </div>
-          <Button onClick={() => setOpenNewLead(true)} className="w-full sm:w-auto text-[var(--color-text-main)] font-bold"><Plus className="w-4 h-4 mr-2"/> Novo lead</Button>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4 p-4 text-[var(--color-text-main)]">
+          <div><p className="text-sm text-[var(--color-text-muted)] mt-1 font-medium">Navegue os contatos pelos estágios de venda.</p></div>
+          <Button onClick={() => setOpenNewLead(true)} className="w-full sm:w-auto font-bold"><Plus className="w-4 h-4 mr-2"/> Novo Lead</Button>
       </div>
 
-      {/* Kanban Board */}
       <div className="flex-1 overflow-x-auto pb-4">
         {loading ? (
           <div className="flex items-center justify-center h-full">Carregando CRM...</div>
         ) : (
           <DragDropContext onDragEnd={handleDragEnd}>
-            <div className="flex h-full gap-4 items-start w-fit px-1">
+            <div className="flex h-full gap-4 items-start w-fit px-4">
               {COLUMNS.map(col => {
                 const colCards = cardsByCol[col.id] || [];
                 return (
@@ -366,44 +307,16 @@ export function CRM() {
 
                     <Droppable droppableId={col.id}>
                       {(provided, snapshot) => (
-                        <div
-                          ref={provided.innerRef}
-                          {...provided.droppableProps}
-                          className={`flex-1 overflow-y-auto p-2 space-y-3 transition-colors bg-[#F9FAFB]/80 ${snapshot.isDraggingOver ? 'bg-[var(--color-primary-light)]/40' : ''}`}
-                        >
+                        <div ref={provided.innerRef} {...provided.droppableProps} className={`flex-1 overflow-y-auto p-2 space-y-3 transition-colors bg-[#F9FAFB]/80 ${snapshot.isDraggingOver ? 'bg-[var(--color-primary-light)]/40' : ''}`}>
                           {colCards.map((card, index) => (
                             <Draggable key={card.id} draggableId={card.id} index={index}>
                               {(provided, snapshot) => (
-                                <div
-                                  ref={provided.innerRef}
-                                  {...provided.draggableProps}
-                                  {...provided.dragHandleProps}
-                                  onClick={() => openDrawer(card)}
-                                  style={provided.draggableProps.style}
-                                  className={`bg-white p-4 rounded-[12px] border-l-4 shadow-[0_2px_12px_-3px_rgba(0,0,0,0.06)] cursor-grab hover:shadow-md hover:-translate-y-0.5 transition-all ${col.colorClass} ${snapshot.isDragging ? 'opacity-90 scale-[1.02] shadow-xl ring-1 ring-[var(--color-primary)]/20' : ''}`}
-                                >
+                                <div ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps} onClick={() => { setSelectedLead(card); setOpenLeadDetails(true); }} className={`bg-white p-4 rounded-[12px] border-l-4 shadow-[0_2px_12px_-3px_rgba(0,0,0,0.06)] cursor-grab hover:shadow-md hover:-translate-y-0.5 transition-all ${col.colorClass} ${snapshot.isDragging ? 'opacity-90 scale-[1.02] shadow-xl ring-1 ring-[var(--color-primary)]/20' : ''}`}>
                                   <div className="font-semibold text-sm line-clamp-1 mb-1">{card.nome_lead || 'Lead sem nome'}</div>
                                   <div className="text-xs text-[var(--color-text-muted)] mb-3">{card.whatsapp_lead}</div>
-
-                                  {card.resumo_conversa && (
-                                    <div className="text-[11px] text-[var(--color-text-muted)] line-clamp-2 mb-3 italic leading-relaxed border-l-2 border-[var(--color-primary-light)] pl-2">
-                                      "{card.resumo_conversa}"
-                                    </div>
-                                  )}
-
-                                  {card.data_agendamento && (
-                                    <div className="flex items-center gap-1.5 mb-3">
-                                      <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${card.modalidade === 'online' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}`}>
-                                        {card.modalidade === 'online' ? '💻 Online' : '📍 Presencial'}
-                                      </span>
-                                    </div>
-                                  )}
-
                                   <div className="flex justify-between items-center mt-auto">
                                     <Badge variant={card.status} className="scale-90 origin-left">{col.title}</Badge>
-                                    <div className="text-[10px] text-[var(--color-text-muted)] font-medium">
-                                      {card.ultima_mensagem ? `há ${formatDistanceToNow(parseISO(card.ultima_mensagem), { locale: ptBR })}` : 'Sem msg'}
-                                    </div>
+                                    <div className="text-[10px] text-[var(--color-text-muted)] font-medium">{card.ultima_mensagem ? `há ${formatDistanceToNow(parseISO(card.ultima_mensagem), { locale: ptBR })}` : 'Sem msg'}</div>
                                   </div>
                                 </div>
                               )}
@@ -421,241 +334,74 @@ export function CRM() {
         )}
       </div>
 
-      {/* MODAL NOVO LEAD */}
       <Modal isOpen={openNewLead} onClose={() => setOpenNewLead(false)} title="Novo Lead Manual">
         <div className="space-y-4">
-          <Input label="WhatsApp (Obrigatório)" placeholder="+5511999999999" value={newLeadForm.whatsapp} onChange={e => setNewLeadForm({...newLeadForm, whatsapp: e.target.value})} />
-          <Input label="Nome do lead" placeholder="Ex: Maria" value={newLeadForm.nome} onChange={e => setNewLeadForm({...newLeadForm, nome: e.target.value})} />
+          <Input label="WhatsApp *" placeholder="+5511999999999" value={newLeadForm.whatsapp} onChange={e => setNewLeadForm({...newLeadForm, whatsapp: e.target.value})} />
+          <Input label="Nome" placeholder="Ex: Maria" value={newLeadForm.nome} onChange={e => setNewLeadForm({...newLeadForm, nome: e.target.value})} />
           <Button onClick={handleSaveNewLead} className="w-full" disabled={!newLeadForm.whatsapp}>Criar Lead</Button>
         </div>
       </Modal>
 
-      {/* MODAL AGENDAMENTO (ao arrastar para "Agendado") */}
-      <Modal isOpen={!!confirmAgendado} onClose={cancelAgendadoAction} title="Registrar Agendamento">
+      <Modal isOpen={!!confirmAgendado} onClose={() => setConfirmAgendado(null)} title="Registrar Agendamento">
         <div className="space-y-4">
-          <div className="p-3 bg-[#7A9E87]/10 border border-[#7A9E87] rounded-[8px] text-[#7A9E87] font-medium text-sm">
-            📅 Preencha os dados do agendamento de <strong>{confirmAgendado?.lead?.nome_lead || confirmAgendado?.lead?.whatsapp_lead}</strong>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-[var(--color-text-main)] mb-1">Data e Horário <span className="text-red-500">*</span></label>
-            <input
-              type="datetime-local"
-              value={agendadoForm.dataHora}
-              onChange={e => setAgendadoForm({...agendadoForm, dataHora: e.target.value})}
-              className="w-full border border-[var(--color-border-card)] rounded-[8px] px-3 py-2 text-sm bg-[var(--color-bg-base)] text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-[var(--color-text-main)] mb-1">Serviço</label>
-            <input
-              type="text"
-              placeholder="Ex: Inventário, Divórcio, Consultoria..."
-              value={agendadoForm.procedimento}
-              onChange={e => setAgendadoForm({...agendadoForm, procedimento: e.target.value})}
-              className="w-full border border-[var(--color-border-card)] rounded-[8px] px-3 py-2 text-sm bg-[var(--color-bg-base)] text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
-            />
-          </div>
-
-          {agendas.length > 0 && (
-            <div>
-              <label className="block text-sm font-medium text-[var(--color-text-main)] mb-1">Agenda</label>
-              <select
-                value={agendadoForm.agendaId}
-                onChange={e => setAgendadoForm({...agendadoForm, agendaId: e.target.value})}
-                className="w-full border border-[var(--color-border-card)] rounded-[8px] px-3 py-2 text-sm bg-[var(--color-bg-base)] text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
-              >
-                <option value="">— Sem agenda definida —</option>
-                {agendas.map(a => (
-                  <option key={a.id} value={a.id}>{a.nome}</option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          <div>
-            <label className="block text-sm font-medium text-[var(--color-text-main)] mb-1">Modalidade</label>
-            <div className="flex gap-4">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="radio" name="modalidade" value="presencial" checked={agendadoForm.modalidade === 'presencial'} onChange={e => setAgendadoForm({...agendadoForm, modalidade: e.target.value})} />
-                <span className="text-sm">📍 Presencial</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="radio" name="modalidade" value="online" checked={agendadoForm.modalidade === 'online'} onChange={e => setAgendadoForm({...agendadoForm, modalidade: e.target.value})} />
-                <span className="text-sm">💻 Online</span>
-              </label>
-            </div>
-          </div>
-
-          <p className="text-xs text-[var(--color-text-muted)]">
-            O agendamento será criado automaticamente na aba <strong>Agenda</strong> e o lead será marcado como <strong>Agendado</strong>.
-          </p>
-
+          <div className="p-3 bg-[#7A9E87]/10 border border-[#7A9E87] rounded-[8px] text-[#7A9E87] font-medium text-sm">📅 {confirmAgendado?.lead?.nome_lead}</div>
+          <div><label className="block text-sm font-medium mb-1">Data/Hora *</label><input type="datetime-local" value={agendadoForm.dataHora} onChange={e => setAgendadoForm({...agendadoForm, dataHora: e.target.value})} className="w-full border rounded-[8px] px-3 py-2 text-sm" /></div>
+          <div><label className="block text-sm font-medium mb-1">Serviço</label><Input placeholder="Ex: Inventário" value={agendadoForm.procedimento} onChange={e => setAgendadoForm({...agendadoForm, procedimento: e.target.value})} /></div>
           <div className="flex gap-3 justify-end mt-4">
-            <Button variant="secondary" onClick={cancelAgendadoAction}>Cancelar</Button>
-            <Button
-              className="bg-[#7A9E87] text-white hover:bg-[#5f8a6e] border-none"
-              onClick={confirmAgendadoAction}
-              disabled={!agendadoForm.dataHora || savingAgendado}
-            >
-              {savingAgendado ? 'Salvando...' : 'Confirmar Agendamento'}
-            </Button>
+            <Button variant="secondary" onClick={() => setConfirmAgendado(null)}>Cancelar</Button>
+            <Button className="bg-[#7A9E87] text-white" onClick={confirmAgendadoAction} disabled={!agendadoForm.dataHora || savingAgendado}>Confirmar</Button>
           </div>
         </div>
       </Modal>
 
-      {/* CONFIRMAÇÃO COMPARECEU */}
-      <Modal isOpen={!!confirmCompareceu} onClose={cancelCompareceuAction} title="Confirmar Comparecimento">
+      <Modal isOpen={!!confirmConverteu} onClose={() => setConfirmConverteu(null)} title="Finalizar Venda">
         <div className="space-y-4">
-          <div className="p-4 bg-[var(--color-success)]/10 border border-[var(--color-success)] rounded-[8px] text-[var(--color-success)] font-medium">
-            Confirmar que este lead compareceu à clínica?
-          </div>
-          <p className="text-sm text-[var(--color-text-muted)]">Ao confirmar, o sistema promoverá este lead automaticamente para a base de <strong>Clientes</strong>.</p>
+          <div className="p-3 bg-green-50 border border-green-200 rounded-[8px] text-green-800 font-medium text-sm">🚀 Parabéns! Preencha os dados do contrato.</div>
+          <div><label className="block text-sm font-medium mb-1">Serviço *</label><Input placeholder="Ex: Inventário" value={converteuForm.servico} onChange={e => setConverteuForm({...converteuForm, servico: e.target.value})} /></div>
+          <div><label className="block text-sm font-medium mb-1">Valor do Honorário (R$) *</label><Input placeholder="0,00" value={converteuForm.valor} onChange={e => setConverteuForm({...converteuForm, valor: e.target.value})} /></div>
+          <div><label className="block text-sm font-medium mb-1">Obs</label><textarea rows={3} value={converteuForm.observacao} onChange={e => setConverteuForm({...converteuForm, observacao: e.target.value})} className="w-full border rounded-[8px] px-3 py-2 text-sm bg-[var(--color-bg-base)]" /></div>
           <div className="flex gap-3 justify-end mt-4">
-            <Button variant="secondary" onClick={cancelCompareceuAction}>Cancelar</Button>
-            <Button className="bg-[var(--color-success)] text-white hover:bg-green-700 border-none" onClick={confirmCompareceuAction}>Confirmar Comparecimento</Button>
+            <Button variant="secondary" onClick={() => setConfirmConverteu(null)}>Cancelar</Button>
+            <Button className="bg-green-600 text-white" onClick={confirmConverteuAction} disabled={!converteuForm.valor || savingConverteu}>Confirmar</Button>
           </div>
         </div>
       </Modal>
 
-      {/* MODAL REAGENDAR / GOOGLE CALENDAR AVISO */}
-      <Modal isOpen={!!confirmReagendado} onClose={() => {
-        if(confirmReagendado?.leadId) updateLeadState(confirmReagendado.leadId, confirmReagendado.sourceCol);
-        setConfirmReagendado(null);
-      }} title="Reagendar Lead (Cal.com)">
+      <Modal isOpen={!!confirmNaoConverteu} onClose={() => setConfirmNaoConverteu(null)} title="Registrar Não Conversão">
         <div className="space-y-4">
-          <div className="p-4 bg-amber-50 border border-amber-200 rounded-[8px] text-amber-800 text-sm font-medium">
-             <h4 className="font-bold flex items-center gap-2 mb-2">Aviso de Sincronia</h4>
-             <p>Lembre-se de primeiro remarcar o horário remotamente usando o painel central do <strong>Cal.com</strong>.</p>
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-[var(--color-text-main)] mb-1">Qual foi a nova data e horário definida no Cal.com? <span className="text-red-500">*</span></label>
-            <input
-              type="datetime-local"
-              value={reagendadoForm.dataHora}
-              onChange={e => setReagendadoForm({...reagendadoForm, dataHora: e.target.value})}
-              className="w-full border border-[var(--color-border-card)] rounded-[8px] px-3 py-2 text-sm bg-[var(--color-bg-base)] text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-[var(--color-text-main)] mb-1">Modalidade</label>
-            <div className="flex gap-4">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="radio" name="modalidade_re" value="presencial" checked={reagendadoForm.modalidade === 'presencial'} onChange={e => setReagendadoForm({...reagendadoForm, modalidade: e.target.value})} />
-                <span className="text-sm">📍 Presencial</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="radio" name="modalidade_re" value="online" checked={reagendadoForm.modalidade === 'online'} onChange={e => setReagendadoForm({...reagendadoForm, modalidade: e.target.value})} />
-                <span className="text-sm">💻 Online</span>
-              </label>
-            </div>
-          </div>
-          
+          <div className="p-3 bg-rose-50 border border-rose-200 rounded-[8px] text-rose-800 font-medium text-sm">Entender o motivo da perda ajuda a melhorar.</div>
+          <div><label className="block text-sm font-medium mb-1">Motivo/Objeção *</label><textarea rows={4} value={naoConverteuForm.motivo} onChange={e => setNaoConverteuForm({...naoConverteuForm, motivo: e.target.value})} className="w-full border rounded-[8px] px-3 py-2 text-sm bg-[var(--color-bg-base)]" /></div>
           <div className="flex gap-3 justify-end mt-4">
-            <Button variant="secondary" onClick={() => {
-               if(confirmReagendado?.leadId) updateLeadState(confirmReagendado.leadId, confirmReagendado.sourceCol);
-               setConfirmReagendado(null);
-            }}>Cancelar</Button>
-            <Button
-              className="bg-amber-500 text-white hover:bg-amber-600 border-none"
-              onClick={confirmReagendadoAction}
-              disabled={!reagendadoForm.dataHora || savingReagendado}
-            >
-              {savingReagendado ? 'Salvando...' : 'Confirmar Reagendamento'}
-            </Button>
+            <Button variant="secondary" onClick={() => setConfirmNaoConverteu(null)}>Cancelar</Button>
+            <Button className="bg-rose-600 text-white" onClick={confirmNaoConverteuAction} disabled={!naoConverteuForm.motivo || savingNaoConverteu}>Salvar</Button>
           </div>
         </div>
       </Modal>
 
-      {/* DRAWER DETALHES DO LEAD */}
+      <Modal isOpen={!!confirmReagendado} onClose={() => setConfirmReagendado(null)} title="Reagendar Lead">
+        <div className="space-y-4">
+          <div className="p-4 bg-amber-50 rounded-[8px] text-amber-800 text-sm font-medium">Lembre-se de remarcar no Cal.com primeiro.</div>
+          <div><label className="block text-sm font-medium mb-1">Nova Data/Hora *</label><input type="datetime-local" value={reagendadoForm.dataHora} onChange={e => setReagendadoForm({...reagendadoForm, dataHora: e.target.value})} className="w-full border rounded-[8px] px-3 py-2 text-sm bg-[var(--color-bg-base)]" /></div>
+          <div className="flex gap-3 justify-end mt-4">
+            <Button variant="secondary" onClick={() => setConfirmReagendado(null)}>Cancelar</Button>
+            <Button className="bg-amber-500 text-white" onClick={confirmReagendadoAction} disabled={!reagendadoForm.dataHora || savingReagendado}>Salvar</Button>
+          </div>
+        </div>
+      </Modal>
+
       <Modal isOpen={openLeadDetails} onClose={() => setOpenLeadDetails(false)} title="Detalhes do Contato">
         {selectedLead && (
           <div className="space-y-6 max-h-[70vh] overflow-y-auto pr-2">
-            <div className="flex items-center gap-4 bg-[var(--color-primary-light)] p-4 rounded-[12px] border border-[var(--color-border-card)]">
-               <div className="flex-1">
-                 <h2 className="font-cormorant text-2xl font-bold">{selectedLead.nome_lead || 'Lead sem nome'}</h2>
-                 <p className="text-sm font-medium opacity-80 mt-1">{selectedLead.whatsapp_lead}</p>
-                 <div className="mt-2">
-                   <label className="text-xs text-gray-500 block mb-1">Etapa do funil</label>
-                   <select
-                     value={selectedLead.status}
-                     disabled={savingStatus}
-                     onChange={e => handleStatusChange(selectedLead.id, e.target.value)}
-                     className="text-sm font-medium border border-gray-300 rounded-[6px] px-2 py-1.5 bg-white cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] disabled:opacity-60 w-full"
-                   >
-                     {COLUMNS.map(col => (
-                       <option key={col.id} value={col.id}>{col.title}</option>
-                     ))}
-                   </select>
-                 </div>
-               </div>
+            <div className="bg-gray-50 p-4 rounded-[12px] border">
+               <h2 className="font-cormorant text-2xl font-bold">{selectedLead.nome_lead || 'Lead sem nome'}</h2>
+               <p className="text-sm opacity-80">{selectedLead.whatsapp_lead}</p>
             </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-gray-50 border p-3 rounded-[8px]">
-                <div className="text-xs text-gray-500 mb-1 flex items-center"><Calendar className="w-3 h-3 mr-1"/> Iniciado em</div>
-                <div className="text-sm font-medium">{selectedLead.inicio_atendimento ? format(parseISO(selectedLead.inicio_atendimento), 'dd/MM/yyyy HH:mm') : '-'}</div>
-              </div>
-              <div className="bg-gray-50 border p-3 rounded-[8px]">
-                <div className="text-xs text-gray-500 mb-1 flex items-center"><Clock className="w-3 h-3 mr-1"/> Última interação</div>
-                <div className="text-sm font-medium">{selectedLead.ultima_mensagem ? format(parseISO(selectedLead.ultima_mensagem), 'dd/MM/yyyy HH:mm') : '-'}</div>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <h3 className="font-semibold text-sm border-b pb-1">Informações de Negócio</h3>
-              <div className="flex flex-col gap-2">
-                <div className="flex flex-col p-3 border rounded bg-white gap-2 border-l-4 border-l-[var(--color-primary)] mb-2 shadow-sm">
-                  <span className="text-xs text-gray-500 font-semibold uppercase tracking-wider">📄 Resumo da Conversa</span>
-                  <p className="text-sm italic leading-relaxed text-[var(--color-text-main)]">
-                    {selectedLead.resumo_conversa ? `"${selectedLead.resumo_conversa}"` : 'Nenhum resumo gerado para esta conversa.'}
-                  </p>
-                </div>
-                {selectedLead.data_agendamento && (
-                  <>
-                    <div className="flex flex-col p-2 border rounded bg-white gap-1">
-                      <span className="text-xs text-gray-500 font-semibold mb-1 uppercase tracking-wider">Dados do Agendamento</span>
-                      <div className="flex flex-col gap-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-gray-500">Data e Hora</span>
-                          <span className="text-sm font-bold text-[var(--color-primary)]">{format(parseISO(selectedLead.data_agendamento), 'dd/MM/yyyy HH:mm')}</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-gray-500">Modalidade</span>
-                          <span className={`text-xs px-2 py-0.5 rounded font-bold ${selectedLead.modalidade === 'online' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}`}>
-                            {selectedLead.modalidade === 'online' ? '💻 ONLINE' : '📍 PRESENCIAL'}
-                          </span>
-                        </div>
-                        {selectedLead.link_meet && (
-                          <div className="flex flex-col mt-1 p-2 bg-blue-50 border border-blue-200 rounded">
-                            <span className="text-[10px] text-blue-600 font-bold mb-1 uppercase">Link da Reunião</span>
-                            <a href={selectedLead.link_meet} target="_blank" rel="noopener noreferrer" className="text-blue-700 text-xs font-semibold underline truncate">
-                              Acessar Google Meet
-                            </a>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-
-             <div className="space-y-3">
-              <h3 className="font-semibold text-sm border-b pb-1">Follow Ups (Tentativas)</h3>
-              <ul className="text-sm space-y-1">
-                <li className="flex justify-between border-b border-dashed py-1.5"><span className="text-gray-600">Follow up 1:</span> <span className="font-medium">{selectedLead.follow_up_1 ? format(parseISO(selectedLead.follow_up_1), 'dd/MM HH:mm') : 'Pendente'}</span></li>
-                <li className="flex justify-between border-b border-dashed py-1.5"><span className="text-gray-600">Follow up 2:</span> <span className="font-medium">{selectedLead.follow_up_2 ? format(parseISO(selectedLead.follow_up_2), 'dd/MM HH:mm') : 'Pendente'}</span></li>
-                <li className="flex justify-between border-b border-dashed py-1.5"><span className="text-gray-600">Follow up 3:</span> <span className="font-medium">{selectedLead.follow_up_3 ? format(parseISO(selectedLead.follow_up_3), 'dd/MM HH:mm') : 'Pendente'}</span></li>
-              </ul>
-            </div>
+            {selectedLead.resumo_conversa && <div className="p-3 border rounded bg-white"><span className="text-xs text-gray-400 font-bold uppercase">Resumo</span><p className="text-sm italic mt-1">{selectedLead.resumo_conversa}</p></div>}
+            {selectedLead.status === 'nao_converteu' && <div className="p-3 border border-rose-200 bg-rose-50 rounded"><span className="text-xs text-rose-600 font-bold uppercase">Motivo Perda</span><p className="text-sm font-medium mt-1">{selectedLead.motivo_perda}</p></div>}
+            {selectedLead.status === 'converteu' && <div className="p-3 border border-green-200 bg-green-50 rounded"><span className="text-xs text-green-600 font-bold uppercase">Dados da Venda</span><div className="grid grid-cols-2 gap-2 mt-1"><div><p className="text-[10px] text-gray-500">Serviço</p><p className="text-sm font-bold">{selectedLead.procedimento_interesse}</p></div><div><p className="text-[10px] text-gray-500">Valor</p><p className="text-sm font-bold text-green-700">R$ {selectedLead.valor_pago?.toLocaleString('pt-BR')}</p></div></div></div>}
           </div>
         )}
       </Modal>
-
     </div>
   );
 }
