@@ -34,7 +34,7 @@ export function CRM() {
 
   // Agendado Modal
   const [confirmAgendado, setConfirmAgendado] = useState<{ leadId: string, sourceCol: string, lead: any } | null>(null);
-  const [agendadoForm, setAgendadoForm] = useState({ dataHora: '', procedimento: '', agendaId: '' });
+  const [agendadoForm, setAgendadoForm] = useState({ dataHora: '', procedimento: '', agendaId: '', modalidade: 'presencial' });
   const [savingAgendado, setSavingAgendado] = useState(false);
 
   // Compareceu Confirmation
@@ -42,7 +42,7 @@ export function CRM() {
 
   // Reagendado Modal
   const [confirmReagendado, setConfirmReagendado] = useState<{ leadId: string, sourceCol: string, lead: any } | null>(null);
-  const [reagendadoForm, setReagendadoForm] = useState({ dataHora: '', agendaId: '' });
+  const [reagendadoForm, setReagendadoForm] = useState({ dataHora: '', agendaId: '', modalidade: 'presencial' });
   const [savingReagendado, setSavingReagendado] = useState(false);
 
   // Lead Details
@@ -115,7 +115,8 @@ export function CRM() {
       setAgendadoForm({
         dataHora: '',
         procedimento: lead.procedimento_interesse || '',
-        agendaId: agendas[0]?.id || ''
+        agendaId: agendas[0]?.id || '',
+        modalidade: 'presencial'
       });
       setConfirmAgendado({ leadId, sourceCol: oldStatus, lead });
       return;
@@ -132,7 +133,8 @@ export function CRM() {
       const currentIso = lead.data_agendamento || null;
       setReagendadoForm({
         dataHora: currentIso ? format(parseISO(currentIso), "yyyy-MM-dd'T'HH:mm") : '',
-        agendaId: agendas[0]?.id || ''
+        agendaId: agendas[0]?.id || '',
+        modalidade: lead.modalidade || 'presencial'
       });
       setConfirmReagendado({ leadId, sourceCol: oldStatus, lead });
       return;
@@ -169,6 +171,7 @@ export function CRM() {
           nome_lead: lead?.nome_lead || null,
           whatsapp_lead: lead?.whatsapp_lead || null,
           data_hora_inicio: new Date(agendadoForm.dataHora).toISOString(),
+          modalidade: agendadoForm.modalidade,
           status: 'agendado'
         })
         .select()
@@ -186,7 +189,8 @@ export function CRM() {
           status: 'agendado',
           data_agendamento: new Date(agendadoForm.dataHora).toISOString(),
           agendamento_criado_em: new Date().toISOString(),
-          id_agendamento: agendamento.id
+          id_agendamento: agendamento.id,
+          modalidade: agendadoForm.modalidade
         })
         .eq('id', leadId);
 
@@ -198,7 +202,7 @@ export function CRM() {
 
       updateLeadState(leadId, 'agendado');
       setConfirmAgendado(null);
-      setAgendadoForm({ dataHora: '', procedimento: '', agendaId: '' });
+      setAgendadoForm({ dataHora: '', procedimento: '', agendaId: '', modalidade: 'presencial' });
       fetchLeads();
     } finally {
       setSavingAgendado(false);
@@ -207,7 +211,7 @@ export function CRM() {
 
   const cancelAgendadoAction = () => {
     setConfirmAgendado(null);
-    setAgendadoForm({ dataHora: '', procedimento: '', agendaId: '' });
+    setAgendadoForm({ dataHora: '', procedimento: '', agendaId: '', modalidade: 'presencial' });
   };
 
   // ── COMPARECEU ───────────────────────────────────────────────────────────
@@ -382,8 +386,16 @@ export function CRM() {
                                   <div className="text-xs text-[var(--color-text-muted)] mb-3">{card.whatsapp_lead}</div>
 
                                   {card.procedimento_interesse && (
-                                    <div className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded mb-3 truncate border">
+                                    <div className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded mb-2 truncate border">
                                       {card.procedimento_interesse}
+                                    </div>
+                                  )}
+
+                                  {card.data_agendamento && (
+                                    <div className="flex items-center gap-1.5 mb-3">
+                                      <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${card.modalidade === 'online' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}`}>
+                                        {card.modalidade === 'online' ? '💻 Online' : '📍 Presencial'}
+                                      </span>
                                     </div>
                                   )}
 
@@ -464,6 +476,20 @@ export function CRM() {
             </div>
           )}
 
+          <div>
+            <label className="block text-sm font-medium text-[var(--color-text-main)] mb-1">Modalidade</label>
+            <div className="flex gap-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="radio" name="modalidade" value="presencial" checked={agendadoForm.modalidade === 'presencial'} onChange={e => setAgendadoForm({...agendadoForm, modalidade: e.target.value})} />
+                <span className="text-sm">📍 Presencial</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="radio" name="modalidade" value="online" checked={agendadoForm.modalidade === 'online'} onChange={e => setAgendadoForm({...agendadoForm, modalidade: e.target.value})} />
+                <span className="text-sm">💻 Online</span>
+              </label>
+            </div>
+          </div>
+
           <p className="text-xs text-[var(--color-text-muted)]">
             O agendamento será criado automaticamente na aba <strong>Agenda</strong> e o lead será marcado como <strong>Agendado</strong>.
           </p>
@@ -514,6 +540,20 @@ export function CRM() {
               onChange={e => setReagendadoForm({...reagendadoForm, dataHora: e.target.value})}
               className="w-full border border-[var(--color-border-card)] rounded-[8px] px-3 py-2 text-sm bg-[var(--color-bg-base)] text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
             />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-[var(--color-text-main)] mb-1">Modalidade</label>
+            <div className="flex gap-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="radio" name="modalidade_re" value="presencial" checked={reagendadoForm.modalidade === 'presencial'} onChange={e => setReagendadoForm({...reagendadoForm, modalidade: e.target.value})} />
+                <span className="text-sm">📍 Presencial</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="radio" name="modalidade_re" value="online" checked={reagendadoForm.modalidade === 'online'} onChange={e => setReagendadoForm({...reagendadoForm, modalidade: e.target.value})} />
+                <span className="text-sm">💻 Online</span>
+              </label>
+            </div>
           </div>
           
           <div className="flex gap-3 justify-end mt-4">
@@ -572,7 +612,33 @@ export function CRM() {
               <div className="flex flex-col gap-2">
                 <div className="flex flex-col p-2 border rounded bg-white gap-1"><span className="text-xs text-gray-500">Serviço de interesse</span><span className="text-sm font-medium">{selectedLead.procedimento_interesse || '-'}</span></div>
                 <div className="flex flex-col p-2 border rounded bg-white gap-1"><span className="text-xs text-gray-500">Motivo do contato</span><span className="text-sm font-medium">{selectedLead.motivo_contato || '-'}</span></div>
-                {selectedLead.data_agendamento && <div className="flex flex-col p-2 border rounded bg-white gap-1"><span className="text-xs text-gray-500">Data Agendada</span><span className="text-sm font-medium">{format(parseISO(selectedLead.data_agendamento), 'dd/MM/yyyy HH:mm')}</span></div>}
+                {selectedLead.data_agendamento && (
+                  <>
+                    <div className="flex flex-col p-2 border rounded bg-white gap-1">
+                      <span className="text-xs text-gray-500 font-semibold mb-1 uppercase tracking-wider">Dados do Agendamento</span>
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-gray-500">Data e Hora</span>
+                          <span className="text-sm font-bold text-[var(--color-primary)]">{format(parseISO(selectedLead.data_agendamento), 'dd/MM/yyyy HH:mm')}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-gray-500">Modalidade</span>
+                          <span className={`text-xs px-2 py-0.5 rounded font-bold ${selectedLead.modalidade === 'online' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}`}>
+                            {selectedLead.modalidade === 'online' ? '💻 ONLINE' : '📍 PRESENCIAL'}
+                          </span>
+                        </div>
+                        {selectedLead.link_meet && (
+                          <div className="flex flex-col mt-1 p-2 bg-blue-50 border border-blue-200 rounded">
+                            <span className="text-[10px] text-blue-600 font-bold mb-1 uppercase">Link da Reunião</span>
+                            <a href={selectedLead.link_meet} target="_blank" rel="noopener noreferrer" className="text-blue-700 text-xs font-semibold underline truncate">
+                              Acessar Google Meet
+                            </a>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 

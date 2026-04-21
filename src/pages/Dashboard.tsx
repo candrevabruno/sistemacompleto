@@ -430,6 +430,11 @@ export function Dashboard() {
                       </div>
                       <div className="text-xs sm:text-sm text-[var(--color-text-muted)] flex items-center gap-2 sm:gap-3 mt-1 flex-wrap">
                         <span className="flex items-center gap-1 whitespace-nowrap text-xs"><Clock className="w-3.5 h-3.5"/> {format(parseISO(u.data_hora_inicio), 'HH:mm')}</span>
+                        {u.modalidade && (
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${u.modalidade === 'online' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}`}>
+                            {u.modalidade === 'online' ? '💻 Online' : '📍 Presencial'}
+                          </span>
+                        )}
                         {u.procedimento_nome && <span className="truncate max-w-[150px] sm:max-w-[200px] text-xs">• {u.procedimento_nome}</span>}
                       </div>
                     </div>
