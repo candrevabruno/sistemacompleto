@@ -84,8 +84,8 @@ export function Dashboard() {
       const [agendamentosReq, leadsReq, upcomingReq] = await Promise.all([
         supabase.from('agendamentos')
           .select('*')
-          .gte('data_hora_inicio', startIso)
-          .lte('data_hora_inicio', endIso),
+          .gte('created_at', startIso)
+          .lte('created_at', endIso),
         supabase.from('leads')
           .select('*')
           .gte('inicio_atendimento', startIso)
