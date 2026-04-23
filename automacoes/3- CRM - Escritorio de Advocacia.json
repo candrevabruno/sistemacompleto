@@ -571,7 +571,7 @@
     },
     {
       "parameters": {
-        "content": "# Status para add:\n## iniciou_atendimento\n## conversando\n## agendado\n## reagendado\n## converteu\n## nao_converteu\n## faltou\n## cancelou_agendamento",
+        "content": "# Status para add:\n## novo_contato\n## conversando\n## consulta_agendada\n## compareceu\n## follow_up\n## fechado\n## perdido",
         "height": 368,
         "width": 432,
         "color": 4

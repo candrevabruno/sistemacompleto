@@ -225,7 +225,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const days = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];\nconst now = new Date(new Date().toLocaleString('en-US', {timeZone: 'America/Sao_Paulo'}));\nconst pad = (n) => String(n).padStart(2, '0');\n\nlet result = `Hoje é ${days[now.getDay()]} ${pad(now.getDate())}/${pad(now.getMonth()+1)}/${String(now.getFullYear()).slice(2)} às ${pad(now.getHours())}:${pad(now.getMinutes())}\\n`;\n\nfor (let i = 1; i <= 6; i++) {\n  const future = new Date(now);\n  future.setDate(now.getDate() + i);\n\n  let label = '';\n\n  if (i === 1) {\n    label = `Amanhã é ${days[future.getDay()]} ${pad(future.getDate())}/${pad(future.getMonth()+1)}/${String(future.getFullYear()).slice(2)}`;\n  } else if (i === 2) {\n    label = `Depois de amanhã é ${days[future.getDay()]} ${pad(future.getDate())}/${pad(future.getMonth()+1)}/${String(future.getFullYear()).slice(2)}`;\n  } else {\n    label = `A próxima ${days[future.getDay()]} será dia ${pad(future.getDate())}/${pad(future.getMonth()+1)}/${String(future.getFullYear()).slice(2)}`;\n  }\n\n  result += `${label}\\n`;\n}\n\nreturn [\n  {\n    json: {\n      resultado: result.trim()\n    }\n  }\n];"
+        "jsCode": "const days = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];\nconst now = new Date(new Date().toLocaleString('en-US', {timeZone: 'America/Sao_Paulo'}));\nconst pad = (n) => String(n).padStart(2, '0');\n\nlet result = `Hoje é ${days[now.getDay()]} ${pad(now.getDate())}/${pad(now.getMonth()+1)}/${String(now.getFullYear()).slice(2)} às ${pad(now.getHours())}:${pad(now.getMinutes())}\\n`;\n\nfor (let i = 1; i <= 6; i++) {\n  const future = new Date(now);\n  future.setDate(now.getDate() + i);\n\n  let label = '';\n\n  if (i === 1) {\n    label = `Amanhã é ${days[future.getDay()]} ${pad(future.getDate())}/${pad(future.getMonth()+1)}/${String(future.getFullYear()).slice(2)}`;\n  } else if (i === 2) {\n    label = `Depois de amanhã é ${days[future.getDay()]} ${pad(future.getDate())}/${pad(future.getMonth()+1)}/${String(future.getFullYear()).slice(2)}`;\n  } else {\n    label = `A próxima ${days[future.getDay()]} será dia ${pad(future.getDate())}/${pad(future.getMonth()+1)}/${String(future.getFullYear()).slice(2)}`;\n  }\n\n  result += `${label}\\n`;\n}\n\nreturn [{ json: { ...$input.first().json, resultado: result.trim() } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -757,7 +757,23 @@
       "name": "Sticky Note"
     }
   ],
-  "pinData": {},
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "duvida": "Reagendamento de consulta online para inventário às 10h de 23/04/2026 para Bruno Candreva",
+          "whatsapp_lead": "5521965842639",
+          "Assunto": "Inventário - Consulta inicial",
+          "Tipo_de_consulta": "online",
+          "inicio_reuniao": "2026-04-23T13:00:00Z",
+          "final_reuniao": "2026-04-23T14:00:00Z"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
   "connections": {
     "Postgres Chat Memory": {
       "ai_memory": [
@@ -890,7 +906,7 @@
     "callerPolicy": "workflowsFromSameOwner",
     "availableInMCP": false
   },
-  "versionId": "012f21db-559a-467a-b39f-214ccd2961e5",
+  "versionId": "713e6e5f-0534-40ec-96cf-d27a85c815ba",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "bd23b4d0be4dd939efa78787b912105fba074f6766a8c4ab96351fd4f3b4ddad"

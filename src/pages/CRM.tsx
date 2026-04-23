@@ -95,18 +95,24 @@ export function CRM() {
         return;
     }
 
-    setSavingStatus(true);
-    
-    // Reset logic: se estiver saindo de converteu ou nao_converteu, limpa os campos financeiros/perda
+    // Reset logic: 
+    // 1. Se estiver saindo de converteu ou nao_converteu, limpa os campos financeiros/perda
+    // 2. Se o novo status for 'iniciou_atendimento' ou 'conversando', limpa dados de agendamento
     const updates: any = { status: newStatus };
     if (['converteu', 'nao_converteu'].includes(lead.status)) {
        updates.valor_pago = 0;
        updates.motivo_perda = null;
     }
+    if (['iniciou_atendimento', 'conversando'].includes(newStatus)) {
+       updates.data_agendamento = null;
+       updates.id_agendamento = null;
+       updates.agendamento_criado_em = null;
+       updates.modalidade = null;
+    }
 
     await supabase.from('leads').update(updates).eq('id', leadId);
     setLeads(prev => prev.map(l => l.id === leadId ? { ...l, ...updates } : l));
-    setSelectedLead((prev: any) => ({ ...prev, ...updates }));
+    setSelectedLead((prev: any) => prev?.id === leadId ? { ...prev, ...updates } : prev);
     setSavingStatus(false);
   };
 
@@ -190,8 +196,15 @@ export function CRM() {
        updates.valor_pago = 0;
        updates.motivo_perda = null;
     }
+    if (['iniciou_atendimento', 'conversando'].includes(newStatus)) {
+       updates.data_agendamento = null;
+       updates.id_agendamento = null;
+       updates.agendamento_criado_em = null;
+       updates.modalidade = null;
+    }
 
     setLeads(prev => prev.map(l => l.id === leadId ? { ...l, ...updates } : l));
+    setSelectedLead((prev: any) => prev?.id === leadId ? { ...prev, ...updates } : prev);
     const { error } = await supabase.from('leads').update(updates).eq('id', leadId);
     if (error) {
        setLeads(prev => prev.map(l => l.id === leadId ? { ...l, status: oldStatus } : l));
@@ -350,6 +363,43 @@ export function CRM() {
       alert(`Erro ao salvar detalhes: ${err.message}`);
     } finally {
       setSavingDetails(false);
+    }
+  };
+
+  const handleRemoveAppointment = async () => {
+    if (!selectedLead || !selectedLead.id_agendamento) return;
+    if (!confirm('Deseja realmente remover este agendamento?')) return;
+    
+    setSavingStatus(true);
+    try {
+      // Opcional: Atualizar agendamento para 'cancelado' se quiser manter histórico, 
+      // ou apenas desvincular do lead como solicitado.
+      const { error } = await supabase
+        .from('leads')
+        .update({
+          data_agendamento: null,
+          id_agendamento: null,
+          agendamento_criado_em: null,
+          modalidade: null,
+          status: 'conversando'
+        })
+        .eq('id', selectedLead.id);
+
+      if (error) throw error;
+      
+      const updates = { 
+        data_agendamento: null, 
+        id_agendamento: null, 
+        agendamento_criado_em: null,
+        modalidade: null,
+        status: 'conversando' 
+      };
+      setLeads(prev => prev.map(l => l.id === selectedLead.id ? { ...l, ...updates } : l));
+      setSelectedLead((prev: any) => ({ ...prev, ...updates }));
+    } catch (err: any) {
+      alert(`Erro ao remover agendamento: ${err.message}`);
+    } finally {
+      setSavingStatus(false);
     }
   };
 
@@ -567,20 +617,49 @@ export function CRM() {
                   )}
                </div>
                <div className="p-3 bg-[var(--color-bg-base)] rounded-[12px] border border-[var(--color-border-card)]">
-                  <span className="text-[10px] text-[var(--color-text-muted)] font-bold uppercase">Agendamento</span>
+                  <div className="flex justify-between items-start">
+                    <span className="text-[10px] text-[var(--color-text-muted)] font-bold uppercase">Agendamento</span>
+                    {(selectedLead.id_agendamento || selectedLead.data_agendamento) && (
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); handleRemoveAppointment(); }}
+                        className="text-rose-500 hover:bg-rose-50 p-1.5 rounded-full transition-all"
+                        title="Remover agendamento"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
                   <p className="text-sm font-medium mt-1">{selectedLead.data_agendamento ? format(parseISO(selectedLead.data_agendamento), "dd/MM 'às' HH:mm", { locale: ptBR }) : 'Sem agendamento'}</p>
+                  
+                  {editingDetails && (selectedLead.data_agendamento || selectedLead.id_agendamento) && (
+                    <button 
+                      onClick={handleRemoveAppointment}
+                      className="mt-2 text-[10px] font-bold text-rose-600 uppercase hover:underline flex items-center gap-1"
+                    >
+                      <Trash2 className="w-3 h-3" /> Limpar Agendamento
+                    </button>
+                  )}
                </div>
             </div>
 
             {/* Ação de Edição */}
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2">
               {editingDetails ? (
                 <>
-                  <Button onClick={handleUpdateDetails} disabled={savingDetails} className="flex-1 bg-green-600">Salvar Alterações</Button>
-                  <Button variant="secondary" onClick={() => setEditingDetails(false)}>Cancelar</Button>
+                  <Button onClick={handleUpdateDetails} disabled={savingDetails} className="w-full bg-green-600">Salvar Alterações</Button>
+                  {(selectedLead.data_agendamento || selectedLead.id_agendamento) && (
+                    <Button 
+                      variant="secondary" 
+                      onClick={handleRemoveAppointment}
+                      className="w-full border-rose-500 text-rose-600 hover:bg-rose-50 font-bold"
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" /> CANCELAR AGENDAMENTO (REMOVER DATA)
+                    </Button>
+                  )}
+                  <Button variant="secondary" onClick={() => setEditingDetails(false)} className="w-full">Cancelar Edição</Button>
                 </>
               ) : (
-                <Button variant="secondary" onClick={() => setEditingDetails(true)} className="w-full">Editar Informações</Button>
+                <Button variant="secondary" onClick={() => setEditingDetails(true)} className="w-full font-bold">Editar Informações</Button>
               )}
             </div>
 

@@ -6,7 +6,8 @@ import { Input } from '../components/ui/Input';
 import { Calendar as CalendarIcon, Users, UserCheck, Bot, Activity, Clock, DollarSign } from 'lucide-react';
 import { 
   startOfToday, endOfToday, startOfYesterday, endOfYesterday, subDays, startOfMonth, 
-  endOfMonth, startOfYear, endOfYear, isWithinInterval, parseISO, format, getDay, setHours, setMinutes
+  endOfMonth, startOfYear, endOfYear, isWithinInterval, parseISO, format, getDay, setHours, setMinutes,
+  startOfDay, endOfDay
 } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { 
@@ -63,7 +64,10 @@ export function Dashboard() {
 
   const handleCustomFilter = () => {
     if (customStart && customEnd) {
-      setDateRange({ start: new Date(customStart + 'T00:00:00'), end: new Date(customEnd + 'T23:59:59') });
+      // Usando parseISO para garantir que a data seja interpretada corretamente no fuso local
+      const start = startOfDay(parseISO(customStart));
+      const end = endOfDay(parseISO(customEnd));
+      setDateRange({ start, end });
     }
   };
 
@@ -73,12 +77,21 @@ export function Dashboard() {
       const startIso = dateRange.start.toISOString();
       const endIso = dateRange.end.toISOString();
 
-      const [agendamentosReq, leadsReq, clientesReq, upcomingReq] = await Promise.all([
-        supabase.from('agendamentos').select('*').gte('created_at', startIso).lte('created_at', endIso),
-        supabase.from('leads').select('*').gte('inicio_atendimento', startIso).lte('inicio_atendimento', endIso),
-        supabase.from('clientes').select('*').gte('created_at', startIso).lte('created_at', endIso),
+      // Filtros aprimorados: 
+      // 1. Agendamentos pela data da consulta (data_hora_inicio)
+      // 2. Leads pela data de início do atendimento (inicio_atendimento)
+      // 3. Clientes (leads convertidos) pela data de início do atendimento
+      const [agendamentosReq, leadsReq, upcomingReq] = await Promise.all([
         supabase.from('agendamentos')
-          .select('*, leads(nome_lead, whatsapp_lead), clientes(leads(nome_lead, whatsapp_lead)), agendas(nome, cor)')
+          .select('*')
+          .gte('data_hora_inicio', startIso)
+          .lte('data_hora_inicio', endIso),
+        supabase.from('leads')
+          .select('*')
+          .gte('inicio_atendimento', startIso)
+          .lte('inicio_atendimento', endIso),
+        supabase.from('agendamentos')
+          .select('*, leads(nome_lead, whatsapp_lead), agendas(nome, cor)')
           .gte('data_hora_inicio', new Date().toISOString())
           .order('data_hora_inicio', { ascending: true })
           .limit(5)
@@ -86,18 +99,19 @@ export function Dashboard() {
 
       const agendamentos = agendamentosReq.data || [];
       const leads = leadsReq.data || [];
-      const clientes = clientesReq.data || [];
 
       setAgendamentosData(agendamentos);
       setLeadsData(leads);
       setUpcoming(upcomingReq.data || []);
 
+      const leadsConvertidos = leads.filter(l => l.status === 'converteu');
+
       setMetrics({
         agendamentos: agendamentos.length,
-        comparecimentos: leads.filter(l => l.status === 'converteu' || l.status === 'nao_converteu' || l.status === 'faltou').length, // Considera quem passou da etapa de agendado
+        comparecimentos: leads.filter(l => ['agendado', 'reagendado', 'converteu', 'nao_converteu', 'faltou'].includes(l.status)).length,
         leads: leads.length,
-        clientes: leads.filter(l => l.status === 'converteu').length,
-        faturamento: leads.reduce((acc, current) => acc + (current.valor_pago || 0), 0)
+        clientes: leadsConvertidos.length,
+        faturamento: leadsConvertidos.reduce((acc, current) => acc + (current.valor_pago || 0), 0)
       });
     } catch (error) {
       console.error("Dashboard fetch error:", error);
@@ -111,13 +125,24 @@ export function Dashboard() {
   const dayLabelMapping = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
   // 1. Linha - Atendimentos por dia
-  const leadsByDayMap: Record<string, number> = {};
+  const leadsByDayMap: Record<string, { label: string, count: number, timestamp: number }> = {};
   leadsData.forEach(l => {
     if (!l.inicio_atendimento) return;
-    const key = format(parseISO(l.inicio_atendimento), 'dd/MM');
-    leadsByDayMap[key] = (leadsByDayMap[key] || 0) + 1;
+    const date = parseISO(l.inicio_atendimento);
+    const key = format(date, 'yyyy-MM-dd');
+    if (!leadsByDayMap[key]) {
+      leadsByDayMap[key] = {
+        label: format(date, 'dd/MM'),
+        count: 0,
+        timestamp: date.getTime()
+      };
+    }
+    leadsByDayMap[key].count++;
   });
-  const chart1Data = Object.keys(leadsByDayMap).map(k => ({ dia: k, leads: leadsByDayMap[k] })).sort((a,b) => a.dia.localeCompare(b.dia)); // simplified sorting
+  
+  const chart1Data = Object.values(leadsByDayMap)
+    .sort((a, b) => a.timestamp - b.timestamp)
+    .map(item => ({ dia: item.label, leads: item.count }));
 
   // 2. Barras - Dias mais movimento
   const leadsByDayOfWeek = new Array(7).fill(0);
@@ -179,15 +204,15 @@ export function Dashboard() {
   const pctConverteram = leadsAgendados ? Math.round((leadsConverteu / leadsAgendados) * 100) : 0;
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 p-4 bg-[var(--color-bg-card)] rounded-[12px] border border-[var(--color-border-card)] shadow-[var(--shadow-card)]">
+    <div className="space-y-6 relative">
+      <div className="flex flex-col gap-4 p-4 bg-[var(--color-bg-card)] rounded-[12px] border border-[var(--color-border-card)] shadow-[var(--shadow-card)] relative z-10">
         <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 w-full">
           <div className="flex flex-wrap gap-2 w-full xl:w-auto">
             {(['ontem', 'hoje', '7dias', '14dias', 'mes', 'ano'] as DateFilter[]).map(f => (
               <button
                 key={f}
                 onClick={() => setFilter(f)}
-                className={`px-3 py-1.5 text-sm font-medium rounded-[8px] transition-colors flex-grow sm:flex-grow-0 text-center ${filter === f ? 'bg-[var(--color-primary)] text-white' : 'bg-[var(--color-bg-base)] text-[var(--color-text-main)] hover:bg-[var(--color-primary-light)]'}`}
+                className={`px-3 py-1.5 text-sm font-medium rounded-[8px] transition-all flex-grow sm:flex-grow-0 text-center cursor-pointer active:scale-95 hover:brightness-95 ${filter === f ? 'bg-[var(--color-primary)] text-white shadow-md' : 'bg-[var(--color-bg-base)] text-[var(--color-text-main)] hover:bg-[var(--color-primary-light)]'}`}
               >
                 {f === 'hoje' ? 'Hoje' : f === 'ontem' ? 'Ontem' : f === '7dias' ? '7 dias' : f === '14dias' ? '14 dias' : f === 'mes' ? 'Mês' : 'Ano'}
               </button>
@@ -195,31 +220,49 @@ export function Dashboard() {
           </div>
           <div className="flex items-center gap-2 w-full xl:w-auto mt-2 xl:mt-0 xl:justify-end">
             <div className="flex items-center gap-2 flex-1 sm:flex-none">
-              <Input 
-                type="date" 
-                value={customStart} 
-                max={format(new Date(), 'yyyy-MM-dd')}
-                onChange={e => { setCustomStart(e.target.value); setFilter('custom'); }} 
-                className="w-full sm:w-[140px]"
-              />
-              <span className="text-[var(--color-text-muted)] text-sm font-medium">até</span>
-              <Input 
-                type="date" 
-                value={customEnd} 
-                max={format(new Date(), 'yyyy-MM-dd')}
-                onChange={e => { setCustomEnd(e.target.value); setFilter('custom'); }} 
-                className="w-full sm:w-[140px]"
-              />
+              <div className="w-[130px] sm:w-[150px] shrink-0">
+                <Input 
+                  type="date" 
+                  value={customStart} 
+                  max={format(new Date(), 'yyyy-MM-dd')}
+                  onChange={e => { setCustomStart(e.target.value); setFilter('custom'); }} 
+                />
+              </div>
+              <span className="text-[var(--color-text-muted)] text-sm font-medium shrink-0">até</span>
+              <div className="w-[130px] sm:w-[150px] shrink-0">
+                <Input 
+                  type="date" 
+                  value={customEnd} 
+                  max={format(new Date(), 'yyyy-MM-dd')}
+                  onChange={e => { setCustomEnd(e.target.value); setFilter('custom'); }} 
+                />
+              </div>
             </div>
-            <button 
-              onClick={handleCustomFilter}
-              className="px-4 py-2 sm:px-3 sm:py-2 bg-[var(--color-primary)] text-white text-sm font-medium rounded-[8px] transition-colors hover:bg-opacity-90 shrink-0"
-            >
-              Filtrar
-            </button>
+            <div className="relative z-[100] flex-shrink-0">
+              <button 
+                onClick={handleCustomFilter}
+                className="px-4 py-2 sm:px-6 sm:py-2.5 bg-[var(--color-primary)] text-white text-sm font-bold rounded-[8px] transition-all hover:brightness-105 active:scale-95 cursor-pointer shadow-lg shrink-0 flex items-center justify-center min-w-[100px]"
+              >
+                Filtrar
+              </button>
+            </div>
           </div>
         </div>
       </div>
+      
+      {leadsFora > 0 && (
+        <div className="flex items-center gap-4 p-4 bg-orange-50 border border-orange-100 rounded-[12px] shadow-sm animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="p-2 bg-orange-100 rounded-full text-orange-600">
+            <Clock className="w-5 h-5" />
+          </div>
+          <div>
+            <span className="text-orange-900 font-medium">Demanda Fora de Horário:</span>
+            <span className="text-orange-800 ml-1">
+              {leadsFora} {leadsFora === 1 ? 'pessoa entrou' : 'pessoas entraram'} em contato fora do horário de atendimento neste período.
+            </span>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {[
