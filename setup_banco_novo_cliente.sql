@@ -63,6 +63,7 @@ CREATE TABLE IF NOT EXISTS public.leads (
   procedimento_interesse TEXT,
   resumo_conversa TEXT,
   status TEXT NOT NULL DEFAULT 'iniciou_atendimento',
+  lembrete_enviado BOOLEAN DEFAULT false,
   ultima_mensagem TIMESTAMPTZ,
   id_conta_chatwoot TEXT,
   id_conversa_chatwoot TEXT,
