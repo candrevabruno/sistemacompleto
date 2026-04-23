@@ -38,10 +38,41 @@ Antes de falar do sistema, o vendedor deve perguntar:
 
 ---
 
-## 5. Script de Fechamento (O Próximo Passo)
-*"Não quero que você compre um software. Quero que você recupere as horas que gasta digitando 'Qual seu nome?' e 'Qual horário fica melhor?'. Vamos fazer um teste de 7 dias com o Agente de IA rodando na sua conta?"*
+## 5. Funcionalidades Detalhadas (A munição do vendedor)
+
+O time comercial deve saber que o sistema não é um simples site, é um ecossistema:
+
+*   **Agente de IA Treinável:** Não é um chatbot burro de opções (1, 2, 3). É uma inteligência que lê e entende o que o cliente escreve, respondendo de forma humana e personalizada para o negócio do cliente.
+*   **Kanban Premium:** Arrastar leads entre colunas de forma fluida. O sistema atualiza em tempo real sem precisar dar F5.
+*   **Integração com WhatsApp Oficial:** Tudo acontece no Zap do cliente, mas é gerenciado pelo nosso painel profissional.
+*   **Agenda Inteligente:** O sistema conversa e já verifica se o cliente tem horário livre, sugerindo as datas e confirmando o agendamento automaticamente.
+*   **Sistema de Lembretes "Anti-Esquecimento":** Envio automático de mensagens 24h e 1h antes da consulta/visita.
+*   **Histórico de IA:** O sistema gera um resumo automático de tudo o que a IA conversou com o lead, para o atendente humano não precisar ler conversas gigantes.
 
 ---
 
-## 💡 Dica para o Time de Vendas:
-Mostre o CRM na tela. O visual do **Heroic Leap** é o maior argumento de venda. Quando o cliente vê os cards coloridos e a organização, ele sente que o negócio dele subiu de nível.
+## 6. Como Funciona (O Fluxo da Mágica)
+
+Explique para o cliente o caminho do lead:
+1.  **A Entrada:** O lead clica no anúncio e cai no WhatsApp.
+2.  **O Atendimento:** A IA atende instantaneamente, pergunta o que o lead precisa e qualifica se ele tem o perfil ideal.
+3.  **A Triagem:** Se o lead for bom, a IA já oferece os horários e faz o agendamento.
+4.  **A Notificação:** O dono do negócio recebe um alerta: *"Novo agendamento confirmado"*.
+5.  **A Gestão:** O lead aparece automaticamente no **Cards do CRM** para que o time comercial possa dar o fechamento final.
+
+---
+
+## 7. Possibilidades de Uso (Onde vender?)
+
+O vendedor deve adaptar o discurso para o nicho:
+*   **Advogados:** Triagem de causas, coleta de documentos básicos e agendamento de consultas jurídicas.
+*   **Saúde/Estética:** Marcação de procedimentos, envio de orientações pré-consulta e confirmação de presença.
+*   **Imobiliárias:** Agendamento de visitas, qualificação de renda/perfil de imóvel.
+*   **Serviços (Confeitarias, Oficinas):** Orçamentos rápidos e organização de prazos de entrega.
+
+---
+
+## 8. Script de Fechamento (O Próximo Passo)
+
+*"Não quero que você compre um software. Quero que você recupere as horas que gasta digitando 'Qual seu nome?' e 'Qual horário fica melhor?'. Vamos fazer um teste de 7 dias com o Agente de IA rodando na sua conta?"*
+
