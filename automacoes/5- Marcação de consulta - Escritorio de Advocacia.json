@@ -63,7 +63,7 @@
             {
               "id": "a3",
               "name": "inicio_reuniao",
-              "value": "={{ $json.inicio_reuniao }}",
+              "value": "={{ DateTime.fromISO($json.inicio_reuniao).setZone('America/Bahia', { keepLocalTime: true }).toISO() }}",
               "type": "string"
             },
             {
@@ -614,7 +614,7 @@
           "parameters": [
             {
               "name": "start",
-              "value": "={{ $('setarInformacoes').item.json.inicio_reuniao }}"
+              "value": "={{ DateTime.fromISO($('setarInformacoes').item.json.inicio_reuniao).setZone('America/Bahia', { keepLocalTime: true }).toISO() }}"
             },
             {
               "name": "reschedulingReason",
@@ -726,7 +726,7 @@
     },
     {
       "parameters": {
-        "url": "=https://api.cal.com/v2/slots?eventTypeId=5413988&start={{ $('setarInformacoes').item.json.inicio_reuniao.split('T')[0] }}&end={{ DateTime.fromISO($('setarInformacoes').item.json.inicio_reuniao).plus({days: 7}).toISODate() }}&timeZone=America/Bahia",
+        "url": "=https://api.cal.com/v2/slots?eventTypeId=5413988&start={{ $('setarInformacoes').item.json.inicio_reuniao.split('T')[0] }}T00:00:00Z&end={{ $('setarInformacoes').item.json.inicio_reuniao.split('T')[0] }}T23:59:59Z&timeZone=America/Bahia",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -1136,13 +1136,13 @@
     "exec workflow": [
       {
         "json": {
-          "whatsapp_lead": "5521981631124",
-          "evento": "cancelamento",
-          "inicio_reuniao": null,
-          "final_reuniao": null,
-          "tipo_consulta": null,
-          "assunto": null,
-          "id_agendamento": "nnoWWfaopf4f9Svmu6W7LJ",
+          "whatsapp_lead": "5521965842639",
+          "evento": "reagendamento",
+          "inicio_reuniao": "2026-04-23T13:00:00Z",
+          "final_reuniao": "2026-04-23T14:00:00Z",
+          "tipo_consulta": "online",
+          "assunto": "Consulta inventário online para tirar dúvidas e dar entrada em inventário, remarcação para sexta-feira às 10h",
+          "id_agendamento": "mVt2CeGD2W1cfER6QgkkdH",
           "nome_lead": null,
           "url_chatwoot": null
         },
@@ -1440,7 +1440,7 @@
     "callerPolicy": "workflowsFromSameOwner",
     "availableInMCP": false
   },
-  "versionId": "03d4f97d-48eb-4ad2-901b-bbff67c16723",
+  "versionId": "0c96822e-3f55-4c6a-809a-aa98d8e5081c",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "bd23b4d0be4dd939efa78787b912105fba074f6766a8c4ab96351fd4f3b4ddad"

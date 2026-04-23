@@ -647,15 +647,6 @@ export function CRM() {
               {editingDetails ? (
                 <>
                   <Button onClick={handleUpdateDetails} disabled={savingDetails} className="w-full bg-green-600">Salvar Alterações</Button>
-                  {(selectedLead.data_agendamento || selectedLead.id_agendamento) && (
-                    <Button 
-                      variant="secondary" 
-                      onClick={handleRemoveAppointment}
-                      className="w-full border-rose-500 text-rose-600 hover:bg-rose-50 font-bold"
-                    >
-                      <Trash2 className="w-4 h-4 mr-2" /> CANCELAR AGENDAMENTO (REMOVER DATA)
-                    </Button>
-                  )}
                   <Button variant="secondary" onClick={() => setEditingDetails(false)} className="w-full">Cancelar Edição</Button>
                 </>
               ) : (
