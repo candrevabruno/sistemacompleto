@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Input } from '../components/ui/Input';
-import { Calendar as CalendarIcon, Users, UserCheck, Bot, Activity, Clock, DollarSign } from 'lucide-react';
+import { Calendar as CalendarIcon, Users, UserCheck, Bot, Activity, Clock, DollarSign, FileDown } from 'lucide-react';
 import { 
   startOfToday, endOfToday, startOfYesterday, endOfYesterday, subDays, startOfMonth, 
   endOfMonth, startOfYear, endOfYear, isWithinInterval, parseISO, format, getDay, setHours, setMinutes,
@@ -14,6 +14,8 @@ import {
   LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, 
   CartesianGrid, Tooltip, ResponsiveContainer, Legend 
 } from 'recharts';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 
 type DateFilter = 'hoje' | 'ontem' | '7dias' | '14dias' | 'mes' | 'ano' | 'custom';
 
@@ -22,6 +24,7 @@ export function Dashboard() {
   const [dateRange, setDateRange] = useState({ start: startOfToday(), end: endOfToday() });
   const [customStart, setCustomStart] = useState(format(startOfToday(), 'yyyy-MM-dd'));
   const [customEnd, setCustomEnd] = useState(format(endOfToday(), 'yyyy-MM-dd'));
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   
   const [loading, setLoading] = useState(true);
   const [metrics, setMetrics] = useState({ agendamentos: 0, comparecimentos: 0, leads: 0, clientes: 0, faturamento: 0 });
@@ -203,8 +206,60 @@ export function Dashboard() {
   const pctAgendaram = leadsQualificados ? Math.round((leadsAgendados / leadsQualificados) * 100) : 0;
   const pctConverteram = leadsAgendados ? Math.round((leadsConverteu / leadsAgendados) * 100) : 0;
 
+  const handleDownloadPDF = async () => {
+    const input = document.getElementById('dashboard-report');
+    if (!input) return;
+
+    try {
+      setIsGeneratingPDF(true);
+      
+      // Temporarily hide elements not meant for print
+      const noPrintElements = document.querySelectorAll('.no-print');
+      noPrintElements.forEach((el) => {
+        (el as HTMLElement).style.display = 'none';
+      });
+
+      // Wait a moment for any rendering or UI updates
+      await new Promise(resolve => setTimeout(resolve, 300)); 
+
+      const canvas = await html2canvas(input, {
+        scale: 2, // High resolution
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff', // Clean white background for the PDF
+      });
+
+      // Restore elements
+      noPrintElements.forEach((el) => {
+        (el as HTMLElement).style.display = '';
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+      
+      const pdfWidth = 210; // A4 width in mm
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      
+      // Create a continuous page matching exactly the content height
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: [pdfWidth, pdfHeight]
+      });
+      
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+
+      const dataHoje = format(new Date(), 'dd_MM_yyyy');
+      pdf.save(`Relatorio_Performance_${filter}_${dataHoje}.pdf`);
+    } catch (error) {
+      console.error('Erro ao gerar PDF:', error);
+      alert('Houve um erro ao gerar o PDF. Tente novamente.');
+    } finally {
+      setIsGeneratingPDF(false);
+    }
+  };
+
   return (
-    <div className="space-y-6 relative">
+    <div id="dashboard-report" className="space-y-6 relative pb-8">
       <div className="flex flex-col gap-4 p-4 bg-[var(--color-bg-card)] rounded-[12px] border border-[var(--color-border-card)] shadow-[var(--shadow-card)] relative z-10">
         <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 w-full">
           <div className="flex flex-wrap gap-2 w-full xl:w-auto">
@@ -238,12 +293,29 @@ export function Dashboard() {
                 />
               </div>
             </div>
-            <div className="relative z-[100] flex-shrink-0">
+            <div className="relative z-[100] flex-shrink-0 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
               <button 
                 onClick={handleCustomFilter}
-                className="px-4 py-2 sm:px-6 sm:py-2.5 bg-[var(--color-primary)] text-white text-sm font-bold rounded-[8px] transition-all hover:brightness-105 active:scale-95 cursor-pointer shadow-lg shrink-0 flex items-center justify-center min-w-[100px]"
+                className="px-4 py-2 sm:px-6 sm:py-2.5 bg-[var(--color-primary)] text-white text-sm font-bold rounded-[8px] transition-all hover:brightness-105 active:scale-95 cursor-pointer shadow-lg shrink-0 flex items-center justify-center min-w-[100px] no-print"
               >
                 Filtrar
+              </button>
+              <button
+                onClick={handleDownloadPDF}
+                disabled={isGeneratingPDF}
+                className="px-4 py-2 sm:px-4 sm:py-2.5 bg-[#18181b] dark:bg-white dark:text-[#18181b] text-white text-sm font-bold rounded-[8px] transition-all hover:opacity-90 active:scale-95 cursor-pointer shadow-lg shrink-0 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed no-print border border-zinc-800 dark:border-white"
+              >
+                {isGeneratingPDF ? (
+                   <span className="flex items-center gap-2">
+                     <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                     Gerando...
+                   </span>
+                ) : (
+                   <span className="flex items-center gap-2 whitespace-nowrap">
+                     <FileDown className="w-4 h-4" />
+                     Gerar PDF
+                   </span>
+                )}
               </button>
             </div>
           </div>
