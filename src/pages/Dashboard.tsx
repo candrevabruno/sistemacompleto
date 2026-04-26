@@ -13,9 +13,8 @@ import { ptBR } from 'date-fns/locale';
 import { 
   LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, 
   CartesianGrid, Tooltip, ResponsiveContainer, Legend 
-} from 'recharts';
 import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
+import { jsPDF } from 'jspdf';
 
 type DateFilter = 'hoje' | 'ontem' | '7dias' | '14dias' | 'mes' | 'ano' | 'custom';
 
@@ -250,9 +249,9 @@ export function Dashboard() {
 
       const dataHoje = format(new Date(), 'dd_MM_yyyy');
       pdf.save(`Relatorio_Performance_${filter}_${dataHoje}.pdf`);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao gerar PDF:', error);
-      alert('Houve um erro ao gerar o PDF. Tente novamente.');
+      alert('Houve um erro ao gerar o PDF. Detalhes: ' + (error?.message || error));
     } finally {
       setIsGeneratingPDF(false);
     }
