@@ -14,7 +14,7 @@ import {
   LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, 
   CartesianGrid, Tooltip, ResponsiveContainer, Legend 
 } from 'recharts';
-import html2canvas from 'html2canvas';
+import { toPng } from 'html-to-image';
 import { jsPDF } from 'jspdf';
 
 type DateFilter = 'hoje' | 'ontem' | '7dias' | '14dias' | 'mes' | 'ano' | 'custom';
@@ -222,22 +222,21 @@ export function Dashboard() {
       // Wait a moment for any rendering or UI updates
       await new Promise(resolve => setTimeout(resolve, 300)); 
 
-      const canvas = await html2canvas(input, {
-        scale: 2, // High resolution
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#ffffff', // Clean white background for the PDF
+      const dataUrl = await toPng(input, {
+        cacheBust: true,
+        pixelRatio: 2,
+        style: {
+          backgroundColor: '#ffffff'
+        }
       });
 
       // Restore elements
       noPrintElements.forEach((el) => {
         (el as HTMLElement).style.display = '';
       });
-
-      const imgData = canvas.toDataURL('image/png');
       
       const pdfWidth = 210; // A4 width in mm
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      const pdfHeight = (input.offsetHeight * pdfWidth) / input.offsetWidth;
       
       // Create a continuous page matching exactly the content height
       const pdf = new jsPDF({
@@ -246,7 +245,7 @@ export function Dashboard() {
         format: [pdfWidth, pdfHeight]
       });
       
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.addImage(dataUrl, 'PNG', 0, 0, pdfWidth, pdfHeight);
 
       const dataHoje = format(new Date(), 'dd_MM_yyyy');
       pdf.save(`Relatorio_Performance_${filter}_${dataHoje}.pdf`);
