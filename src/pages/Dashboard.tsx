@@ -466,7 +466,7 @@ export function Dashboard() {
               </ResponsiveContainer>
             </div>
             <div className="mt-2 text-xs text-[var(--color-text-muted)] text-center bg-[var(--color-bg-base)] p-2 rounded-[8px]">
-              ⚙️ Horário atual reflete as configurações administrativas ativas da clínica.
+              ⚙️ Horário atual reflete as configurações administrativas ativas da empresa.
             </div>
           </CardContent>
         </Card>
