@@ -238,9 +238,9 @@ export function Dashboard() {
 
       const dataUrl = await toPng(input, {
         cacheBust: true,
-        pixelRatio: 1.5, // Reduced slightly to avoid extreme subpixel font clipping
+        pixelRatio: 2, // Restored high res definition
         style: {
-          backgroundColor: '#ffffff'
+          backgroundColor: '#F7F5F2' // Warm White base color
         }
       });
 
@@ -255,17 +255,25 @@ export function Dashboard() {
         el.style.textOverflow = '';
       });
       
-      const pdfWidth = 210; // A4 width in mm
-      const pdfHeight = (input.offsetHeight * pdfWidth) / input.offsetWidth;
+      const margin = 12; // 12mm padding on all sides
+      const pdfWidth = 210; // A4 standard width
+      const contentPdfWidth = pdfWidth - (margin * 2);
+      const contentPdfHeight = (input.offsetHeight * contentPdfWidth) / input.offsetWidth;
+      const pdfHeight = contentPdfHeight + (margin * 2);
       
-      // Create a continuous page matching exactly the content height
+      // Create a continuous page matching exactly the content height + margins
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
         format: [pdfWidth, pdfHeight]
       });
       
-      pdf.addImage(dataUrl, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      // Paint background of PDF to match the app's warm white
+      pdf.setFillColor(247, 245, 242);
+      pdf.rect(0, 0, pdfWidth, pdfHeight, 'F');
+      
+      // Draw image inside the padded area
+      pdf.addImage(dataUrl, 'PNG', margin, margin, contentPdfWidth, contentPdfHeight);
 
       const dataHoje = format(new Date(), 'dd_MM_yyyy');
       pdf.save(`Relatorio_Performance_${filter}_${dataHoje}.pdf`);
@@ -286,7 +294,7 @@ export function Dashboard() {
               <button
                 key={f}
                 onClick={() => setFilter(f)}
-                className={`px-3 py-1.5 text-sm font-medium rounded-[8px] transition-all flex-grow sm:flex-grow-0 text-center cursor-pointer active:scale-95 hover:brightness-95 ${filter === f ? 'bg-[var(--color-primary)] text-white shadow-md' : 'bg-[var(--color-bg-base)] text-[var(--color-text-main)] hover:bg-[var(--color-primary-light)]'}`}
+                className={`px-3 py-1.5 text-sm font-medium rounded-[8px] transition-all flex-grow sm:flex-grow-0 text-center cursor-pointer active:scale-95 hover:brightness-95 whitespace-nowrap ${filter === f ? 'bg-[var(--color-primary)] text-white shadow-md' : 'bg-[var(--color-bg-base)] text-[var(--color-text-main)] hover:bg-[var(--color-primary-light)]'}`}
               >
                 {f === 'hoje' ? 'Hoje' : f === 'ontem' ? 'Ontem' : f === '7dias' ? '7 dias' : f === '14dias' ? '14 dias' : f === 'mes' ? 'Mês' : 'Ano'}
               </button>
