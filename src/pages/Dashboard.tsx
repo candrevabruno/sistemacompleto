@@ -213,18 +213,32 @@ export function Dashboard() {
     try {
       setIsGeneratingPDF(true);
       
+      // Ensure all custom fonts are completely loaded before taking snapshot
+      await document.fonts.ready;
+
       // Temporarily hide elements not meant for print
       const noPrintElements = document.querySelectorAll('.no-print');
       noPrintElements.forEach((el) => {
         (el as HTMLElement).style.display = 'none';
       });
 
-      // Wait a moment for any rendering or UI updates
-      await new Promise(resolve => setTimeout(resolve, 300)); 
+      // Temporarily remove tailwind's truncate to prevent text getting randomly cut-off in the SVG
+      const truncateElements = document.querySelectorAll('.truncate');
+      const truncateOriginals: {el: HTMLElement, style: string}[] = [];
+      truncateElements.forEach((el) => {
+        const htmlEl = el as HTMLElement;
+        truncateOriginals.push({ el: htmlEl, style: htmlEl.style.whiteSpace });
+        htmlEl.style.whiteSpace = 'normal';
+        htmlEl.style.overflow = 'visible';
+        htmlEl.style.textOverflow = 'clip';
+      });
+
+      // Wait 1.5s for any Recharts animations to finish to avoid mid-animation graphical glitches
+      await new Promise(resolve => setTimeout(resolve, 1500)); 
 
       const dataUrl = await toPng(input, {
         cacheBust: true,
-        pixelRatio: 2,
+        pixelRatio: 1.5, // Reduced slightly to avoid extreme subpixel font clipping
         style: {
           backgroundColor: '#ffffff'
         }
@@ -233,6 +247,12 @@ export function Dashboard() {
       // Restore elements
       noPrintElements.forEach((el) => {
         (el as HTMLElement).style.display = '';
+      });
+      
+      truncateOriginals.forEach(({el, style}) => {
+        el.style.whiteSpace = style;
+        el.style.overflow = '';
+        el.style.textOverflow = '';
       });
       
       const pdfWidth = 210; // A4 width in mm
