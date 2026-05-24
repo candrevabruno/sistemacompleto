@@ -1075,6 +1075,10 @@
             {
               "fieldId": "id_agendamento",
               "fieldValue": "={{ $('Reagendar').item.json.data.uid }}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "reagendado"
             }
           ]
         }
@@ -1138,11 +1142,11 @@
         "json": {
           "whatsapp_lead": "5521965842639",
           "evento": "reagendamento",
-          "inicio_reuniao": "2026-04-23T13:00:00Z",
-          "final_reuniao": "2026-04-23T14:00:00Z",
+          "inicio_reuniao": "2026-04-24T13:00:00Z",
+          "final_reuniao": "2026-04-24T14:00:00Z",
           "tipo_consulta": "online",
-          "assunto": "Consulta inventário online para tirar dúvidas e dar entrada em inventário, remarcação para sexta-feira às 10h",
-          "id_agendamento": "mVt2CeGD2W1cfER6QgkkdH",
+          "assunto": "Reagendamento da consulta online sobre esclarecimento de dúvidas iniciais de inventário para sexta-feira, 24/04, às 10:00",
+          "id_agendamento": "rKiB4pShLtv3VkhGMNcbdD",
           "nome_lead": null,
           "url_chatwoot": null
         },
@@ -1440,7 +1444,7 @@
     "callerPolicy": "workflowsFromSameOwner",
     "availableInMCP": false
   },
-  "versionId": "0c96822e-3f55-4c6a-809a-aa98d8e5081c",
+  "versionId": "06af5826-7a4b-474b-ad1a-1bd7a44cf0a2",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "bd23b4d0be4dd939efa78787b912105fba074f6766a8c4ab96351fd4f3b4ddad"

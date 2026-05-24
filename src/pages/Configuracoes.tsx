@@ -47,6 +47,7 @@ export function Configuracoes() {
 function AbaGeral() {
   const { config, refreshConfig } = useClinic();
   const [nome, setNome] = useState(config?.nome || 'Heroic Leap');
+  const [chatwootUrl, setChatwootUrl] = useState(config?.chatwoot_url || '');
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
@@ -55,6 +56,7 @@ function AbaGeral() {
 
   useEffect(() => {
     setNome(config?.nome || 'Heroic Leap');
+    setChatwootUrl(config?.chatwoot_url || '');
   }, [config]);
 
   useEffect(() => {
@@ -96,7 +98,7 @@ function AbaGeral() {
           logo_url = urlReq.data.publicUrl;
         }
       }
-      await supabase.from('clinic_config').update({ nome, logo_url }).eq('id', 1);
+      await supabase.from('clinic_config').update({ nome, logo_url, chatwoot_url: chatwootUrl || null }).eq('id', 1);
       await refreshConfig();
       setLogoFile(null); // limpa preview local para forçar carregar do servidor
       alert('Configurações salvas com sucesso!');
@@ -127,6 +129,12 @@ function AbaGeral() {
         <CardHeader><CardTitle>Identidade da Empresa</CardTitle></CardHeader>
         <CardContent className="space-y-4">
           <Input label="Nome da empresa" value={nome} onChange={e => setNome(e.target.value)} />
+          <Input 
+            label="URL do Dashboard/Inbox do Chatwoot" 
+            placeholder="Ex: https://chat.suaclinica.com.br/app/accounts/1/dashboard" 
+            value={chatwootUrl} 
+            onChange={e => setChatwootUrl(e.target.value)} 
+          />
 
           {/* Logo upload estilizado */}
           <div>

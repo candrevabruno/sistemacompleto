@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS public.clinic_config (
   id INT PRIMARY KEY DEFAULT 1 CHECK (id = 1),
   nome TEXT NOT NULL DEFAULT 'Minha Empresa',
   logo_url TEXT,
+  chatwoot_url TEXT,
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 

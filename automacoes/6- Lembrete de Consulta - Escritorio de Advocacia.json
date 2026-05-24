@@ -6,7 +6,8 @@
         "rule": {
           "interval": [
             {
-              "field": "hours"
+              "field": "cronExpression",
+              "expression": "0 8-22 * * *"
             }
           ]
         }
@@ -14,8 +15,8 @@
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
       "position": [
-        -192,
-        -16
+        -592,
+        -32
       ],
       "id": "0bd20cfd-6046-428d-ae12-d3a86b05ceac",
       "name": "Schedule Trigger"
@@ -36,7 +37,7 @@
             {
               "keyName": "data_agendamento",
               "condition": "gte",
-              "keyValue": "=={{ $now.setZone('America/Sao_Paulo').startOf('day').toISO() }}"
+              "keyValue": "={{ $now.setZone('America/Sao_Paulo').startOf('day').toISO() }}"
             },
             {
               "keyName": "data_agendamento",
@@ -49,8 +50,8 @@
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        32,
-        -16
+        -352,
+        -32
       ],
       "id": "9c464025-1a61-491d-b399-731039abf6b8",
       "name": "PuxarDadosLead",
@@ -131,9 +132,9 @@
     {
       "parameters": {
         "promptType": "define",
-        "text": "=Crie uma mensagem de lembrete de consulta para o lead {{ $json.nome_lead }}. A consulta está agendada para {{ DateTime.fromISO($json.data_agendamento).setZone('America/Sao_Paulo').toFormat(\"dd/MM 'às' HH:mm\") }}.",
+        "text": "=Crie uma mensagem de lembrete de reunião para o lead {{ $json.nome_lead }}. A reunião está agendada para {{ DateTime.fromISO($json.data_agendamento).setZone('America/Sao_Paulo').toFormat(\"dd/MM 'às' HH:mm\") }}.",
         "options": {
-          "systemMessage": "=## IDENTIDADE\nVocê é **Camila**, secretária da Candreva Advocacia.\nVocê é especialista em enviar lembretes humanizados e naturais no WhatsApp.\n\n## FUNÇÃO\n- Enviar uma mensagem de lembrete da consulta agendada para hoje.\n- A mensagem deve ser leve, simpática e profissional.\n\n## REGRAS\n- Use o nome do lead.\n- Mencione a data e horário da consulta: {{ DateTime.fromISO($('setarInformacoes').item.json.data_agendamento).setZone('America/Sao_Paulo').toFormat(\"dd/MM 'às' HH:mm\") }}\n- Seja breve, como uma conversa natural no WhatsApp.\n- Não pressione nem cobre nada.\n- Emojis com moderação.\n- Nunca invente informações.\n- Data e hora de agora: {{ $now }}\n\n## EXEMPLOS\nExemplo 1:\n\"Oi, [nome]! Só passando para lembrar que sua consulta está agendada para hoje às [hora]. Qualquer dúvida, estou por aqui! 😊\"\n\nExemplo 2:\n\"Olá, [nome]! Sua consulta online é hoje às [hora]. Se precisar de algo antes, é só me chamar!\"\n\nExemplo 3:\n\"Oi, [nome]! Lembrando que hoje temos sua consulta às [hora]. Até logo! 😊\""
+          "systemMessage": "=## IDENTIDADE\nVocê é **Camila**, secretária da Candreva Advocacia.\nVocê é especialista em enviar lembretes humanizados e naturais no WhatsApp.\n\n## FUNÇÃO\n- Enviar uma mensagem de lembrete da reunião agendada para hoje.\n- A mensagem deve ser leve, simpática e profissional.\n\n## REGRAS\n- Use o nome do lead.\n- Mencione a data e horário da reunião: {{ DateTime.fromISO($('setarInformacoes').item.json.data_agendamento).setZone('America/Sao_Paulo').toFormat(\"dd/MM 'às' HH:mm\") }}\n- Seja breve, como uma conversa natural no WhatsApp.\n- Não pressione nem cobre nada.\n- Emojis com moderação.\n- Nunca invente informações.\n- Data e hora de agora: {{ $now }}\n\n## EXEMPLOS\nExemplo 1:\n\"Oi, [nome]! Só passando para lembrar que sua reunião está agendada para hoje às [hora]. Qualquer dúvida, estou por aqui! 😊\"\n\nExemplo 2:\n\"Olá, [nome]! Sua reunião é hoje às [hora]. Se precisar de algo antes, é só me chamar!\"\n\nExemplo 3:\n\"Oi, [nome]! Lembrando que hoje temos sua reunião às [hora]. Até logo! 😊\""
         }
       },
       "type": "@n8n/n8n-nodes-langchain.agent",
@@ -221,29 +222,101 @@
       }
     },
     {
-      "parameters": {},
-      "type": "n8n-nodes-base.noOp",
-      "typeVersion": 1,
-      "position": [
-        1712,
-        -176
-      ],
-      "id": "7e9c2347-94a2-4646-b5f5-f7b73cae558d",
-      "name": "Voltar ao Loop"
-    },
-    {
       "parameters": {
         "amount": 10
       },
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
       "position": [
-        1616,
-        160
+        1808,
+        224
       ],
       "id": "317073ee-4e40-43a9-8ffc-cf67749bc1a6",
       "name": "Wait",
       "webhookId": "7e05cd0d-d9d3-4259-a399-decbe2987b67"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "leads",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "whatsapp_lead",
+              "condition": "eq",
+              "keyValue": "={{ $('PuxarDadosLead').item.json.whatsapp_lead }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "lembrete_enviado",
+              "fieldValue": "enviado"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1472,
+        0
+      ],
+      "id": "0f5021b6-a90b-4cb1-af06-56f2362ed0a1",
+      "name": "Update a row",
+      "credentials": {
+        "supabaseApi": {
+          "id": "ycZIGpAXZd31iIEF",
+          "name": "Supabase | Heroic Leap"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "01553ceb-a2fa-467f-92aa-4a6bb150ff49",
+              "leftValue": "={{ $json.lembrete_enviado }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -112,
+        -32
+      ],
+      "id": "483eca1e-08f1-4e73-a04e-4a5f484e5499",
+      "name": "If",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        256,
+        -192
+      ],
+      "id": "d9e7049d-9f98-4057-9020-b1a1762e86da",
+      "name": "No Operation, do nothing"
     }
   ],
   "pinData": {},
@@ -263,7 +336,7 @@
       "main": [
         [
           {
-            "node": "Loop",
+            "node": "If",
             "type": "main",
             "index": 0
           }
@@ -330,6 +403,28 @@
       "main": [
         [
           {
+            "node": "Update a row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Loop",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update a row": {
+      "main": [
+        [
+          {
             "node": "Wait",
             "type": "main",
             "index": 0
@@ -337,13 +432,15 @@
         ]
       ]
     },
-    "Voltar ao Loop": {
+    "If": {
       "main": [
-        []
-      ]
-    },
-    "Wait": {
-      "main": [
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ],
         [
           {
             "node": "Loop",
@@ -363,7 +460,7 @@
     "callerPolicy": "workflowsFromSameOwner",
     "availableInMCP": false
   },
-  "versionId": "3444ed93-5f8e-4355-9d53-ee700b3a20bc",
+  "versionId": "5549ffa1-f5b0-418d-8b5b-dd834efee103",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "bd23b4d0be4dd939efa78787b912105fba074f6766a8c4ab96351fd4f3b4ddad"

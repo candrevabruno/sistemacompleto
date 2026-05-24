@@ -11,4 +11,5 @@ export interface AppUser {
 export interface ClinicConfig {
   nome: string;
   logo_url: string | null;
+  chatwoot_url?: string | null;
 }

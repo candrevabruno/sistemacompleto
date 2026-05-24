@@ -8,6 +8,7 @@ import { Dashboard } from './pages/Dashboard';
 import { CRM } from './pages/CRM';
 import { CentralAgendamentos } from './pages/CentralAgendamentos';
 import { LeadsClientes } from './pages/LeadsClientes';
+import { Inbox } from './pages/Inbox';
 import { Configuracoes } from './pages/Configuracoes';
 
 const PrivateRoute = ({ children, adminOnly = false }: { children: React.ReactNode, adminOnly?: boolean }) => {
@@ -31,6 +32,7 @@ export function App() {
                 <Route path="/crm" element={<CRM />} />
                 <Route path="/leads" element={<LeadsClientes key="leads" mode="leads" />} />
                 <Route path="/clientes" element={<LeadsClientes key="clientes" mode="clientes" />} />
+                <Route path="/inbox" element={<Inbox />} />
                 <Route path="/central-agendamentos" element={<CentralAgendamentos />} />
                 <Route 
                   path="/configuracoes" 

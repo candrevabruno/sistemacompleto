@@ -20,12 +20,25 @@ export const ClinicProvider = ({ children }: { children: React.ReactNode }) => {
 
   const refreshConfig = async () => {
     try {
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from('clinic_config')
-        .select('nome, logo_url')
+        .select('nome, logo_url, chatwoot_url')
         .eq('id', 1)
         .single();
         
+      if (error) {
+        // Fallback caso a coluna chatwoot_url ainda não exista no banco do cliente
+        const fallback = await supabase
+          .from('clinic_config')
+          .select('nome, logo_url')
+          .eq('id', 1)
+          .single();
+        if (!fallback.error && fallback.data) {
+          data = { ...fallback.data, chatwoot_url: null };
+          error = null;
+        }
+      }
+
       if (!error && data) {
         setConfig(data);
       }
