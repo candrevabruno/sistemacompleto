@@ -29,8 +29,8 @@ export function App() {
               <Route element={<PrivateRoute><Layout /></PrivateRoute>}>
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/crm" element={<CRM />} />
-                <Route path="/leads" element={<LeadsClientes mode="leads" />} />
-                <Route path="/clientes" element={<LeadsClientes mode="clientes" />} />
+                <Route path="/leads" element={<LeadsClientes key="leads" mode="leads" />} />
+                <Route path="/clientes" element={<LeadsClientes key="clientes" mode="clientes" />} />
                 <Route path="/central-agendamentos" element={<CentralAgendamentos />} />
                 <Route 
                   path="/configuracoes" 
