@@ -108,6 +108,9 @@ export function CentralAgendamentos() {
   useEffect(() => { 
     fetchAgendamentos(); 
     
+    const handleFocus = () => fetchAgendamentos();
+    window.addEventListener('focus', handleFocus);
+
     // ─── REALTIME SYNC (Ouça as alterações da I.A.) ───────────────────────
     const channel = supabase
       .channel('schema-db-changes')
@@ -122,6 +125,7 @@ export function CentralAgendamentos() {
 
     return () => {
       supabase.removeChannel(channel);
+      window.removeEventListener('focus', handleFocus);
     };
   }, [filtro, agendaFiltro, statusFiltro, customStart, customEnd]);
   // ─── AÇÕES ────────────────────────────────────────────────────────────────

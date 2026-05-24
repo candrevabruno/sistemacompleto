@@ -43,6 +43,11 @@ export function Dashboard() {
 
   useEffect(() => {
     fetchData();
+    
+    const handleFocus = () => fetchData();
+    window.addEventListener('focus', handleFocus);
+    
+    return () => window.removeEventListener('focus', handleFocus);
   }, [dateRange]);
 
   const fetchClinicHours = async () => {

@@ -40,6 +40,11 @@ export function LeadsClientes({ mode }: { mode?: 'leads' | 'clientes' }) {
 
   useEffect(() => {
     fetchData();
+    
+    const handleFocus = () => fetchData();
+    window.addEventListener('focus', handleFocus);
+    
+    return () => window.removeEventListener('focus', handleFocus);
   }, [activeTab, dateRange]);
 
   const applyFilter = (f: DateFilter) => {
