@@ -14,8 +14,7 @@ import {
   Code,
   LogOut,
   Menu,
-  X,
-  MessageSquare
+  X
 } from 'lucide-react';
 import { Avatar } from '../ui/Avatar';
 
@@ -27,7 +26,6 @@ export function Sidebar() {
   const links = [
     { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { to: '/crm', label: 'CRM', icon: Kanban },
-    { to: '/inbox', label: 'Inbox', icon: MessageSquare },
     { to: '/leads', label: 'Leads', icon: Users },
     { to: '/clientes', label: 'Clientes', icon: UserCheck },
     { to: '/central-agendamentos', label: 'Agendamentos', icon: CalendarCheck },
