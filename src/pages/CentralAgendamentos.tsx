@@ -126,7 +126,9 @@ export function CentralAgendamentos() {
     fetchAgendamentos(); 
     
     const handleFocus = () => fetchAgendamentos();
+    const handleOnline = () => fetchAgendamentos();
     window.addEventListener('focus', handleFocus);
+    window.addEventListener('online', handleOnline);
 
     // ─── REALTIME SYNC (Ouça as alterações da I.A.) ───────────────────────
     const channel = supabase
@@ -143,6 +145,7 @@ export function CentralAgendamentos() {
     return () => {
       supabase.removeChannel(channel);
       window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('online', handleOnline);
     };
   }, [filtro, agendaFiltro, statusFiltro, customStart, customEnd]);
   // ─── AÇÕES ────────────────────────────────────────────────────────────────

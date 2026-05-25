@@ -45,9 +45,14 @@ export function Dashboard() {
     fetchData();
     
     const handleFocus = () => fetchData();
+    const handleOnline = () => fetchData();
     window.addEventListener('focus', handleFocus);
+    window.addEventListener('online', handleOnline);
     
-    return () => window.removeEventListener('focus', handleFocus);
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('online', handleOnline);
+    };
   }, [dateRange]);
 
   const fetchClinicHours = async () => {

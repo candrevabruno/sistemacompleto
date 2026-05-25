@@ -146,7 +146,12 @@ export function CRM() {
       fetchLeads();
       fetchAgendas();
     };
+    const handleOnline = () => {
+      fetchLeads();
+      fetchAgendas();
+    };
     window.addEventListener('focus', handleFocus);
+    window.addEventListener('online', handleOnline);
 
     const leadsChannel = supabase
       .channel('crm-leads-changes')
@@ -162,6 +167,7 @@ export function CRM() {
     return () => {
       supabase.removeChannel(leadsChannel);
       window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('online', handleOnline);
     };
   }, []);
 

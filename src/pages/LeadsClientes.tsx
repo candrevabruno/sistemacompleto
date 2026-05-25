@@ -42,9 +42,14 @@ export function LeadsClientes({ mode }: { mode?: 'leads' | 'clientes' }) {
     fetchData();
     
     const handleFocus = () => fetchData();
+    const handleOnline = () => fetchData();
     window.addEventListener('focus', handleFocus);
+    window.addEventListener('online', handleOnline);
     
-    return () => window.removeEventListener('focus', handleFocus);
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('online', handleOnline);
+    };
   }, [activeTab, dateRange]);
 
   const applyFilter = (f: DateFilter) => {
