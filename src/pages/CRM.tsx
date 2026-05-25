@@ -43,7 +43,6 @@ export function CRM() {
   const [converteuForm, setConverteuForm] = useState<{ servicos: string[], valor: string, observacao: string }>({ servicos: [], valor: '', observacao: '' });
   const [savingConverteu, setSavingConverteu] = useState(false);
   const [availableServicos, setAvailableServicos] = useState<any[]>([]);
-  const [savingConverteu, setSavingConverteu] = useState(false);
 
   // Não Converteu Modal
   const [confirmNaoConverteu, setConfirmNaoConverteu] = useState<{ leadId: string, sourceCol: string, lead: any } | null>(null);

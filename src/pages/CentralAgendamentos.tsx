@@ -67,6 +67,12 @@ export function CentralAgendamentos() {
     procedimento_interesse: ''
   });
 
+  // Converteu Modal
+  const [confirmConverteu, setConfirmConverteu] = useState<{ leadId: string, sourceCol: string, lead: any } | null>(null);
+  const [converteuForm, setConverteuForm] = useState<{ servicos: string[], valor: string, observacao: string }>({ servicos: [], valor: '', observacao: '' });
+  const [savingConverteu, setSavingConverteu] = useState(false);
+  const [availableServicos, setAvailableServicos] = useState<any[]>([]);
+
   const getDateRange = () => {
     const now = new Date();
     switch (filtro) {
