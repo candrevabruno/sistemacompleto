@@ -627,7 +627,7 @@ export function Dashboard() {
                   <Bar 
                     dataKey="value" 
                     name="Vendas"
-                    fill="#C5A059"
+                    fill="var(--color-primary)"
                     radius={[0, 4, 4, 0]} 
                     barSize={24} 
                     label={{ position: 'right', fill: 'var(--color-text-muted)', fontSize: 12, fontWeight: '500' }} 
