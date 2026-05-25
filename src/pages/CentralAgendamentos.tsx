@@ -80,27 +80,44 @@ export function CentralAgendamentos() {
   };
 
   const fetchAgendas = async () => {
-    const { data } = await supabase.from('agendas').select('id, nome, cor').eq('ativo', true);
-    if (data) setAgendas(data);
+    try {
+      const { data, error } = await supabase.from('agendas').select('id, nome, cor').eq('ativo', true);
+      if (error) {
+        console.error('Erro ao buscar agendas:', error);
+      } else if (data) {
+        setAgendas(data);
+      }
+    } catch (err) {
+      console.error('Falha de rede ao buscar agendas:', err);
+    }
   };
 
   const fetchAgendamentos = async () => {
-    setLoading(true);
-    const { start, end } = getDateRange();
+    try {
+      setLoading(true);
+      const { start, end } = getDateRange();
 
-    let query = supabase
-      .from('agendamentos')
-      .select('*, agendas(nome, cor), leads:lead_id(resumo_conversa)')
-      .gte('data_hora_inicio', start.toISOString())
-      .lte('data_hora_inicio', end.toISOString())
-      .order('data_hora_inicio', { ascending: true });
+      let query = supabase
+        .from('agendamentos')
+        .select('*, agendas(nome, cor), leads:lead_id(resumo_conversa)')
+        .gte('data_hora_inicio', start.toISOString())
+        .lte('data_hora_inicio', end.toISOString())
+        .order('data_hora_inicio', { ascending: true });
 
-    if (agendaFiltro !== 'todas') query = query.eq('agenda_id', agendaFiltro);
-    if (statusFiltro !== 'todos') query = query.eq('status', statusFiltro);
+      if (agendaFiltro !== 'todas') query = query.eq('agenda_id', agendaFiltro);
+      if (statusFiltro !== 'todos') query = query.eq('status', statusFiltro);
 
-    const { data } = await query;
-    setAgendamentos(data || []);
-    setLoading(false);
+      const { data, error } = await query;
+      if (error) {
+        console.error('Erro ao buscar agendamentos:', error);
+      } else {
+        setAgendamentos(data || []);
+      }
+    } catch (err) {
+      console.error('Falha de rede ao buscar agendamentos:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { fetchAgendas(); }, []);

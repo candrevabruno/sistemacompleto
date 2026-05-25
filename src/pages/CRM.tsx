@@ -68,10 +68,19 @@ export function CRM() {
   const [savingDetails, setSavingDetails] = useState(false);
 
   const fetchLeads = async () => {
-    setLoading(true);
-    const { data } = await supabase.from('leads').select('*').order('ultima_mensagem', { ascending: false });
-    if (data) setLeads(data);
-    setLoading(false);
+    try {
+      setLoading(true);
+      const { data, error } = await supabase.from('leads').select('*').order('ultima_mensagem', { ascending: false });
+      if (error) {
+        console.error('Erro ao buscar leads:', error);
+      } else if (data) {
+        setLeads(data);
+      }
+    } catch (err) {
+      console.error('Falha de rede ao buscar leads:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleStatusChange = async (leadId: string, newStatus: string) => {
@@ -117,8 +126,16 @@ export function CRM() {
   };
 
   const fetchAgendas = async () => {
-    const { data } = await supabase.from('agendas').select('id, nome, cor').eq('ativo', true);
-    if (data) setAgendas(data);
+    try {
+      const { data, error } = await supabase.from('agendas').select('id, nome, cor').eq('ativo', true);
+      if (error) {
+        console.error('Erro ao buscar agendas:', error);
+      } else if (data) {
+        setAgendas(data);
+      }
+    } catch (err) {
+      console.error('Falha de rede ao buscar agendas:', err);
+    }
   };
 
   useEffect(() => {

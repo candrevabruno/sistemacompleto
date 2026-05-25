@@ -63,37 +63,42 @@ export function LeadsClientes({ mode }: { mode?: 'leads' | 'clientes' }) {
   };
 
   const fetchData = async () => {
-    setLoading(true);
-    const startIso = dateRange.start.toISOString();
-    const endIso = dateRange.end.toISOString();
+    try {
+      setLoading(true);
+      const startIso = dateRange.start.toISOString();
+      const endIso = dateRange.end.toISOString();
 
-    if (activeTab === 'leads') {
-      // Leads que não estão em clientes
-      const reqAllLeads = await supabase.from('leads').select('*').gte('inicio_atendimento', startIso).lte('inicio_atendimento', endIso);
-      const reqClientLeadIds = await supabase.from('clientes').select('lead_id');
-      const clientIds = new Set(reqClientLeadIds.data?.map(c => c.lead_id) || []);
-      const pendingLeads = (reqAllLeads.data || []).filter(l => !clientIds.has(l.id));
-      setLeads(pendingLeads);
-    } else {
-      // Clientes + Leads
-      const { data } = await supabase.from('clientes')
-        .select('*, leads(*)')
-        .gte('created_at', startIso).lte('created_at', endIso)
-        .order('created_at', { ascending: false });
-      
-      const resolvedClients = [];
-      for (const p of (data || [])) {
-        const reqCompareceu = await supabase.from('agendamentos').select('id', { count: 'exact' }).eq('cliente_id', p.id).eq('status', 'compareceu');
-        const reqProx = await supabase.from('agendamentos').select('data_hora_inicio').eq('cliente_id', p.id).gte('data_hora_inicio', new Date().toISOString()).order('data_hora_inicio', { ascending: true }).limit(1);
-        resolvedClients.push({
-           ...p,
-           countCompareceu: reqCompareceu.count || 0,
-           proxAgendamento: reqProx.data?.[0]?.data_hora_inicio || null
-        });
+      if (activeTab === 'leads') {
+        // Leads que não estão em clientes
+        const reqAllLeads = await supabase.from('leads').select('*').gte('inicio_atendimento', startIso).lte('inicio_atendimento', endIso);
+        const reqClientLeadIds = await supabase.from('clientes').select('lead_id');
+        const clientIds = new Set(reqClientLeadIds.data?.map(c => c.lead_id) || []);
+        const pendingLeads = (reqAllLeads.data || []).filter(l => !clientIds.has(l.id));
+        setLeads(pendingLeads);
+      } else {
+        // Clientes + Leads
+        const { data } = await supabase.from('clientes')
+          .select('*, leads(*)')
+          .gte('created_at', startIso).lte('created_at', endIso)
+          .order('created_at', { ascending: false });
+        
+        const resolvedClients = [];
+        for (const p of (data || [])) {
+          const reqCompareceu = await supabase.from('agendamentos').select('id', { count: 'exact' }).eq('cliente_id', p.id).eq('status', 'compareceu');
+          const reqProx = await supabase.from('agendamentos').select('data_hora_inicio').eq('cliente_id', p.id).gte('data_hora_inicio', new Date().toISOString()).order('data_hora_inicio', { ascending: true }).limit(1);
+          resolvedClients.push({
+             ...p,
+             countCompareceu: reqCompareceu.count || 0,
+             proxAgendamento: reqProx.data?.[0]?.data_hora_inicio || null
+          });
+        }
+        setClientes(resolvedClients);
       }
-      setClientes(resolvedClients);
+    } catch (err) {
+      console.error('Erro de rede ao buscar leads/clientes:', err);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const filteredLeads = leads.filter(l => {
