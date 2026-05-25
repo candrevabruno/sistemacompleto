@@ -231,6 +231,13 @@ export function CRM() {
        updates.id_agendamento = null;
        updates.agendamento_criado_em = null;
        updates.modalidade = null;
+       if (lead.id_agendamento) {
+         await supabase.from('agendamentos').update({ status: 'cancelado' }).eq('id', lead.id_agendamento);
+       }
+    }
+
+    if (['faltou', 'cancelou_agendamento'].includes(newStatus) && lead.id_agendamento) {
+      await supabase.from('agendamentos').update({ status: newStatus }).eq('id', lead.id_agendamento);
     }
 
     setLeads(prev => prev.map(l => l.id === leadId ? { ...l, ...updates } : l));
@@ -292,7 +299,7 @@ export function CRM() {
 
   const confirmConverteuAction = async () => {
     if (!confirmConverteu || !converteuForm.valor) return;
-    const { leadId } = confirmConverteu;
+    const { leadId, lead } = confirmConverteu;
     setSavingConverteu(true);
     try {
       const { error } = await supabase
@@ -305,6 +312,11 @@ export function CRM() {
         })
         .eq('id', leadId);
       if (error) throw error;
+
+      if (lead.id_agendamento) {
+        await supabase.from('agendamentos').update({ status: 'compareceu' }).eq('id', lead.id_agendamento);
+      }
+
       updateLeadState(leadId, 'converteu');
       setConfirmConverteu(null);
       fetchLeads();
@@ -338,10 +350,28 @@ export function CRM() {
     setSavingReagendado(true);
     try {
       const novaData = new Date(reagendadoForm.dataHora).toISOString();
-      if (lead.id_agendamento) {
-        await supabase.from('agendamentos').update({ data_hora_inicio: novaData, status: 'reagendado', modalidade: reagendadoForm.modalidade }).eq('id', lead.id_agendamento);
+      let agId = lead.id_agendamento;
+      if (agId) {
+        await supabase.from('agendamentos').update({ data_hora_inicio: novaData, status: 'reagendado', modalidade: reagendadoForm.modalidade }).eq('id', agId);
+      } else {
+        const { data: newAg, error: insertError } = await supabase
+          .from('agendamentos')
+          .insert({
+            lead_id: leadId,
+            agenda_id: reagendadoForm.agendaId || null,
+            procedimento_nome: lead.procedimento_interesse || 'Consulta Inicial',
+            nome_lead: lead.nome_lead || 'Lead sem nome',
+            whatsapp_lead: lead.whatsapp_lead || '',
+            data_hora_inicio: novaData,
+            status: 'reagendado',
+            modalidade: reagendadoForm.modalidade
+          })
+          .select()
+          .single();
+        if (insertError) throw insertError;
+        agId = newAg.id;
       }
-      await supabase.from('leads').update({ status: 'reagendado', data_agendamento: novaData, modalidade: reagendadoForm.modalidade }).eq('id', leadId);
+      await supabase.from('leads').update({ status: 'reagendado', data_agendamento: novaData, modalidade: reagendadoForm.modalidade, id_agendamento: agId }).eq('id', leadId);
       updateLeadState(leadId, 'reagendado');
       setConfirmReagendado(null);
       fetchLeads();
