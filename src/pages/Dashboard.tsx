@@ -581,7 +581,7 @@ export function Dashboard() {
                   {u.agendas && (
                     <div className="text-[10px] sm:text-sm border rounded-full px-2 py-0.5 sm:px-3 sm:py-1 flex items-center gap-2 flex-shrink-0 self-start sm:self-auto ml-[70px] sm:ml-0" style={{ borderColor: u.agendas.cor }}>
                       <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full" style={{ backgroundColor: u.agendas.cor }}></div>
-                      <span className="truncate max-w-[120px]">{u.agendas.nome}</span>
+                      <span className="truncate sm:overflow-visible sm:whitespace-nowrap sm:max-w-none max-w-[120px]">{u.agendas.nome}</span>
                     </div>
                   )}
                 </div>
