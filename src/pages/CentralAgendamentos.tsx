@@ -193,9 +193,7 @@ export function CentralAgendamentos() {
 
   // ─── RENDER ──────────────────────────────────────────────────────────────
 
-  const totalHoje = agendamentos.length;
-  const confirmados = agendamentos.filter(a => a.status === 'confirmado' || a.status === 'compareceu').length;
-  const cancelados = agendamentos.filter(a => a.status === 'cancelado').length;
+  // ─── RENDER ──────────────────────────────────────────────────────────────
 
   return (
     <div className="space-y-6">
@@ -207,25 +205,6 @@ export function CentralAgendamentos() {
         <button onClick={fetchAgendamentos} className="flex items-center gap-2 text-sm text-[var(--color-text-muted)] hover:text-[var(--color-primary)] transition-colors">
           <RefreshCw className="w-4 h-4" /> Atualizar
         </button>
-      </div>
-
-      {/* Cards resumo */}
-      <div className="grid grid-cols-3 gap-4">
-        {[
-          { label: 'No período', value: totalHoje, icon: CalendarIcon, color: 'text-[var(--color-primary)]' },
-          { label: 'Confirmados', value: confirmados, icon: CheckCircle, color: 'text-[#7A9E87]' },
-          { label: 'Cancelados', value: cancelados, icon: XCircle, color: 'text-red-500' },
-        ].map((m, i) => (
-          <Card key={i}>
-            <CardContent className="p-4 flex items-center gap-3">
-              <m.icon className={`w-8 h-8 ${m.color}`} />
-              <div>
-                <div className="text-2xl font-bold font-cormorant">{m.value}</div>
-                <div className="text-xs text-[var(--color-text-muted)]">{m.label}</div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
       </div>
 
       {/* Filtros */}
