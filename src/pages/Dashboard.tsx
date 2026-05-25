@@ -454,7 +454,7 @@ export function Dashboard() {
                 />
                 <Bar 
                   dataKey="valor" 
-                  name="Contatos"
+                  name="Leads"
                   fill="var(--color-primary)" 
                   radius={[6, 6, 0, 0]} 
                   barSize={32} 
