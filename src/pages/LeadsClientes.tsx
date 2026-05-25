@@ -216,9 +216,9 @@ export function LeadsClientes({ mode }: { mode?: 'leads' | 'clientes' }) {
       {/* Date Filter & Search */}
       <Card>
          <CardContent className="p-4">
-           <div className="flex flex-col w-full">
-              <div className="flex flex-col xl:flex-row flex-wrap gap-4 xl:gap-2 xl:items-center w-full">
-                <div className="flex flex-wrap gap-2 w-full xl:w-auto">
+           <div className="flex flex-col lg:flex-row gap-4 lg:items-center justify-between w-full">
+              <div className="flex flex-col xl:flex-row gap-4 xl:items-center">
+                <div className="flex flex-wrap gap-2">
                 {(['ontem', 'hoje', '7dias', '14dias', 'mes', 'ano'] as DateFilter[]).map(f => (
                   <button
                     key={f}
@@ -229,35 +229,33 @@ export function LeadsClientes({ mode }: { mode?: 'leads' | 'clientes' }) {
                   </button>
                 ))}
                 </div>
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full xl:w-auto xl:ml-2 xl:border-l border-[var(--color-border-card)] xl:pl-4 mt-3 xl:mt-0">
-                  <div className="flex flex-row items-center justify-between gap-2 w-full sm:w-auto">
-                    <Input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)} className="h-9 flex-1 min-w-0"/>
-                    <span className="text-sm text-[var(--color-text-muted)] shrink-0">até</span>
-                    <Input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)} className="h-9 flex-1 min-w-0"/>
-                  </div>
+                <div className="flex flex-wrap items-center gap-2 xl:border-l border-[var(--color-border-card)] xl:pl-4">
+                  <Input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)} className="h-9 w-[130px]"/>
+                  <span className="text-sm text-[var(--color-text-muted)]">até</span>
+                  <Input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)} className="h-9 w-[130px]"/>
                   <button 
                     onClick={() => setDateFilter('custom')}
-                    className="px-4 py-2 sm:px-3 sm:py-1.5 bg-[var(--color-primary)] text-white text-sm font-medium rounded-[8px] transition-colors hover:bg-opacity-90 whitespace-nowrap w-full sm:w-auto"
+                    className="px-3 py-1.5 bg-[var(--color-primary)] text-white text-sm font-medium rounded-[8px] transition-colors hover:bg-opacity-90 whitespace-nowrap"
                   >
                     Filtrar
                   </button>
                 </div>
-                
-                <div className="flex flex-wrap items-center gap-2 w-full xl:w-auto xl:ml-auto">
-                  <Input 
-                    placeholder="Buscar nome ou zap..." 
-                    value={searchTerm} 
-                    onChange={e => setSearchTerm(e.target.value)}
-                    icon={<Search className="w-4 h-4"/>}
-                    className="h-9 w-full md:w-56"
-                  />
-                  <Button size="sm" variant="secondary" onClick={handleExportCSV} title="Exportar filtrados para CSV" className="h-9 border-[var(--color-border-card)] text-[var(--color-text-main)] hover:bg-[var(--color-bg-sidebar)]">
-                    <Download className="w-4 h-4 mr-2"/> CSV
-                  </Button>
-                  <Button size="sm" variant="secondary" onClick={handleExportPDF} title="Exportar filtrados para PDF" className="h-9 border-[var(--color-border-card)] text-[var(--color-text-main)] hover:bg-[var(--color-bg-sidebar)]">
-                    <FileText className="w-4 h-4 mr-2"/> PDF
-                  </Button>
-                </div>
+              </div>
+              
+              <div className="flex flex-row items-center gap-2">
+                <Input 
+                  placeholder="Buscar nome ou zap..." 
+                  value={searchTerm} 
+                  onChange={e => setSearchTerm(e.target.value)}
+                  icon={<Search className="w-4 h-4"/>}
+                  className="h-9 w-48 sm:w-56"
+                />
+                <Button size="sm" variant="secondary" onClick={handleExportCSV} title="Exportar filtrados para CSV" className="h-9 border-[var(--color-border-card)] text-[var(--color-text-main)] hover:bg-[var(--color-bg-sidebar)]">
+                  <Download className="w-4 h-4 sm:mr-2"/> <span className="hidden sm:inline">CSV</span>
+                </Button>
+                <Button size="sm" variant="secondary" onClick={handleExportPDF} title="Exportar filtrados para PDF" className="h-9 border-[var(--color-border-card)] text-[var(--color-text-main)] hover:bg-[var(--color-bg-sidebar)]">
+                  <FileText className="w-4 h-4 sm:mr-2"/> <span className="hidden sm:inline">PDF</span>
+                </Button>
               </div>
            </div>
          </CardContent>
