@@ -177,10 +177,10 @@ CREATE TRIGGER on_agenda_created AFTER INSERT ON public.agendas FOR EACH ROW EXE
 CREATE OR REPLACE FUNCTION public.converter_lead_em_cliente()
 RETURNS TRIGGER AS $$
 BEGIN
-  IF NEW.status = 'compareceu' AND (OLD.status IS NULL OR OLD.status != 'compareceu') THEN
+  IF NEW.status = 'converteu' AND (OLD.status IS NULL OR OLD.status != 'converteu') THEN
     INSERT INTO public.clientes (lead_id, data_primeira_visita) VALUES (NEW.id, CURRENT_DATE) ON CONFLICT (lead_id) DO NOTHING;
   END IF;
-  IF OLD.status = 'compareceu' AND NEW.status != 'compareceu' THEN
+  IF OLD.status = 'converteu' AND NEW.status != 'converteu' THEN
     DELETE FROM public.clientes WHERE lead_id = NEW.id;
   END IF;
   RETURN NEW;
