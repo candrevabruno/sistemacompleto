@@ -40,7 +40,9 @@ export function CRM() {
 
   // Converteu Modal
   const [confirmConverteu, setConfirmConverteu] = useState<{ leadId: string, sourceCol: string, lead: any } | null>(null);
-  const [converteuForm, setConverteuForm] = useState({ servico: '', valor: '', observacao: '' });
+  const [converteuForm, setConverteuForm] = useState<{ servicos: string[], valor: string, observacao: string }>({ servicos: [], valor: '', observacao: '' });
+  const [savingConverteu, setSavingConverteu] = useState(false);
+  const [availableServicos, setAvailableServicos] = useState<any[]>([]);
   const [savingConverteu, setSavingConverteu] = useState(false);
 
   // Não Converteu Modal
@@ -91,7 +93,7 @@ export function CRM() {
     if (!lead) return;
 
     if (newStatus === 'converteu') {
-      setConverteuForm({ servico: lead.procedimento_interesse || '', valor: String(lead.valor_pago || ''), observacao: '' });
+      setConverteuForm({ servicos: lead.servicos_contratados || [], valor: String(lead.valor_pago || ''), observacao: '' });
       setConfirmConverteu({ leadId, sourceCol: lead.status, lead });
       return;
     }
@@ -141,17 +143,25 @@ export function CRM() {
     }
   };
 
+  const fetchServicos = async () => {
+    const { data } = await supabase.from('servicos').select('*').order('nome');
+    if (data) setAvailableServicos(data);
+  };
+
   useEffect(() => {
     fetchLeads();
     fetchAgendas();
+    fetchServicos();
 
     const handleFocus = () => {
       fetchLeads();
       fetchAgendas();
+      fetchServicos();
     };
     const handleOnline = () => {
       fetchLeads();
       fetchAgendas();
+      fetchServicos();
     };
     window.addEventListener('focus', handleFocus);
     window.addEventListener('online', handleOnline);
@@ -199,7 +209,7 @@ export function CRM() {
 
     if (newStatus === 'converteu' && oldStatus !== 'converteu') {
       setConverteuForm({
-        servico: lead.procedimento_interesse || '',
+        servicos: lead.servicos_contratados || [],
         valor: String(lead.valor_pago || ''),
         observacao: ''
       });
@@ -302,7 +312,7 @@ export function CRM() {
   };
 
   const confirmConverteuAction = async () => {
-    if (!confirmConverteu || !converteuForm.valor) return;
+    if (!confirmConverteu || !converteuForm.valor || converteuForm.servicos.length === 0) return;
     const { leadId, lead } = confirmConverteu;
     setSavingConverteu(true);
     try {
@@ -311,7 +321,7 @@ export function CRM() {
         .update({ 
           status: 'converteu',
           valor_pago: parseFloat(converteuForm.valor.replace(',', '.')),
-          procedimento_interesse: converteuForm.servico,
+          servicos_contratados: converteuForm.servicos,
           observacoes: converteuForm.observacao ? `${confirmConverteu.lead.observacoes || ''}\nInformações Complementares: ${converteuForm.observacao}` : confirmConverteu.lead.observacoes
         })
         .eq('id', leadId);
@@ -573,12 +583,38 @@ export function CRM() {
       <Modal isOpen={!!confirmConverteu} onClose={() => setConfirmConverteu(null)} title="Finalizar Venda">
         <div className="space-y-4">
           <div className="p-3 bg-green-50 border border-green-200 rounded-[8px] text-green-800 font-medium text-sm">🚀 Parabéns! Preencha os dados do contrato.</div>
-          <div><label className="block text-sm font-medium mb-1">Serviço *</label><Input placeholder="Ex: Inventário" value={converteuForm.servico} onChange={e => setConverteuForm({...converteuForm, servico: e.target.value})} /></div>
-          <div><label className="block text-sm font-medium mb-1">Valor do Honorário (R$) *</label><Input placeholder="0,00" value={converteuForm.valor} onChange={e => setConverteuForm({...converteuForm, valor: e.target.value})} /></div>
+          
+          <div>
+            <label className="block text-sm font-medium mb-2">Serviços Contratados *</label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto custom-scrollbar pr-2 p-1">
+              {availableServicos.map(srv => (
+                <label key={srv.id} className="flex items-center gap-2 p-2 border border-[var(--color-border-card)] rounded-[8px] hover:bg-[var(--color-bg-base)] cursor-pointer transition-colors text-sm">
+                  <input 
+                    type="checkbox" 
+                    className="w-4 h-4 text-green-600 rounded border-gray-300 focus:ring-green-500"
+                    checked={converteuForm.servicos.includes(srv.nome)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setConverteuForm(prev => ({ ...prev, servicos: [...prev.servicos, srv.nome] }));
+                      } else {
+                        setConverteuForm(prev => ({ ...prev, servicos: prev.servicos.filter(n => n !== srv.nome) }));
+                      }
+                    }}
+                  />
+                  <span className="truncate">{srv.nome}</span>
+                </label>
+              ))}
+              {availableServicos.length === 0 && (
+                <div className="col-span-1 sm:col-span-2 text-sm text-[var(--color-text-muted)] p-2">Nenhum serviço cadastrado em Configurações.</div>
+              )}
+            </div>
+          </div>
+
+          <div><label className="block text-sm font-medium mb-1">Valor Total Faturado (R$) *</label><Input placeholder="0,00" value={converteuForm.valor} onChange={e => setConverteuForm({...converteuForm, valor: e.target.value})} /></div>
           <div><label className="block text-sm font-medium mb-1">Informações Complementares</label><textarea rows={3} value={converteuForm.observacao} onChange={e => setConverteuForm({...converteuForm, observacao: e.target.value})} className="w-full border rounded-[8px] px-3 py-2 text-sm bg-[var(--color-bg-base)]" /></div>
           <div className="flex gap-3 justify-end mt-4">
             <Button variant="secondary" onClick={() => setConfirmConverteu(null)}>Cancelar</Button>
-            <Button className="bg-green-600 text-white" onClick={confirmConverteuAction} disabled={!converteuForm.valor || savingConverteu}>Confirmar</Button>
+            <Button className="bg-green-600 text-white" onClick={confirmConverteuAction} disabled={!converteuForm.valor || converteuForm.servicos.length === 0 || savingConverteu}>Confirmar</Button>
           </div>
         </div>
       </Modal>

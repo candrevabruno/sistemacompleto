@@ -15,6 +15,7 @@ export function Configuracoes() {
   const tabs = [
     { id: 'geral', label: 'Geral' },
     { id: 'agendas', label: 'Agendas (Cal.com)' },
+    { id: 'servicos', label: 'Serviços' },
     { id: 'usuarios', label: 'Usuários' },
     { id: 'kanban', label: 'Kanban' }
   ];
@@ -35,6 +36,7 @@ export function Configuracoes() {
       <div>
         {activeTab === 'geral' && <AbaGeral />}
         {activeTab === 'agendas' && <AbaAgendas />}
+        {activeTab === 'servicos' && <AbaServicos />}
         {activeTab === 'usuarios' && <AbaUsuarios />}
         {activeTab === 'kanban' && <AbaKanban />}
       </div>
@@ -465,6 +467,92 @@ function AbaAgendas() {
 
             <Button className="w-full" disabled={!form.nome || loading} onClick={saveAgenda}>
               {loading ? 'Salvando...' : editingId ? 'Salvar Alterações' : 'Adicionar Agenda'}
+            </Button>
+          </div>
+        </Modal>
+      </CardContent>
+    </Card>
+  );
+}
+
+function AbaServicos() {
+  const [servicos, setServicos] = useState<any[]>([]);
+  const [openNew, setOpenNew] = useState(false);
+  const [nome, setNome] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const loadServicos = async () => {
+    const { data } = await supabase.from('servicos').select('*').order('created_at', { ascending: true });
+    if (data) setServicos(data);
+  };
+
+  useEffect(() => { loadServicos(); }, []);
+
+  const saveServico = async () => {
+    if (!nome) return;
+    setLoading(true);
+    
+    const { error } = await supabase.from('servicos').insert({ nome });
+    
+    setLoading(false);
+    if (error) {
+      alert(`Erro: ${error.message}`);
+      return;
+    }
+    
+    setNome('');
+    setOpenNew(false);
+    loadServicos();
+  };
+
+  const deleteServico = async (id: string) => {
+    if (!window.confirm("Tem certeza que deseja excluir este serviço?")) return;
+    await supabase.from('servicos').delete().eq('id', id);
+    loadServicos();
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex justify-between items-center">
+          <div>
+            <CardTitle>Serviços Prestados</CardTitle>
+            <p className="text-sm text-[var(--color-text-muted)] mt-1">Cadastre os serviços que serão selecionados quando uma venda for fechada.</p>
+          </div>
+          <Button onClick={() => setOpenNew(true)} size="sm"><Plus className="w-4 h-4 mr-2"/> Novo Serviço</Button>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+          {servicos.map(srv => (
+            <div key={srv.id} className="border border-[var(--color-border-card)] rounded-[12px] p-4 flex justify-between items-center bg-[var(--color-bg-base)] group">
+              <span className="font-medium text-[var(--color-text-main)] truncate pr-2">{srv.nome}</span>
+              <button 
+                onClick={() => deleteServico(srv.id)} 
+                className="p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors rounded opacity-0 group-hover:opacity-100" 
+                title="Excluir"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+          ))}
+          {servicos.length === 0 && (
+             <div className="col-span-1 sm:col-span-2 md:col-span-3 text-center py-8 text-[var(--color-text-muted)] border border-dashed border-[var(--color-border-card)] rounded-lg">
+               Nenhum serviço cadastrado.
+             </div>
+          )}
+        </div>
+
+        <Modal isOpen={openNew} onClose={() => { setOpenNew(false); setNome(''); }} title="Adicionar Serviço">
+          <div className="space-y-4">
+            <Input 
+              label="Nome do Serviço" 
+              placeholder="Ex: Planejamento Previdenciário" 
+              value={nome} 
+              onChange={e => setNome(e.target.value)}
+            />
+            <Button className="w-full" disabled={!nome || loading} onClick={saveServico}>
+              {loading ? 'Salvando...' : 'Salvar'}
             </Button>
           </div>
         </Modal>

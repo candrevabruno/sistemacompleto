@@ -55,6 +55,7 @@ export function CentralAgendamentos() {
 
   // Modal de detalhes do Lead
   const [detalhesAg, setDetalhesAg] = useState<any>(null);
+  const [openLeadDetails, setOpenLeadDetails] = useState(false);
   const [editingDetails, setEditingDetails] = useState(false);
   const [savingDetails, setSavingDetails] = useState(false);
   const [savingStatus, setSavingStatus] = useState(false);
@@ -135,7 +136,12 @@ export function CentralAgendamentos() {
     }
   };
 
-  useEffect(() => { fetchAgendas(); }, []);
+  const fetchServicos = async () => {
+    const { data } = await supabase.from('servicos').select('*').order('nome');
+    if (data) setAvailableServicos(data);
+  };
+
+  useEffect(() => { fetchAgendas(); fetchServicos(); }, []);
   
   useEffect(() => { 
     fetchAgendamentos(); 
@@ -165,6 +171,16 @@ export function CentralAgendamentos() {
   }, [filtro, agendaFiltro, statusFiltro, customStart, customEnd]);
   // ─── AÇÕES ──────────────────────────────────────────────────────────────
   const handleStatusChange = async (leadId: string, newStatus: string) => {
+    if (newStatus === 'converteu') {
+      const lead = detalhesAg?.leads;
+      if (lead) {
+        setConverteuForm({ servicos: lead.servicos_contratados || [], valor: String(lead.valor_pago || ''), observacao: '' });
+        setConfirmConverteu({ leadId, sourceCol: lead.status, lead });
+        setOpenLeadDetails(false); // Fecha o modal de detalhes temporariamente
+      }
+      return;
+    }
+
     setSavingStatus(true);
     const updates: any = { status: newStatus };
     
@@ -209,6 +225,35 @@ export function CentralAgendamentos() {
       alert(`Erro ao salvar detalhes: ${err.message}`);
     } finally {
       setSavingDetails(false);
+    }
+  };
+
+  const confirmConverteuAction = async () => {
+    if (!confirmConverteu || !converteuForm.valor || converteuForm.servicos.length === 0) return;
+    const { leadId, lead } = confirmConverteu;
+    setSavingConverteu(true);
+    try {
+      const { error } = await supabase
+        .from('leads')
+        .update({ 
+          status: 'converteu',
+          valor_pago: parseFloat(converteuForm.valor.replace(',', '.')),
+          servicos_contratados: converteuForm.servicos,
+          observacoes: converteuForm.observacao ? `${lead.observacoes || ''}\nInformações Complementares: ${converteuForm.observacao}` : lead.observacoes
+        })
+        .eq('id', leadId);
+      if (error) throw error;
+
+      if (lead.id_agendamento) {
+        await supabase.from('agendamentos').update({ status: 'compareceu' }).eq('id', lead.id_agendamento);
+      }
+
+      setConfirmConverteu(null);
+      fetchAgendamentos();
+    } catch (err: any) {
+      alert(`Erro: ${err.message}`);
+    } finally {
+      setSavingConverteu(false);
     }
   };
 
@@ -484,6 +529,47 @@ export function CentralAgendamentos() {
           </div>
         )}
       </Modal>
+
+      {/* Modal Converteu */}
+      <Modal isOpen={!!confirmConverteu} onClose={() => setConfirmConverteu(null)} title="Finalizar Venda">
+        <div className="space-y-4">
+          <div className="p-3 bg-green-50 border border-green-200 rounded-[8px] text-green-800 font-medium text-sm">🚀 Parabéns! Preencha os dados do contrato.</div>
+          
+          <div>
+            <label className="block text-sm font-medium mb-2">Serviços Contratados *</label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto custom-scrollbar pr-2 p-1">
+              {availableServicos.map(srv => (
+                <label key={srv.id} className="flex items-center gap-2 p-2 border border-[var(--color-border-card)] rounded-[8px] hover:bg-[var(--color-bg-base)] cursor-pointer transition-colors text-sm">
+                  <input 
+                    type="checkbox" 
+                    className="w-4 h-4 text-green-600 rounded border-gray-300 focus:ring-green-500"
+                    checked={converteuForm.servicos.includes(srv.nome)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setConverteuForm(prev => ({ ...prev, servicos: [...prev.servicos, srv.nome] }));
+                      } else {
+                        setConverteuForm(prev => ({ ...prev, servicos: prev.servicos.filter(n => n !== srv.nome) }));
+                      }
+                    }}
+                  />
+                  <span className="truncate">{srv.nome}</span>
+                </label>
+              ))}
+              {availableServicos.length === 0 && (
+                <div className="col-span-1 sm:col-span-2 text-sm text-[var(--color-text-muted)] p-2">Nenhum serviço cadastrado em Configurações.</div>
+              )}
+            </div>
+          </div>
+
+          <div><label className="block text-sm font-medium mb-1">Valor Total Faturado (R$) *</label><Input placeholder="0,00" value={converteuForm.valor} onChange={e => setConverteuForm({...converteuForm, valor: e.target.value})} /></div>
+          <div><label className="block text-sm font-medium mb-1">Informações Complementares</label><textarea rows={3} value={converteuForm.observacao} onChange={e => setConverteuForm({...converteuForm, observacao: e.target.value})} className="w-full border rounded-[8px] px-3 py-2 text-sm bg-[var(--color-bg-base)]" /></div>
+          <div className="flex gap-3 justify-end mt-4">
+            <Button variant="secondary" onClick={() => setConfirmConverteu(null)}>Cancelar</Button>
+            <Button className="bg-green-600 text-white" onClick={confirmConverteuAction} disabled={!converteuForm.valor || converteuForm.servicos.length === 0 || savingConverteu}>Confirmar</Button>
+          </div>
+        </div>
+      </Modal>
+
     </div>
   );
 }

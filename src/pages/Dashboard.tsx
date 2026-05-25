@@ -31,7 +31,6 @@ export function Dashboard() {
   const [clinicHours, setClinicHours] = useState<any[]>([]);
   const [leadsData, setLeadsData] = useState<any[]>([]);
   const [agendamentosData, setAgendamentosData] = useState<any[]>([]);
-  const [upcoming, setUpcoming] = useState<any[]>([]);
 
   useEffect(() => {
     fetchClinicHours();
@@ -94,7 +93,7 @@ export function Dashboard() {
       // 1. Agendamentos pela data da consulta (data_hora_inicio)
       // 2. Leads pela data de início do atendimento (inicio_atendimento)
       // 3. Clientes (leads convertidos) pela data de início do atendimento
-      const [agendamentosReq, leadsReq, upcomingReq] = await Promise.all([
+      const [agendamentosReq, leadsReq] = await Promise.all([
         supabase.from('agendamentos')
           .select('*')
           .gte('created_at', startIso)
@@ -102,12 +101,7 @@ export function Dashboard() {
         supabase.from('leads')
           .select('*')
           .gte('inicio_atendimento', startIso)
-          .lte('inicio_atendimento', endIso),
-        supabase.from('agendamentos')
-          .select('*, leads(nome_lead, whatsapp_lead), agendas(nome, cor)')
-          .gte('data_hora_inicio', new Date().toISOString())
-          .order('data_hora_inicio', { ascending: true })
-          .limit(5)
+          .lte('inicio_atendimento', endIso)
       ]);
 
       const agendamentos = agendamentosReq.data || [];
@@ -115,7 +109,6 @@ export function Dashboard() {
 
       setAgendamentosData(agendamentos);
       setLeadsData(leads);
-      setUpcoming(upcomingReq.data || []);
 
       const leadsConvertidos = leads.filter(l => l.status === 'converteu');
 
@@ -228,6 +221,20 @@ export function Dashboard() {
   });
 
   const chartObjecoes = Object.entries(objecoesMap)
+    .map(([name, value]) => ({ name, value }))
+    .sort((a, b) => b.value - a.value); // Sort descending
+
+  // 6. Serviços Contratados (Conversões)
+  const servicosMap: Record<string, number> = {};
+  leadsData.forEach(l => {
+    if (l.status === 'converteu' && Array.isArray(l.servicos_contratados)) {
+      l.servicos_contratados.forEach((s: string) => {
+        servicosMap[s] = (servicosMap[s] || 0) + 1;
+      });
+    }
+  });
+
+  const chartServicos = Object.entries(servicosMap)
     .map(([name, value]) => ({ name, value }))
     .sort((a, b) => b.value - a.value); // Sort descending
 
@@ -599,51 +606,40 @@ export function Dashboard() {
         </Card>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Próximos Agendamentos</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-0">
-            {upcoming.map((u, i) => {
-              const nome = u.leads?.nome_lead || u.clientes?.leads?.nome_lead || 'Sem nome';
-              return (
-                <div key={u.id} className={`flex flex-col sm:flex-row sm:items-center justify-between py-4 gap-4 ${i !== upcoming.length - 1 ? 'border-b border-[var(--color-border-card)]' : ''}`}>
-                  <div className="flex items-center gap-3 sm:gap-4 overflow-hidden">
-                    <div className="bg-[var(--color-bg-base)] rounded-[8px] p-2 text-center min-w-[55px] sm:min-w-[60px] border border-[var(--color-border-card)] flex-shrink-0">
-                      <div className="text-[10px] sm:text-xs text-[var(--color-text-muted)] uppercase">{format(parseISO(u.data_hora_inicio), 'MMM', { locale: ptBR })}</div>
-                      <div className="text-base sm:text-lg font-bold text-[var(--color-primary)] leading-none">{format(parseISO(u.data_hora_inicio), 'dd')}</div>
-                    </div>
-                    <div className="min-w-0 pr-2">
-                      <div className="font-medium text-[var(--color-text-main)] flex items-center gap-2 flex-wrap">
-                        <span className="truncate">{nome}</span> <Badge variant={u.status} className="flex-shrink-0">{u.status}</Badge>
-                      </div>
-                      <div className="text-xs sm:text-sm text-[var(--color-text-muted)] flex items-center gap-2 sm:gap-3 mt-1 flex-wrap">
-                        <span className="flex items-center gap-1 whitespace-nowrap text-xs"><Clock className="w-3.5 h-3.5"/> {format(parseISO(u.data_hora_inicio), 'HH:mm')}</span>
-                        {u.modalidade && (
-                          <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${u.modalidade === 'online' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}`}>
-                            {u.modalidade === 'online' ? '💻 Online' : '📍 Presencial'}
-                          </span>
-                        )}
-                        {u.procedimento_nome && <span className="truncate max-w-[150px] sm:max-w-[200px] text-xs">• {u.procedimento_nome}</span>}
-                      </div>
-                    </div>
-                  </div>
-                  {u.agendas && (
-                    <div className="text-[10px] sm:text-sm border rounded-full px-2 py-0.5 sm:px-3 sm:py-1 flex items-center gap-2 flex-shrink-0 self-start sm:self-auto ml-[70px] sm:ml-0" style={{ borderColor: u.agendas.cor }}>
-                      <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full" style={{ backgroundColor: u.agendas.cor }}></div>
-                      <span className="whitespace-nowrap">{u.agendas.nome}</span>
-                    </div>
-                  )}
-                </div>
-              )
-            })}
-            {upcoming.length === 0 && (
-              <div className="text-center py-8 text-[var(--color-text-muted)]">Nenhum agendamento futuro encontrado.</div>
+      <div className="grid grid-cols-1 gap-6">
+        <Card className="relative overflow-hidden">
+          <CardHeader>
+            <CardTitle>Principais Serviços</CardTitle>
+            <p className="text-sm text-[var(--color-text-muted)]">Serviços mais contratados nas vendas fechadas</p>
+          </CardHeader>
+          <CardContent className="h-[300px]">
+            {chartServicos.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartServicos} layout="vertical" margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--color-border-card)" />
+                  <XAxis type="number" axisLine={false} tickLine={false} allowDecimals={false} />
+                  <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} width={140} tick={{ fill: 'var(--color-text-main)', fontSize: 11 }} />
+                  <Tooltip 
+                    cursor={{ fill: 'var(--color-bg-base)', opacity: 0.1 }} 
+                    contentStyle={{ color: 'var(--color-text-main)', borderRadius: '8px', border: '1px solid var(--color-border-card)', boxShadow: 'var(--shadow-dropdown)', background: 'var(--color-bg-base)' }}
+                    itemStyle={{ color: 'var(--color-text-main)' }}
+                  />
+                  <Bar 
+                    dataKey="value" 
+                    name="Contratos"
+                    fill="var(--color-success)"
+                    radius={[0, 4, 4, 0]} 
+                    barSize={24} 
+                    label={{ position: 'right', fill: 'var(--color-text-muted)', fontSize: 12, fontWeight: '500' }} 
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-full text-sm text-[var(--color-text-muted)]">Nenhum serviço registrado nas conversões do período.</div>
             )}
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
 
     </div>
   );
