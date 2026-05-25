@@ -200,12 +200,15 @@ export function Dashboard() {
 
   // 4. Funil de Vendas — usa status dos leads (espelho do CRM Kanban)
   const totalLeads = leadsData.length;
+  
+  // O status 'abandonou_conversa' não existe no CRM atual, então no momento todos são "Qualificados".
+  // Vamos aguardar a definição do usuário sobre o que seria um lead "abandonado" ou "não qualificado".
   const leadsNaoQualificados = leadsData.filter(l => l.status === 'abandonou_conversa').length;
   const leadsQualificados = totalLeads - leadsNaoQualificados;
-  // Agendados = leads que chegaram a ter um agendamento (qualquer status pós-conversa)
-  const leadsAgendados = leadsData.filter(l =>
-    ['agendado', 'reagendado', 'converteu', 'nao_converteu', 'faltou', 'cancelou_agendamento'].includes(l.status)
-  ).length;
+
+  // Agendamentos: Conta apenas leads que possuem de fato um registro de agendamento (id_agendamento ou data_agendamento)
+  // Isso evita que leads movidos manualmente direto para "Converteu/Não Converteu" contem como agendamentos falsos.
+  const leadsAgendados = leadsData.filter(l => l.id_agendamento || l.data_agendamento).length;
 
   // Conversões = leads com status 'converteu'
   const leadsConverteu = leadsData.filter(l => l.status === 'converteu').length;
