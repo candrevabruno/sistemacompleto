@@ -39,15 +39,6 @@ export function CentralAgendamentos() {
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
 
-  // Modal reagendar
-  const [reagendarModal, setReagendar] = useState<any>(null);
-  const [novaDataHora, setNovaDataHora] = useState('');
-  const [salvandoReagendar, setSalvandoReagendar] = useState(false);
-
-  // Modal confirmação de ação
-  const [acaoModal, setAcaoModal] = useState<{ agendamento: any, acao: string } | null>(null);
-  const [processando, setProcessando] = useState(false);
-
   // Modal de detalhes do Lead
   const [detalhesAg, setDetalhesAg] = useState<any>(null);
 
@@ -99,7 +90,7 @@ export function CentralAgendamentos() {
 
       let query = supabase
         .from('agendamentos')
-        .select('*, agendas(nome, cor), leads:lead_id(resumo_conversa)')
+        .select('*, agendas(nome, cor), leads:lead_id(*)')
         .gte('data_hora_inicio', start.toISOString())
         .lte('data_hora_inicio', end.toISOString())
         .order('data_hora_inicio', { ascending: true });
@@ -148,51 +139,6 @@ export function CentralAgendamentos() {
       window.removeEventListener('online', handleOnline);
     };
   }, [filtro, agendaFiltro, statusFiltro, customStart, customEnd]);
-  // ─── AÇÕES ────────────────────────────────────────────────────────────────
-
-  const executarAcao = async () => {
-    if (!acaoModal) return;
-    const { agendamento, acao } = acaoModal;
-    setProcessando(true);
-
-    const statusMap: Record<string, StatusAgendamento> = {
-      confirmar: 'confirmado',
-      compareceu: 'compareceu',
-      cancelar: 'cancelado',
-      faltou: 'faltou',
-    };
-    const novoStatus = statusMap[acao];
-
-    const { error } = await supabase
-      .from('agendamentos')
-      .update({ status: novoStatus })
-      .eq('id', agendamento.id);
-
-    if (error) { alert(`Erro: ${error.message}`); setProcessando(false); return; }
-
-    // Sincroniza status do lead se necessário
-    if (agendamento.lead_id) {
-      const leadStatusMap: Record<string, string> = {
-        confirmar: 'agendado',
-        compareceu: 'compareceu',
-        cancelar: 'cancelou_agendamento',
-        faltou: 'follow_up',
-      };
-      await supabase.from('leads').update({ status: leadStatusMap[acao] }).eq('id', agendamento.lead_id);
-    }
-
-    setAcaoModal(null);
-    setProcessando(false);
-    fetchAgendamentos();
-  };
-
-  const reagendar = async () => {
-    // FUNÇÃO DESATIVADA: O gerenciamento de datas passa a ser do Cal.com
-    setReagendar(null);
-  };
-
-  // ─── RENDER ──────────────────────────────────────────────────────────────
-
   // ─── RENDER ──────────────────────────────────────────────────────────────
 
   return (
@@ -263,93 +209,59 @@ export function CentralAgendamentos() {
           ) : (
             <div className="divide-y divide-[var(--color-border-card)]">
               {agendamentos.map(ag => (
-                <div key={ag.id} className="p-4 flex flex-col sm:flex-row sm:items-center gap-4 hover:bg-[var(--color-bg-base)] transition-colors">
-                  {/* Horário */}
-                  <div className="flex items-center gap-3 min-w-[120px]">
-                    <div className="p-2 bg-[var(--color-primary-light)] rounded-[8px] text-[var(--color-primary)]">
-                      <Clock className="w-4 h-4" />
+                <div key={ag.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-[var(--color-bg-base)] transition-colors">
+                  
+                  {/* Info Principal: Horário */}
+                  <div className="flex items-center gap-4 min-w-[150px]">
+                    <div className="p-2.5 bg-[var(--color-primary-light)] rounded-[10px] text-[var(--color-primary)]">
+                      <Clock className="w-5 h-5" />
                     </div>
                     <div>
-                      <div className="font-bold text-sm">{format(parseISO(ag.data_hora_inicio), 'HH:mm')}</div>
+                      <div className="font-bold text-base">{format(parseISO(ag.data_hora_inicio), 'HH:mm')}</div>
                       <div className="text-xs text-[var(--color-text-muted)]">{format(parseISO(ag.data_hora_inicio), 'dd/MM/yyyy')}</div>
-                      {ag.modalidade && (
-                        <div className={`mt-1 text-[10px] px-1.5 py-0.5 rounded-full font-medium inline-flex items-center gap-1 ${ag.modalidade === 'online' ? 'bg-blue-50 text-blue-600 border border-blue-100' : 'bg-orange-50 text-orange-600 border border-orange-100'}`}>
-                          {ag.modalidade === 'online' ? <Monitor className="w-2.5 h-2.5"/> : <MapPin className="w-2.5 h-2.5"/>}
-                          {ag.modalidade === 'online' ? 'Online' : 'Presencial'}
-                        </div>
-                      )}
                     </div>
                   </div>
 
-                  {/* Dados do cliente */}
+                  {/* Info do Cliente e Procedimento */}
                   <div className="flex-1 min-w-0">
                     <button 
                       onClick={() => setDetalhesAg(ag)}
-                      className="font-semibold text-sm hover:text-[var(--color-primary)] transition-colors text-left group flex items-center gap-2"
+                      className="font-bold text-base hover:text-[var(--color-primary)] transition-colors text-left group flex items-center gap-2"
                     >
                       {ag.nome_lead || 'Cliente não informado'}
-                      <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <ExternalLink className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
                     </button>
-                    <div className="flex items-center gap-4 mt-1 flex-wrap">
-                      {ag.whatsapp_lead && (
-                        <a href={`https://wa.me/${ag.whatsapp_lead.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"
-                          className="text-xs text-[var(--color-text-muted)] hover:text-[var(--color-primary)] flex items-center gap-1 transition-colors">
-                          <Phone className="w-3 h-3" />{ag.whatsapp_lead}
-                        </a>
+                    <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+                      {/* Procedimento/Serviço */}
+                      <span className="text-sm font-medium text-[var(--color-text-main)]">
+                        {ag.procedimento_nome && ag.procedimento_nome !== 'Consulta Jurídica' 
+                          ? ag.procedimento_nome 
+                          : ag.leads?.procedimento_interesse || 'Procedimento não especificado'}
+                      </span>
+                      
+                      {/* Modalidade */}
+                      {ag.modalidade && (
+                        <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium flex items-center gap-1 ${ag.modalidade === 'online' ? 'bg-blue-50 text-blue-600 border border-blue-100' : 'bg-orange-50 text-orange-600 border border-orange-100'}`}>
+                          {ag.modalidade === 'online' ? <Monitor className="w-3 h-3"/> : <MapPin className="w-3 h-3"/>}
+                          {ag.modalidade === 'online' ? 'Online' : 'Presencial'}
+                        </span>
                       )}
+                      
+                      {/* Agenda */}
                       {ag.agendas?.nome && (
-                        <span className="text-xs font-medium" style={{ color: ag.agendas.cor }}>● {ag.agendas.nome}</span>
+                        <span className="text-xs font-medium flex items-center gap-1.5" style={{ color: ag.agendas.cor }}>
+                           <span className="w-2 h-2 rounded-full" style={{ backgroundColor: ag.agendas.cor }}></span>
+                           {ag.agendas.nome}
+                        </span>
                       )}
                     </div>
-                    {/* Resumo da Conversa / Assunto */}
-                    {(ag.resumo_conversa || (ag.leads?.resumo_conversa) || (ag.procedimento_nome && ag.procedimento_nome !== 'Consulta Jurídica')) && (
-                      <div className="mt-3 p-2.5 border-l-2 border-[var(--color-primary)] bg-[var(--color-bg-base)]/50 rounded-r-[4px] max-w-2xl">
-                        <p className="text-[11px] text-[var(--color-text-muted)] italic leading-tight">
-                          "{ag.resumo_conversa || ag.leads?.resumo_conversa || ag.procedimento_nome}"
-                        </p>
-                      </div>
-                    )}
                   </div>
 
-                  {/* Status */}
-                  <div className="flex items-center gap-3 flex-wrap">
-                    <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${STATUS_COLORS[ag.status] || 'bg-gray-100 text-gray-600'}`}>
+                  {/* Status e Ações */}
+                  <div className="flex items-center gap-4 shrink-0">
+                    <span className={`text-xs font-semibold px-3 py-1.5 rounded-full border ${STATUS_COLORS[ag.status] || 'bg-gray-100 text-gray-600'}`}>
                       {STATUS_LABELS[ag.status] || ag.status}
                     </span>
-
-                    {/* Ações */}
-                    <div className="flex gap-1.5 flex-wrap">
-                      {ag.status !== 'confirmado' && ag.status !== 'compareceu' && ag.status !== 'cancelado' && (
-                        <button onClick={() => setAcaoModal({ agendamento: ag, acao: 'confirmar' })}
-                          className="px-2.5 py-1 text-xs font-medium rounded-[6px] bg-[#7A9E87]/15 text-[#5f8a6e] hover:bg-[#7A9E87]/30 transition-colors border border-[#7A9E87]/30">
-                          ✓ Confirmar
-                        </button>
-                      )}
-                      {ag.status !== 'compareceu' && ag.status !== 'cancelado' && (
-                        <button onClick={() => setAcaoModal({ agendamento: ag, acao: 'compareceu' })}
-                          className="px-2.5 py-1 text-xs font-medium rounded-[6px] bg-green-50 text-green-700 hover:bg-green-100 transition-colors border border-green-200">
-                          ✓✓ Compareceu
-                        </button>
-                      )}
-                      {ag.status !== 'cancelado' && ag.status !== 'compareceu' && (
-                        <>
-                          <button onClick={() => { setReagendar(ag); setNovaDataHora(''); }}
-                            className="px-2.5 py-1 text-xs font-medium rounded-[6px] bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors border border-amber-200">
-                            ↻ Reagendar
-                          </button>
-                          {ag.status !== 'faltou' && (
-                            <button onClick={() => setAcaoModal({ agendamento: ag, acao: 'faltou' })}
-                              className="px-2.5 py-1 text-xs font-medium rounded-[6px] bg-gray-50 text-gray-600 hover:bg-gray-100 transition-colors border border-gray-200">
-                              ✕ Faltou
-                            </button>
-                          )}
-                          <button onClick={() => setAcaoModal({ agendamento: ag, acao: 'cancelar' })}
-                            className="px-2.5 py-1 text-xs font-medium rounded-[6px] bg-red-50 text-red-600 hover:bg-red-100 transition-colors border border-red-200">
-                            ✕ Cancelar
-                          </button>
-                        </>
-                      )}
-                    </div>
                   </div>
                 </div>
               ))}
@@ -358,116 +270,59 @@ export function CentralAgendamentos() {
         </CardContent>
       </Card>
 
-      {/* MODAL AÇÃO */}
-      <Modal
-        isOpen={!!acaoModal}
-        onClose={() => setAcaoModal(null)}
-        title={
-          acaoModal?.acao === 'confirmar' ? 'Confirmar Agendamento' :
-          acaoModal?.acao === 'compareceu' ? 'Marcar Comparecimento' :
-          acaoModal?.acao === 'cancelar' ? 'Cancelar Agendamento' : 'Marcar Falta'
-        }
-      >
-        <div className="space-y-4">
-          <div className={`p-4 rounded-[8px] border font-medium text-sm ${
-            acaoModal?.acao === 'cancelar' ? 'bg-red-50 border-red-200 text-red-700' :
-            acaoModal?.acao === 'compareceu' ? 'bg-green-50 border-green-200 text-green-700' :
-            'bg-[#7A9E87]/10 border-[#7A9E87]/30 text-[#5f8a6e]'
-          }`}>
-            {acaoModal?.acao === 'confirmar' && `Confirmar o agendamento de ${acaoModal?.agendamento?.nome_lead || 'cliente'}?`}
-            {acaoModal?.acao === 'compareceu' && `Marcar que ${acaoModal?.agendamento?.nome_lead || 'o cliente'} compareceu?`}
-            {acaoModal?.acao === 'faltou' && `Marcar que ${acaoModal?.agendamento?.nome_lead || 'o cliente'} faltou? O lead será movido para Follow Up no CRM.`}
-            {acaoModal?.acao === 'cancelar' && `Cancelar o agendamento de ${acaoModal?.agendamento?.nome_lead || 'cliente'}? Isso atualizará o status no CRM também.`}
-          </div>
-          {acaoModal?.agendamento?.data_hora_inicio && (
-            <p className="text-sm text-[var(--color-text-muted)]">
-              📅 {format(parseISO(acaoModal.agendamento.data_hora_inicio), "dd 'de' MMMM 'às' HH:mm", { locale: ptBR })}
-            </p>
-          )}
-          <div className="flex gap-3 justify-end">
-            <Button variant="secondary" onClick={() => setAcaoModal(null)} disabled={processando}>Cancelar</Button>
-            <Button
-              className={`text-white border-none ${acaoModal?.acao === 'cancelar' ? 'bg-red-500 hover:bg-red-600' : acaoModal?.acao === 'compareceu' ? 'bg-green-600 hover:bg-green-700' : 'bg-[#7A9E87] hover:bg-[#5f8a6e]'}`}
-              onClick={executarAcao}
-              disabled={processando}
-            >
-              {processando ? 'Processando...' : 'Confirmar'}
-            </Button>
-          </div>
-        </div>
-      </Modal>
-
-      {/* MODAL REAGENDAR / CAL.COM AVISO */}
-      <Modal isOpen={!!reagendarModal} onClose={() => setReagendar(null)} title="Gestão de Datas (Cal.com)">
-        <div className="space-y-4">
-          <div className="p-4 bg-amber-50 border border-amber-200 rounded-[8px] text-amber-800 text-sm font-medium">
-            <h4 className="font-bold flex items-center gap-2 mb-2">Opção Bloqueada no CRM</h4>
-            <p>
-              A gestão de agendamentos oficiais de <strong>{reagendarModal?.nome_lead || 'cliente'}</strong> passou para o aplicativo principal do Cal.com. 
-            </p>
-            <p className="mt-2 text-xs">
-              ⚠️ Cancelamentos e remarcações manuais devem ser feitos diretamente no painel ou App do Cal.com (sob o controle da secretária) para evitar conflitos de horários.
-            </p>
-          </div>
-          {reagendarModal?.data_hora_inicio && (
-            <p className="text-sm text-[var(--color-text-muted)] font-mono text-center bg-[var(--color-bg-base)] py-2 rounded">
-              Gatilho atual: {format(parseISO(reagendarModal.data_hora_inicio), "dd/MM/yyyy 'às' HH:mm")}
-            </p>
-          )}
-
-          <div className="flex gap-3 justify-end mt-4">
-            <Button
-              className="bg-amber-500 text-white hover:bg-amber-600 border-none w-full"
-              onClick={() => setReagendar(null)}
-            >
-              Entendido
-            </Button>
-          </div>
-        </div>
-      </Modal>
-
-      {/* MODAL DETALHES DO AGENDAMENTO */}
+      {/* MODAL DETALHES DO LEAD */}
       <Modal
         isOpen={!!detalhesAg}
         onClose={() => setDetalhesAg(null)}
-        title="Detalhes da Consulta"
+        title="Detalhes do Lead"
       >
         {detalhesAg && (
           <div className="space-y-6">
-            <div className="border-b pb-4">
+            <div className="border-b border-[var(--color-border-card)] pb-4">
               <h2 className="font-cormorant text-2xl font-bold text-[var(--color-text-main)]">{detalhesAg.nome_lead || 'Sem Nome'}</h2>
               <div className="flex items-center gap-3 mt-2">
-                 <Badge variant={detalhesAg.status}>{STATUS_LABELS[detalhesAg.status]}</Badge>
-                 {detalhesAg.modalidade && (
-                   <span className={`text-[10px] px-2 py-1 rounded font-medium flex items-center gap-1.5 ${detalhesAg.modalidade === 'online' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}`}>
-                      {detalhesAg.modalidade === 'online' ? <Monitor className="w-3 h-3"/> : <MapPin className="w-3 h-3"/>}
-                      {detalhesAg.modalidade === 'online' ? 'Atendimento Online' : 'Atendimento Presencial'}
-                   </span>
-                 )}
+                 <Badge variant={detalhesAg.leads?.status || 'novo'}>{detalhesAg.leads?.status?.replace(/_/g, ' ').toUpperCase() || 'NOVO'}</Badge>
+                 <span className="text-xs text-[var(--color-text-muted)]">
+                   Capturado em: {detalhesAg.leads?.created_at ? format(parseISO(detalhesAg.leads.created_at), 'dd/MM/yyyy') : '-'}
+                 </span>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div className="p-3 bg-gray-50 rounded-[8px] border">
-                <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1 font-semibold">Contato</div>
+              <div className="p-3 bg-[var(--color-bg-base)] rounded-[8px] border border-[var(--color-border-card)]">
+                <div className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider mb-1 font-semibold">WhatsApp</div>
                 <div className="text-sm font-medium flex items-center gap-2">
                   <Phone className="w-3.5 h-3.5 text-green-600" />
                   {detalhesAg.whatsapp_lead}
                 </div>
               </div>
-              <div className="p-3 bg-gray-50 rounded-[8px] border">
-                <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1 font-semibold">Profissional / Agenda</div>
-                <div className="text-sm font-medium flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: detalhesAg.agendas?.cor }}></div>
-                  {detalhesAg.agendas?.nome || 'Não definido'}
+              <div className="p-3 bg-[var(--color-bg-base)] rounded-[8px] border border-[var(--color-border-card)]">
+                <div className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider mb-1 font-semibold">Procedimento de Interesse</div>
+                <div className="text-sm font-medium text-[var(--color-text-main)]">
+                  {detalhesAg.procedimento_nome && detalhesAg.procedimento_nome !== 'Consulta Jurídica' 
+                    ? detalhesAg.procedimento_nome 
+                    : detalhesAg.leads?.procedimento_interesse || '-'}
+                </div>
+              </div>
+              
+              <div className="p-3 bg-[var(--color-bg-base)] rounded-[8px] border border-[var(--color-border-card)]">
+                <div className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider mb-1 font-semibold">Canal de Origem</div>
+                <div className="text-sm font-medium text-[var(--color-text-main)]">
+                  {detalhesAg.leads?.canal_origem || '-'}
+                </div>
+              </div>
+              <div className="p-3 bg-[var(--color-bg-base)] rounded-[8px] border border-[var(--color-border-card)]">
+                <div className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider mb-1 font-semibold">Valor Potencial</div>
+                <div className="text-sm font-medium text-[var(--color-primary)] font-bold">
+                  {detalhesAg.leads?.valor_potencial ? `R$ ${detalhesAg.leads.valor_potencial.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '-'}
                 </div>
               </div>
             </div>
 
-            <div className="p-4 bg-white border-l-4 border-[var(--color-primary)] rounded shadow-sm">
-              <div className="text-[10px] text-gray-400 uppercase tracking-wider mb-2 font-bold">Resumo da Conversa (I.A.)</div>
-              <p className="text-sm italic text-gray-700 leading-relaxed">
-                "{detalhesAg.resumo_conversa || detalhesAg.leads?.resumo_conversa || detalhesAg.procedimento_nome || 'Nenhum resumo disponível para esta consulta.'}"
+            <div className="p-4 bg-[var(--color-bg-base)] border-l-4 border-[var(--color-primary)] rounded-[8px] shadow-sm">
+              <div className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider mb-2 font-bold">Resumo da Conversa (I.A.)</div>
+              <p className="text-sm italic text-[var(--color-text-main)] leading-relaxed">
+                "{detalhesAg.leads?.resumo_conversa || detalhesAg.resumo_conversa || 'Nenhum resumo disponível.'}"
               </p>
             </div>
 
