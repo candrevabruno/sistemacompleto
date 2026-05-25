@@ -16,7 +16,6 @@ export function Configuracoes() {
     { id: 'geral', label: 'Geral' },
     { id: 'agendas', label: 'Agendas (Cal.com)' },
     { id: 'usuarios', label: 'Usuários' },
-    { id: 'tokens', label: 'Token de API' },
     { id: 'kanban', label: 'Kanban' }
   ];
 
@@ -37,7 +36,6 @@ export function Configuracoes() {
         {activeTab === 'geral' && <AbaGeral />}
         {activeTab === 'agendas' && <AbaAgendas />}
         {activeTab === 'usuarios' && <AbaUsuarios />}
-        {activeTab === 'tokens' && <AbaTokens />}
         {activeTab === 'kanban' && <AbaKanban />}
       </div>
     </div>
@@ -278,129 +276,6 @@ function AbaUsuarios() {
   );
 }
 
-function AbaTokens() {
-  const [tokens, setTokens] = useState<any[]>([]);
-  const [openNew, setOpenNew] = useState(false);
-  const [openView, setOpenView] = useState(false);
-  const [openDisable, setOpenDisable] = useState(false);
-  const [label, setLabel] = useState('');
-  const [newTokenRaw, setNewTokenRaw] = useState('');
-  const [selectedTokenId, setSelectedTokenId] = useState<string | null>(null);
-
-  const loadTokens = async () => {
-    const { data } = await supabase.from('api_tokens').select('*').order('created_at', { ascending: false });
-    if (data) setTokens(data);
-  };
-  useEffect(() => { loadTokens(); }, []);
-
-  const createToken = async () => {
-    const uuid = crypto.randomUUID();
-    setNewTokenRaw(uuid);
-    
-    // Na API web moderna isso requer acesso a Crypto subtle.
-    const encoder = new TextEncoder();
-    const data = encoder.encode(uuid);
-    const hashBuffer = await window.crypto.subtle.digest('SHA-256', data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const tokenHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-
-    await supabase.from('api_tokens').insert({ label, token_hash: tokenHash });
-    
-    setOpenNew(false);
-    setLabel('');
-    loadTokens();
-    setOpenView(true);
-  };
-
-  const copyToken = () => {
-    navigator.clipboard.writeText(newTokenRaw);
-    alert('Pronto! Token copiado.');
-  };
-
-  const disableTokenConfirm = async () => {
-    if (!selectedTokenId) return;
-    await supabase.from('api_tokens').update({ ativo: false }).eq('id', selectedTokenId);
-    setOpenDisable(false);
-    loadTokens();
-  };
-
-  return (
-    <Card>
-      <CardHeader>
-        <div className="flex justify-between items-center">
-          <div>
-            <CardTitle>Tokens de API</CardTitle>
-            <p className="text-sm text-[var(--color-text-muted)] mt-1">Os tokens são necessários para todas as chamadas de API.</p>
-          </div>
-          <Button onClick={() => setOpenNew(true)} size="sm">Novo token</Button>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <table className="w-full text-left text-sm">
-          <thead>
-            <tr className="border-b font-medium">
-              <th className="pb-3">Label</th>
-              <th className="pb-3">Status</th>
-              <th className="pb-3">Criado em</th>
-              <th className="pb-3 text-right">Ações</th>
-            </tr>
-          </thead>
-          <tbody>
-            {tokens.map(t => (
-              <tr key={t.id} className="border-b last:border-0 hover:bg-[var(--color-bg-base)] transition-colors">
-                <td className="py-3 font-medium">{t.label}</td>
-                <td className="py-3">
-                  <Badge variant={t.ativo ? 'success' : 'default'} className={!t.ativo ? 'bg-gray-100 text-gray-500' : ''}>
-                    {t.ativo ? 'Ativo' : 'Desabilitado'}
-                  </Badge>
-                </td>
-                <td className="py-3 text-[var(--color-text-muted)]">{new Date(t.created_at).toLocaleDateString('pt-BR')}</td>
-                <td className="py-3 text-right">
-                  {t.ativo && (
-                    <button onClick={() => { setSelectedTokenId(t.id); setOpenDisable(true); }} className="text-[var(--color-error)] hover:opacity-75 flex items-center inline-flex">
-                      <PowerOff className="w-4 h-4 mr-1" /> Desabilitar
-                    </button>
-                  )}
-                </td>
-              </tr>
-            ))}
-            {tokens.length === 0 && <tr><td colSpan={4} className="py-6 text-center text-[var(--color-text-muted)]">Nenhum token criado.</td></tr>}
-          </tbody>
-        </table>
-
-        <Modal isOpen={openNew} onClose={() => setOpenNew(false)} title="Criar novo token">
-          <div className="space-y-4">
-            <Input label="Label do token" placeholder="ex: N8N Produção" value={label} onChange={e=>setLabel(e.target.value)}/>
-            <Button onClick={createToken} disabled={!label} className="w-full">Gerar Token</Button>
-          </div>
-        </Modal>
-
-        <Modal isOpen={openView} onClose={() => setOpenView(false)} title="Novo token gerado">
-          <div className="space-y-4">
-            <p className="text-sm font-medium text-[var(--color-error)] border border-[var(--color-error)] p-3 rounded bg-[var(--color-error)]/10">
-              Copie agora — este token não será exibido em texto puro novamente.
-            </p>
-            <div className="p-3 bg-gray-100 dark:bg-black/20 rounded font-mono text-sm break-all">
-              {newTokenRaw}
-            </div>
-            <div className="flex gap-3">
-              <Button onClick={copyToken} variant="secondary" className="flex-1"><Copy className="w-4 h-4 mr-2" /> Copiar</Button>
-              <Button onClick={() => setOpenView(false)} className="flex-1">Fechar</Button>
-            </div>
-          </div>
-        </Modal>
-
-        <Modal isOpen={openDisable} onClose={() => setOpenDisable(false)} title="Desabilitar token">
-          <p className="mb-6 mt-2 text-[var(--color-text-muted)] text-sm">Tem certeza? Esta ação é permanente e não pode ser desfeita. O token será desabilitado imediatamente.</p>
-          <div className="flex gap-3 justify-end">
-            <Button variant="secondary" onClick={() => setOpenDisable(false)}>Cancelar</Button>
-            <Button variant="danger" onClick={disableTokenConfirm}>Desabilitar permanentemente</Button>
-          </div>
-        </Modal>
-      </CardContent>
-    </Card>
-  );
-}
 
 function AbaKanban() {
   const status = [
