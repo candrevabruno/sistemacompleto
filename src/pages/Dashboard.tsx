@@ -216,6 +216,18 @@ export function Dashboard() {
   const pctAgendaram = leadsQualificados ? Math.round((leadsAgendados / leadsQualificados) * 100) : 0;
   const pctConverteram = leadsAgendados ? Math.round((leadsConverteu / leadsAgendados) * 100) : 0;
 
+  // 5. Objeções (Não Converteu)
+  const objecoesMap: Record<string, number> = {};
+  leadsData.forEach(l => {
+    if (l.status === 'nao_converteu' && l.objecao) {
+      objecoesMap[l.objecao] = (objecoesMap[l.objecao] || 0) + 1;
+    }
+  });
+
+  const chartObjecoes = Object.entries(objecoesMap)
+    .map(([name, value]) => ({ name, value }))
+    .sort((a, b) => b.value - a.value); // Sort descending
+
   const handleDownloadPDF = async () => {
     const input = document.getElementById('dashboard-report');
     if (!input) return;
@@ -544,6 +556,40 @@ export function Dashboard() {
                 </div>
               </div>
             </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 gap-6">
+        <Card className="relative overflow-hidden">
+          <CardHeader>
+            <CardTitle>Principais Objeções</CardTitle>
+            <p className="text-sm text-[var(--color-text-muted)]">Motivos pelos quais os contatos não se tornaram clientes</p>
+          </CardHeader>
+          <CardContent className="h-[300px]">
+            {chartObjecoes.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartObjecoes} layout="vertical" margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--color-border-card)" />
+                  <XAxis type="number" axisLine={false} tickLine={false} allowDecimals={false} />
+                  <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} width={140} tick={{ fill: 'var(--color-text-main)', fontSize: 11 }} />
+                  <Tooltip 
+                    cursor={{ fill: 'var(--color-bg-base)', opacity: 0.1 }} 
+                    contentStyle={{ color: 'var(--color-text-main)', borderRadius: '8px', border: '1px solid var(--color-border-card)', boxShadow: 'var(--shadow-dropdown)', background: 'var(--color-bg-base)' }}
+                    itemStyle={{ color: 'var(--color-text-main)' }}
+                  />
+                  <Bar 
+                    dataKey="value" 
+                    fill="#e11d48"
+                    radius={[0, 4, 4, 0]} 
+                    barSize={24} 
+                    label={{ position: 'right', fill: 'var(--color-text-muted)', fontSize: 12, fontWeight: '500' }} 
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-full text-sm text-[var(--color-text-muted)]">Nenhuma objeção registrada no período.</div>
+            )}
           </CardContent>
         </Card>
       </div>

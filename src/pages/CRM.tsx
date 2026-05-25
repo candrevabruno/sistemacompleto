@@ -43,7 +43,7 @@ export function CRM() {
 
   // Não Converteu Modal
   const [confirmNaoConverteu, setConfirmNaoConverteu] = useState<{ leadId: string, sourceCol: string, lead: any } | null>(null);
-  const [naoConverteuForm, setNaoConverteuForm] = useState({ motivo: '' });
+  const [naoConverteuForm, setNaoConverteuForm] = useState({ objecao: '', motivo: '' });
   const [savingNaoConverteu, setSavingNaoConverteu] = useState(false);
 
   // Reagendado Modal
@@ -94,7 +94,7 @@ export function CRM() {
       return;
     }
     if (newStatus === 'nao_converteu') {
-      setNaoConverteuForm({ motivo: lead.motivo_perda || '' });
+      setNaoConverteuForm({ objecao: lead.objecao || '', motivo: lead.motivo_perda || '' });
       setConfirmNaoConverteu({ leadId, sourceCol: lead.status, lead });
       return;
     }
@@ -110,6 +110,7 @@ export function CRM() {
     const updates: any = { status: newStatus };
     if (['converteu', 'nao_converteu'].includes(lead.status)) {
        updates.valor_pago = 0;
+       updates.objecao = null;
        updates.motivo_perda = null;
     }
     if (['iniciou_atendimento', 'conversando'].includes(newStatus)) {
@@ -205,7 +206,7 @@ export function CRM() {
     }
 
     if (newStatus === 'nao_converteu' && oldStatus !== 'nao_converteu') {
-      setNaoConverteuForm({ motivo: lead.motivo_perda || '' });
+      setNaoConverteuForm({ objecao: lead.objecao || '', motivo: lead.motivo_perda || '' });
       setConfirmNaoConverteu({ leadId, sourceCol: oldStatus, lead });
       return;
     }
@@ -224,6 +225,7 @@ export function CRM() {
     const updates: any = { status: newStatus };
     if (['converteu', 'nao_converteu'].includes(oldStatus)) {
        updates.valor_pago = 0;
+       updates.objecao = null;
        updates.motivo_perda = null;
     }
     if (['iniciou_atendimento', 'conversando'].includes(newStatus)) {
@@ -328,13 +330,19 @@ export function CRM() {
   };
 
   const confirmNaoConverteuAction = async () => {
-    if (!confirmNaoConverteu || !naoConverteuForm.motivo) return;
+    if (!confirmNaoConverteu || !naoConverteuForm.objecao || (naoConverteuForm.objecao === 'Outro' && !naoConverteuForm.motivo)) return;
     const { leadId } = confirmNaoConverteu;
     setSavingNaoConverteu(true);
     try {
-      const { error } = await supabase.from('leads').update({ status: 'nao_converteu', motivo_perda: naoConverteuForm.motivo }).eq('id', leadId);
+      const updates = { 
+        status: 'nao_converteu', 
+        objecao: naoConverteuForm.objecao,
+        motivo_perda: naoConverteuForm.objecao === 'Outro' ? naoConverteuForm.motivo : null 
+      };
+      const { error } = await supabase.from('leads').update(updates).eq('id', leadId);
       if (error) throw error;
-      updateLeadState(leadId, 'nao_converteu');
+      setLeads(prev => prev.map(l => l.id === leadId ? { ...l, ...updates } : l));
+      setSelectedLead((prev: any) => prev?.id === leadId ? { ...prev, ...updates } : prev);
       setConfirmNaoConverteu(null);
       fetchLeads();
     } catch (err: any) {
@@ -576,10 +584,46 @@ export function CRM() {
       <Modal isOpen={!!confirmNaoConverteu} onClose={() => setConfirmNaoConverteu(null)} title="Registrar Não Conversão">
         <div className="space-y-4">
           <div className="p-3 bg-rose-50 border border-rose-200 rounded-[8px] text-rose-800 font-medium text-sm">Entender o motivo da perda ajuda a melhorar.</div>
-          <div><label className="block text-sm font-medium mb-1">Motivo/Objeção *</label><textarea rows={4} value={naoConverteuForm.motivo} onChange={e => setNaoConverteuForm({...naoConverteuForm, motivo: e.target.value})} className="w-full border rounded-[8px] px-3 py-2 text-sm bg-[var(--color-bg-base)]" /></div>
+          
+          <div>
+            <label className="block text-sm font-medium mb-1">Principal Objeção *</label>
+            <select 
+              value={naoConverteuForm.objecao} 
+              onChange={e => setNaoConverteuForm({...naoConverteuForm, objecao: e.target.value})}
+              className="w-full border rounded-[8px] px-3 py-2 text-sm bg-[var(--color-bg-base)]"
+            >
+              <option value="" disabled>Selecione uma opção...</option>
+              <option value="Valor/Orçamento">Valor/Orçamento</option>
+              <option value="Condições de Pagamento">Condições de Pagamento</option>
+              <option value="Insegurança/Falta de Confiança">Insegurança/Falta de Confiança</option>
+              <option value="Falta de Urgência/Prioridade">Falta de Urgência/Prioridade</option>
+              <option value="Sem Resposta (Ghosting)">Sem Resposta (Ghosting)</option>
+              <option value="Outro">Outro</option>
+            </select>
+          </div>
+
+          {naoConverteuForm.objecao === 'Outro' && (
+            <div>
+              <label className="block text-sm font-medium mb-1">Especifique o Motivo *</label>
+              <textarea 
+                rows={3} 
+                value={naoConverteuForm.motivo} 
+                onChange={e => setNaoConverteuForm({...naoConverteuForm, motivo: e.target.value})} 
+                className="w-full border rounded-[8px] px-3 py-2 text-sm bg-[var(--color-bg-base)]" 
+                placeholder="Descreva o motivo pelo qual a venda não ocorreu..."
+              />
+            </div>
+          )}
+
           <div className="flex gap-3 justify-end mt-4">
             <Button variant="secondary" onClick={() => setConfirmNaoConverteu(null)}>Cancelar</Button>
-            <Button className="bg-rose-600 text-white" onClick={confirmNaoConverteuAction} disabled={!naoConverteuForm.motivo || savingNaoConverteu}>Salvar</Button>
+            <Button 
+              className="bg-rose-600 text-white" 
+              onClick={confirmNaoConverteuAction} 
+              disabled={!naoConverteuForm.objecao || (naoConverteuForm.objecao === 'Outro' && !naoConverteuForm.motivo) || savingNaoConverteu}
+            >
+              Salvar
+            </Button>
           </div>
         </div>
       </Modal>
@@ -723,10 +767,13 @@ export function CRM() {
                 </div>
               )}
 
-              {selectedLead.status === 'nao_converteu' && selectedLead.motivo_perda && (
+              {selectedLead.status === 'nao_converteu' && selectedLead.objecao && (
                 <div className="p-4 border-l-4 border-rose-500 bg-rose-50 rounded-[12px]">
                    <span className="text-[10px] text-rose-600 font-bold uppercase tracking-wider">Motivo da Não Conversão</span>
-                   <p className="text-sm font-medium text-rose-900 mt-1">{selectedLead.motivo_perda}</p>
+                   <p className="text-sm font-bold text-rose-900 mt-1">{selectedLead.objecao}</p>
+                   {selectedLead.motivo_perda && (
+                     <p className="text-sm font-medium text-rose-800 mt-1 italic">{selectedLead.motivo_perda}</p>
+                   )}
                 </div>
               )}
 
