@@ -216,7 +216,7 @@ export function LeadsClientes({ mode }: { mode?: 'leads' | 'clientes' }) {
       {/* Date Filter & Search */}
       <Card>
          <CardContent className="p-4">
-           <div className="flex flex-col lg:flex-row gap-4 lg:items-center justify-between w-full">
+           <div className="flex flex-col 2xl:flex-row gap-4 justify-between w-full">
               <div className="flex flex-col xl:flex-row gap-4 xl:items-center">
                 <div className="flex flex-wrap gap-2">
                 {(['ontem', 'hoje', '7dias', '14dias', 'mes', 'ano'] as DateFilter[]).map(f => (
@@ -229,13 +229,16 @@ export function LeadsClientes({ mode }: { mode?: 'leads' | 'clientes' }) {
                   </button>
                 ))}
                 </div>
-                <div className="flex flex-wrap items-center gap-2 xl:border-l border-[var(--color-border-card)] xl:pl-4">
-                  <Input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)} className="h-9 w-[130px]"/>
-                  <span className="text-sm text-[var(--color-text-muted)]">até</span>
-                  <Input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)} className="h-9 w-[130px]"/>
+                
+                <div className="flex flex-row items-center gap-2 xl:border-l border-[var(--color-border-card)] xl:pl-4">
+                  <div className="flex flex-row items-center gap-2 w-auto max-w-[300px]">
+                    <Input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)} className="h-9 min-w-0"/>
+                    <span className="text-sm text-[var(--color-text-muted)] shrink-0">até</span>
+                    <Input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)} className="h-9 min-w-0"/>
+                  </div>
                   <button 
                     onClick={() => setDateFilter('custom')}
-                    className="px-3 py-1.5 bg-[var(--color-primary)] text-white text-sm font-medium rounded-[8px] transition-colors hover:bg-opacity-90 whitespace-nowrap"
+                    className="px-3 py-1.5 bg-[var(--color-primary)] text-white text-sm font-medium rounded-[8px] transition-colors hover:bg-opacity-90 whitespace-nowrap shrink-0 h-9"
                   >
                     Filtrar
                   </button>
@@ -243,17 +246,19 @@ export function LeadsClientes({ mode }: { mode?: 'leads' | 'clientes' }) {
               </div>
               
               <div className="flex flex-row items-center gap-2">
-                <Input 
-                  placeholder="Buscar nome ou zap..." 
-                  value={searchTerm} 
-                  onChange={e => setSearchTerm(e.target.value)}
-                  icon={<Search className="w-4 h-4"/>}
-                  className="h-9 w-48 sm:w-56"
-                />
-                <Button size="sm" variant="secondary" onClick={handleExportCSV} title="Exportar filtrados para CSV" className="h-9 border-[var(--color-border-card)] text-[var(--color-text-main)] hover:bg-[var(--color-bg-sidebar)]">
+                <div className="w-[180px] sm:w-[250px]">
+                  <Input 
+                    placeholder="Buscar nome ou zap..." 
+                    value={searchTerm} 
+                    onChange={e => setSearchTerm(e.target.value)}
+                    icon={<Search className="w-4 h-4"/>}
+                    className="h-9 w-full"
+                  />
+                </div>
+                <Button size="sm" variant="secondary" onClick={handleExportCSV} title="Exportar filtrados para CSV" className="h-9 border-[var(--color-border-card)] text-[var(--color-text-main)] hover:bg-[var(--color-bg-sidebar)] shrink-0">
                   <Download className="w-4 h-4 sm:mr-2"/> <span className="hidden sm:inline">CSV</span>
                 </Button>
-                <Button size="sm" variant="secondary" onClick={handleExportPDF} title="Exportar filtrados para PDF" className="h-9 border-[var(--color-border-card)] text-[var(--color-text-main)] hover:bg-[var(--color-bg-sidebar)]">
+                <Button size="sm" variant="secondary" onClick={handleExportPDF} title="Exportar filtrados para PDF" className="h-9 border-[var(--color-border-card)] text-[var(--color-text-main)] hover:bg-[var(--color-bg-sidebar)] shrink-0">
                   <FileText className="w-4 h-4 sm:mr-2"/> <span className="hidden sm:inline">PDF</span>
                 </Button>
               </div>
