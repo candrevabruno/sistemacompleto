@@ -213,28 +213,6 @@ export function LeadsClientes({ mode }: { mode?: 'leads' | 'clientes' }) {
 
   return (
     <div className="space-y-6 flex flex-col min-h-[calc(100vh-100px)] bg-[var(--color-bg-base)] pb-10">
-      {/* Top Cards Explanation */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-         <Card className="border-l-4 border-l-[var(--color-primary)]">
-           <CardContent className="flex items-center gap-4 p-4">
-             <div className="p-3 bg-[var(--color-primary-light)] text-[var(--color-primary)] rounded-full shrink-0"><UserSearch className="w-5 h-5"/></div>
-             <div>
-               <h3 className="font-semibold text-lg">Lead</h3>
-               <p className="text-sm text-[var(--color-text-muted)]">Pessoa que entrou em contato com a empresa, mas ainda não realizou o serviço presencialmente.</p>
-             </div>
-           </CardContent>
-         </Card>
-         <Card className="border-l-4 border-l-[var(--color-success)]">
-           <CardContent className="flex items-center gap-4 p-4">
-             <div className="p-3 bg-green-100 text-[var(--color-success)] rounded-full shrink-0"><UserCheck className="w-5 h-5"/></div>
-             <div>
-               <h3 className="font-semibold text-lg">Cliente</h3>
-               <p className="text-sm text-[var(--color-text-muted)]">Pessoa que agendou e compareceu à empresa pelo menos uma vez.</p>
-             </div>
-           </CardContent>
-         </Card>
-      </div>
-
       {/* Date Filter & Search */}
       <Card>
          <CardContent className="p-4">
@@ -264,6 +242,22 @@ export function LeadsClientes({ mode }: { mode?: 'leads' | 'clientes' }) {
                     Filtrar
                   </button>
                 </div>
+                
+                <div className="flex flex-wrap items-center gap-2 w-full xl:w-auto xl:ml-auto">
+                  <Input 
+                    placeholder="Buscar nome ou zap..." 
+                    value={searchTerm} 
+                    onChange={e => setSearchTerm(e.target.value)}
+                    icon={<Search className="w-4 h-4"/>}
+                    className="h-9 w-full md:w-56"
+                  />
+                  <Button size="sm" variant="secondary" onClick={handleExportCSV} title="Exportar filtrados para CSV" className="h-9 border-[var(--color-border-card)] text-[var(--color-text-main)] hover:bg-[var(--color-bg-sidebar)]">
+                    <Download className="w-4 h-4 mr-2"/> CSV
+                  </Button>
+                  <Button size="sm" variant="secondary" onClick={handleExportPDF} title="Exportar filtrados para PDF" className="h-9 border-[var(--color-border-card)] text-[var(--color-text-main)] hover:bg-[var(--color-bg-sidebar)]">
+                    <FileText className="w-4 h-4 mr-2"/> PDF
+                  </Button>
+                </div>
               </div>
            </div>
          </CardContent>
@@ -280,21 +274,6 @@ export function LeadsClientes({ mode }: { mode?: 'leads' | 'clientes' }) {
                Base de Clientes ({activeTab === 'clientes' ? filteredClientes.length : '...'})
              </button>
            </div>
-           <div className="flex flex-wrap items-center gap-2 w-full md:w-auto mt-2 md:mt-0">
-             <Input 
-               placeholder="Buscar nome ou zap..." 
-               value={searchTerm} 
-               onChange={e => setSearchTerm(e.target.value)}
-               icon={<Search className="w-4 h-4"/>}
-               className="h-9 w-full md:w-56"
-             />
-             <Button size="sm" variant="secondary" onClick={handleExportCSV} title="Exportar filtrados para CSV" className="h-9 border-[var(--color-border-card)] text-[var(--color-text-main)] hover:bg-[var(--color-bg-sidebar)]">
-               <Download className="w-4 h-4 mr-2"/> CSV
-             </Button>
-             <Button size="sm" variant="secondary" onClick={handleExportPDF} title="Exportar filtrados para PDF" className="h-9 border-[var(--color-border-card)] text-[var(--color-text-main)] hover:bg-[var(--color-bg-sidebar)]">
-               <FileText className="w-4 h-4 mr-2"/> PDF
-             </Button>
-           </div>
         </div>
       )}
 
@@ -303,21 +282,6 @@ export function LeadsClientes({ mode }: { mode?: 'leads' | 'clientes' }) {
           <h2 className="text-2xl font-cormorant font-bold text-[var(--color-primary)]">
             Base de {mode === 'leads' ? 'Leads' : 'Clientes'} ({activeTab === 'leads' ? filteredLeads.length : filteredClientes.length})
           </h2>
-          <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
-            <Input 
-              placeholder="Buscar nome ou zap..." 
-              value={searchTerm} 
-              onChange={e => setSearchTerm(e.target.value)}
-              icon={<Search className="w-4 h-4"/>}
-              className="h-9 w-full md:w-56"
-            />
-            <Button size="sm" variant="secondary" onClick={handleExportCSV} title="Exportar filtrados para CSV" className="h-9 border-[var(--color-border-card)] text-[var(--color-text-main)] hover:bg-[var(--color-bg-sidebar)]">
-              <Download className="w-4 h-4 mr-2"/> CSV
-            </Button>
-            <Button size="sm" variant="secondary" onClick={handleExportPDF} title="Exportar filtrados para PDF" className="h-9 border-[var(--color-border-card)] text-[var(--color-text-main)] hover:bg-[var(--color-bg-sidebar)]">
-              <FileText className="w-4 h-4 mr-2"/> PDF
-            </Button>
-          </div>
         </div>
       )}
 
