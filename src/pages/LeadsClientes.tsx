@@ -231,10 +231,14 @@ export function LeadsClientes({ mode }: { mode?: 'leads' | 'clientes' }) {
                 </div>
                 
                 <div className="flex flex-row items-center gap-2 xl:border-l border-[var(--color-border-card)] xl:pl-4">
-                  <div className="flex flex-row items-center gap-2 w-auto max-w-[300px]">
-                    <Input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)} className="h-9 min-w-0"/>
+                  <div className="flex flex-row items-center gap-2">
+                    <div className="w-[130px] sm:w-[150px]">
+                      <Input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)} className="h-9"/>
+                    </div>
                     <span className="text-sm text-[var(--color-text-muted)] shrink-0">até</span>
-                    <Input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)} className="h-9 min-w-0"/>
+                    <div className="w-[130px] sm:w-[150px]">
+                      <Input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)} className="h-9"/>
+                    </div>
                   </div>
                   <button 
                     onClick={() => setDateFilter('custom')}
