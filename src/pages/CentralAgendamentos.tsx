@@ -12,12 +12,14 @@ import { CalendarCheck, Phone, Clock, ChevronDown, RefreshCw, CheckCircle, XCirc
 const COLUMNS = [
   { id: 'iniciou_atendimento', title: 'Iniciou' },
   { id: 'conversando', title: 'Conversando' },
+  { id: 'follow_up', title: 'Follow-Up' },
   { id: 'agendado', title: 'Agendado' },
   { id: 'reagendado', title: 'Reagendado' },
   { id: 'faltou', title: 'Faltou' },
   { id: 'cancelou_agendamento', title: 'Cancelou Agendamento' },
   { id: 'converteu', title: 'Converteu (Venda)' },
-  { id: 'nao_converteu', title: 'Não Converteu' }
+  { id: 'nao_converteu', title: 'Não Converteu' },
+  { id: 'abandonou_conversa', title: 'Abandonou' }
 ];
 
 type Filtro = 'hoje' | 'amanha' | '7_dias' | '14_dias' | 'mes' | 'custom';

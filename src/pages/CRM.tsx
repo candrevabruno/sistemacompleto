@@ -14,12 +14,14 @@ import { Plus, User, FileText, Calendar, DollarSign, Clock, Trash2 } from 'lucid
 const COLUMNS = [
   { id: 'iniciou_atendimento', title: 'Iniciou', colorClass: 'border-[var(--color-primary)]' },
   { id: 'conversando', title: 'Conversando', colorClass: 'border-[var(--color-text-main)]' },
+  { id: 'follow_up', title: 'Follow-Up', colorClass: 'border-blue-500' },
   { id: 'agendado', title: 'Agendado', colorClass: 'border-emerald-500' },
   { id: 'reagendado', title: 'Reagendado', colorClass: 'border-amber-400' },
   { id: 'faltou', title: 'Faltou', colorClass: 'border-slate-500' },
   { id: 'cancelou_agendamento', title: 'Cancelou Agendamento', colorClass: 'border-rose-400' },
   { id: 'converteu', title: 'Converteu (Venda)', colorClass: 'border-green-600 font-bold' },
-  { id: 'nao_converteu', title: 'Não Converteu', colorClass: 'border-rose-600' }
+  { id: 'nao_converteu', title: 'Não Converteu', colorClass: 'border-rose-600' },
+  { id: 'abandonou_conversa', title: 'Abandonou', colorClass: 'border-gray-400' }
 ];
 
 export function CRM() {
