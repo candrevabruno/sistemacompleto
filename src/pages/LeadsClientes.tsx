@@ -90,8 +90,8 @@ export function LeadsClientes({ mode }: { mode?: 'leads' | 'clientes' }) {
         
         const resolvedClients = [];
         for (const p of (data || [])) {
-          const reqCompareceu = await supabase.from('agendamentos').select('id', { count: 'exact' }).eq('cliente_id', p.id).eq('status', 'compareceu');
-          const reqProx = await supabase.from('agendamentos').select('data_hora_inicio').eq('cliente_id', p.id).gte('data_hora_inicio', new Date().toISOString()).order('data_hora_inicio', { ascending: true }).limit(1);
+          const reqCompareceu = await supabase.from('agendamentos').select('id', { count: 'exact' }).eq('lead_id', p.lead_id).eq('status', 'compareceu');
+          const reqProx = await supabase.from('agendamentos').select('data_hora_inicio').eq('lead_id', p.lead_id).gte('data_hora_inicio', new Date().toISOString()).order('data_hora_inicio', { ascending: true }).limit(1);
           resolvedClients.push({
              ...p,
              countCompareceu: reqCompareceu.count || 0,
