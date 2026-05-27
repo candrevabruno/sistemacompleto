@@ -207,9 +207,14 @@ export function Dashboard() {
   const leadsNaoQualificados = leadsData.filter(l => l.status === 'abandonou_conversa').length;
   const leadsQualificados = totalLeads - leadsNaoQualificados;
 
-  // Agendamentos: Conta apenas leads que possuem de fato um registro de agendamento (id_agendamento ou data_agendamento)
-  // Isso evita que leads movidos manualmente direto para "Converteu/Não Converteu" contem como agendamentos falsos.
-  const leadsAgendados = leadsData.filter(l => l.id_agendamento || l.data_agendamento).length;
+  // Agendamentos: Conta leads que possuem um agendamento registrado OU que estão 
+  // em etapas avançadas ('agendado', 'reagendado', 'converteu', 'compareceu').
+  // Isso garante que o funil seja fidedigno e não "perca" leads que mudaram de status.
+  const leadsAgendados = leadsData.filter(l => 
+    l.id_agendamento || 
+    l.data_agendamento || 
+    ['agendado', 'reagendado', 'converteu', 'compareceu'].includes(l.status)
+  ).length;
 
   // Conversões = leads com status 'converteu'
   const leadsConverteu = leadsData.filter(l => l.status === 'converteu').length;
