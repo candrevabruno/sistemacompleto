@@ -265,7 +265,10 @@ export function LeadDetailsModal({ isOpen, onClose, leadId, onUpdate }: LeadDeta
       if (lead.id_agendamento) {
         await supabase
           .from('agendamentos')
-          .update({ status: 'compareceu' })
+          .update({ 
+            status: 'compareceu',
+            valor_pago: parseFloat(converteuForm.valor.replace(',', '.'))
+          })
           .eq('id', lead.id_agendamento);
       }
 
@@ -408,9 +411,10 @@ export function LeadDetailsModal({ isOpen, onClose, leadId, onUpdate }: LeadDeta
     }
   };
 
+  const sumApptsLTV = appointments.reduce((sum: number, appt: any) => sum + (parseFloat(appt.valor_pago) || 0), 0);
   const conversions = (lead?.jornada || []).filter((item: any) => item.status === 'converteu');
   const sumJourneyLTV = conversions.reduce((sum: number, item: any) => sum + (parseFloat(item.valor_pago) || 0), 0);
-  const totalLTV = sumJourneyLTV > 0 ? sumJourneyLTV : (parseFloat(lead?.valor_pago) || 0);
+  const totalLTV = Math.max(sumJourneyLTV, sumApptsLTV, parseFloat(lead?.valor_pago) || 0);
 
   const totalCompareceu = appointments.filter(a => a.status === 'compareceu').length;
 
@@ -697,7 +701,14 @@ export function LeadDetailsModal({ isOpen, onClose, leadId, onUpdate }: LeadDeta
                         <div key={appt.id} className="p-3 bg-gray-50 hover:bg-gray-100/70 border border-gray-100 rounded-[8px] text-xs transition-colors">
                           <div className="flex justify-between items-start">
                             <span className="font-semibold text-[var(--color-text-main)]">{appt.procedimento_nome || 'Consulta'}</span>
-                            <Badge variant={appt.status}>{appt.status}</Badge>
+                            <div className="flex flex-col items-end gap-1">
+                              <Badge variant={appt.status}>{appt.status}</Badge>
+                              {appt.valor_pago > 0 && (
+                                <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(appt.valor_pago)}
+                                </span>
+                              )}
+                            </div>
                           </div>
                           <div className="mt-2 text-[var(--color-text-muted)] space-y-1">
                             <p className="flex items-center gap-1"><Clock size={11} /> {apptDate}</p>

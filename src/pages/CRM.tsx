@@ -295,7 +295,13 @@ export function CRM() {
       if (error) throw error;
 
       if (lead.id_agendamento) {
-        await supabase.from('agendamentos').update({ status: 'compareceu' }).eq('id', lead.id_agendamento);
+        await supabase
+          .from('agendamentos')
+          .update({ 
+            status: 'compareceu',
+            valor_pago: parseFloat(converteuForm.valor.replace(',', '.'))
+          })
+          .eq('id', lead.id_agendamento);
       }
 
       if (updatedLeads && updatedLeads[0]) {
