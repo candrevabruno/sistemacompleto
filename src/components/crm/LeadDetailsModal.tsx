@@ -651,35 +651,37 @@ export function LeadDetailsModal({ isOpen, onClose, leadId, onUpdate }: LeadDeta
               <div className="bg-[var(--color-bg-card)] border border-[var(--color-border-card)] rounded-[12px] p-5">
                 <h3 className="font-semibold text-sm border-b pb-2 mb-4">Jornada do Cliente</h3>
                 {lead.jornada && Array.isArray(lead.jornada) && lead.jornada.length > 0 ? (
-                  <div className="relative pl-6 space-y-4 border-l-2 border-gray-200 ml-3">
-                    {lead.jornada.map((item: any, index: number) => {
-                      const col = COLUMNS.find(c => c.id === item.status);
-                      const displayTitle = col ? col.title : item.status;
-                      const formattedTime = format(parseISO(item.timestamp), "dd/MM/yyyy 'às' HH:mm'h'", { locale: ptBR });
-                      const isLatest = index === lead.jornada.length - 1;
-                      
-                      return (
-                        <div key={index} className="relative group">
-                          {/* Pontinho indicador */}
-                          <div className={`absolute -left-[31px] top-1 w-3 h-3 rounded-full border-2 transition-all ${
-                            isLatest 
-                              ? 'bg-[var(--color-primary)] border-[var(--color-primary)] scale-110 shadow-sm' 
-                              : 'bg-white border-gray-400 group-hover:border-gray-600'
-                          }`} />
-                          <div>
-                            <p className={`text-xs font-semibold ${isLatest ? 'text-[var(--color-primary)] font-bold' : 'text-[var(--color-text-main)]'}`}>
-                              {displayTitle}
-                              {item.valor_pago && (
-                                <span className="ml-2 text-[10px] px-1.5 py-0.5 bg-emerald-100 text-emerald-800 rounded font-bold">
-                                  + {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.valor_pago)}
-                                </span>
-                              )}
-                            </p>
-                            <p className="text-[10px] text-[var(--color-text-muted)] mt-0.5">{formattedTime}</p>
+                  <div className="max-h-[250px] overflow-y-auto pr-1 custom-scrollbar py-1">
+                    <div className="relative pl-6 space-y-4 border-l-2 border-gray-200 ml-3">
+                      {lead.jornada.map((item: any, index: number) => {
+                        const col = COLUMNS.find(c => c.id === item.status);
+                        const displayTitle = col ? col.title : item.status;
+                        const formattedTime = format(parseISO(item.timestamp), "dd/MM/yyyy 'às' HH:mm'h'", { locale: ptBR });
+                        const isLatest = index === lead.jornada.length - 1;
+                        
+                        return (
+                          <div key={index} className="relative group">
+                            {/* Pontinho indicador */}
+                            <div className={`absolute -left-[31px] top-1 w-3 h-3 rounded-full border-2 transition-all ${
+                              isLatest 
+                                ? 'bg-[var(--color-primary)] border-[var(--color-primary)] scale-110 shadow-sm' 
+                                : 'bg-white border-gray-400 group-hover:border-gray-600'
+                            }`} />
+                            <div>
+                              <p className={`text-xs font-semibold ${isLatest ? 'text-[var(--color-primary)] font-bold' : 'text-[var(--color-text-main)]'}`}>
+                                {displayTitle}
+                                {item.valor_pago && (
+                                  <span className="ml-2 text-[10px] px-1.5 py-0.5 bg-emerald-100 text-emerald-800 rounded font-bold">
+                                    + {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.valor_pago)}
+                                  </span>
+                                )}
+                              </p>
+                              <p className="text-[10px] text-[var(--color-text-muted)] mt-0.5">{formattedTime}</p>
+                            </div>
                           </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
+                    </div>
                   </div>
                 ) : (
                   <p className="text-xs text-[var(--color-text-muted)] italic">Nenhuma transição registrada.</p>
