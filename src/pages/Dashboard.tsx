@@ -47,10 +47,18 @@ export function Dashboard() {
     const handleOnline = () => fetchData();
     window.addEventListener('focus', handleFocus);
     window.addEventListener('online', handleOnline);
+
+    const channel = supabase
+      .channel('dashboard-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, () => fetchData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'agendamentos' }, () => fetchData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'clientes' }, () => fetchData())
+      .subscribe();
     
     return () => {
       window.removeEventListener('focus', handleFocus);
       window.removeEventListener('online', handleOnline);
+      supabase.removeChannel(channel);
     };
   }, [dateRange]);
 
