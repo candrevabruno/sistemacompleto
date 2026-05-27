@@ -10,6 +10,7 @@ import { formatDistanceToNow, parseISO, startOfToday, endOfToday, startOfYesterd
 import { ptBR } from 'date-fns/locale';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { LeadDetailsModal } from '../components/crm/LeadDetailsModal';
 
 type DateFilter = 'ontem' | 'hoje' | '7dias' | '14dias' | 'mes' | 'ano' | 'custom';
 
@@ -333,7 +334,7 @@ export function LeadsClientes({ mode }: { mode?: 'leads' | 'clientes' }) {
               ))
             ) : (
               filteredClientes.map(cliente => (
-                <tr key={cliente.id} onClick={() => { setSelectedCliente(cliente); setOpenClienteDetails(true); }} className="border-b border-[var(--color-border-card)] last:border-0 hover:bg-[var(--color-bg-base)] transition-colors cursor-pointer group">
+                <tr key={cliente.id} onClick={() => { setSelectedLead(cliente.leads); setOpenLeadDetails(true); }} className="border-b border-[var(--color-border-card)] last:border-0 hover:bg-[var(--color-bg-base)] transition-colors cursor-pointer group">
                   <td className="px-6 py-4 font-medium group-hover:text-[var(--color-primary)]">{cliente.leads?.nome_lead || 'Sem Nome'}</td>
                   <td className="px-6 py-4 text-[var(--color-text-muted)] font-mono text-xs">{cliente.leads?.whatsapp_lead}</td>
                   <td className="px-6 py-4 text-center">
@@ -355,63 +356,12 @@ export function LeadsClientes({ mode }: { mode?: 'leads' | 'clientes' }) {
       </div>
 
       {/* DRAWER LAYER FOR LEADS/PATIENTS (Modal reuse) */}
-      <Modal isOpen={openLeadDetails} onClose={() => setOpenLeadDetails(false)} title="Detalhes do Lead">
-        {selectedLead && (
-          <div className="space-y-6 max-h-[70vh] overflow-y-auto">
-            <h2 className="font-cormorant text-2xl font-bold">{selectedLead.nome_lead || 'Sem nome'}</h2>
-            <div className="text-sm border p-4 rounded bg-gray-50">
-               <p><strong>WhatsApp:</strong> {selectedLead.whatsapp_lead}</p>
-               <p className="mt-2"><strong>Status Atual:</strong> <Badge variant={selectedLead.status}>{selectedLead.status}</Badge></p>
-               <div className="mt-4 p-3 border-l-4 border-[var(--color-primary)] bg-white rounded shadow-sm">
-                 <p className="text-xs text-gray-400 font-semibold mb-1 uppercase tracking-wider">Resumo da Conversa</p>
-                 <p className="text-sm italic">"{selectedLead.resumo_conversa || 'Nenhum resumo gerado para esta conversa.'}"</p>
-               </div>
-               <p className="mt-2"><strong>Início:</strong> {selectedLead.inicio_atendimento ? format(parseISO(selectedLead.inicio_atendimento), 'dd/MM/yyyy HH:mm') : '-'}</p>
-            </div>
-          </div>
-        )}
-      </Modal>
-
-      <Modal isOpen={openClienteDetails} onClose={() => setOpenClienteDetails(false)} title="Detalhes do Perfil do Cliente">
-        {selectedCliente && (
-          <div className="space-y-6 max-h-[70vh] overflow-y-auto">
-            <div className="flex justify-between items-center bg-[var(--color-primary-light)] p-5 border border-[var(--color-border-card)] rounded-[12px]">
-              <div>
-                <h2 className="font-cormorant text-2xl font-bold">{selectedCliente.leads?.nome_lead || 'Cliente sem nome'}</h2>
-                <p className="text-sm font-medium opacity-80 mt-1">{selectedCliente.leads?.whatsapp_lead}</p>
-              </div>
-              <Button size="sm" variant="secondary"><ExternalLink className="w-4 h-4 mr-2"/> Ver no CRM</Button>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="p-4 border bg-gray-50 rounded-[8px]">
-                <span className="text-xs text-gray-500 block mb-1">Cliente desde</span>
-                <span className="font-medium text-sm">{format(parseISO(selectedCliente.data_primeira_visita), 'dd/MM/yyyy')}</span>
-              </div>
-              <div className="p-4 border bg-gray-50 rounded-[8px]">
-                <span className="text-xs text-gray-500 block mb-1">LTV (Lifetime Value)</span>
-                <span className="font-medium text-[var(--color-primary)] text-lg">
-                   {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(selectedCliente.valor_pago || 0)}
-                </span>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <h3 className="font-semibold text-sm border-b pb-1">Serviços Realizados ({selectedCliente.countCompareceu})</h3>
-              <p className="text-sm text-[var(--color-text-muted)] italic">Consultar painel de Agendamentos para os detalhes estritos de cada comparecimento.</p>
-            </div>
-
-            <div className="space-y-3">
-              <h3 className="font-semibold text-sm border-b pb-1">Campos Extras do Perfil</h3>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div><span className="text-gray-500 block text-xs">Data de nascimento:</span> {selectedCliente.data_nascimento || '-'}</div>
-                <div><span className="text-gray-500 block text-xs">Gênero:</span> {selectedCliente.genero || '-'}</div>
-                <div className="col-span-2"><span className="text-gray-500 block text-xs">Observações Internas:</span> {selectedCliente.observacoes || 'Nenhuma observação cadastrada.'}</div>
-              </div>
-            </div>
-          </div>
-        )}
-      </Modal>
+      <LeadDetailsModal 
+        isOpen={openLeadDetails}
+        onClose={() => setOpenLeadDetails(false)}
+        leadId={selectedLead?.id}
+        onUpdate={fetchData}
+      />
 
     </div>
   );

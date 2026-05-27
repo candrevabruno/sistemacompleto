@@ -10,6 +10,8 @@ import { Input } from '../components/ui/Input';
 import { formatDistanceToNow, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Plus, User, FileText, Calendar, DollarSign, Clock, Trash2 } from 'lucide-react';
+import { LeadDetailsModal } from '../components/crm/LeadDetailsModal';
+
 
 const COLUMNS = [
   { id: 'iniciou_atendimento', title: 'Iniciou', colorClass: 'border-[var(--color-primary)]' },
@@ -57,18 +59,7 @@ export function CRM() {
   // Lead Details
   const [selectedLead, setSelectedLead] = useState<any>(null);
   const [openLeadDetails, setOpenLeadDetails] = useState(false);
-  const [savingStatus, setSavingStatus] = useState(false);
 
-  // Lead Details Edit State
-  const [editingDetails, setEditingDetails] = useState(false);
-  const [detailsForm, setDetailsForm] = useState({ 
-    genero: '', 
-    data_nascimento: '', 
-    observacoes: '',
-    nome_lead: '',
-    procedimento_interesse: ''
-  });
-  const [savingDetails, setSavingDetails] = useState(false);
 
   const fetchLeads = async () => {
     try {
@@ -89,55 +80,6 @@ export function CRM() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleStatusChange = async (leadId: string, newStatus: string) => {
-    // Se for um status que exige modal, abrimos o modal em vez de salvar direto
-    const lead = leads.find(l => l.id === leadId);
-    if (!lead) return;
-
-    if (newStatus === 'converteu') {
-      setConverteuForm({ servicos: lead.servicos_contratados || [], valor: String(lead.valor_pago || ''), observacao: '' });
-      setConfirmConverteu({ leadId, sourceCol: lead.status, lead });
-      return;
-    }
-    if (newStatus === 'nao_converteu') {
-      setNaoConverteuForm({ objecao: lead.objecao || '', motivo: lead.motivo_perda || '' });
-      setConfirmNaoConverteu({ leadId, sourceCol: lead.status, lead });
-      return;
-    }
-    if (newStatus === 'agendado') {
-        setAgendadoForm({ dataHora: '', procedimento: lead.procedimento_interesse || '', agendaId: agendas[0]?.id || '', modalidade: 'presencial' });
-        setConfirmAgendado({ leadId, sourceCol: lead.status, lead });
-        return;
-    }
-
-    // Reset logic: 
-    // 1. Se estiver saindo de converteu ou nao_converteu, limpa os campos financeiros/perda
-    // 2. Se o novo status for 'iniciou_atendimento' ou 'conversando', limpa dados de agendamento
-    const updates: any = { status: newStatus };
-    if (['converteu', 'nao_converteu'].includes(lead.status)) {
-       updates.valor_pago = 0;
-       updates.objecao = null;
-       updates.motivo_perda = null;
-    }
-    if (['iniciou_atendimento', 'conversando'].includes(newStatus)) {
-       updates.data_agendamento = null;
-       updates.id_agendamento = null;
-       updates.agendamento_criado_em = null;
-       updates.modalidade = null;
-    }
-
-    const { data, error } = await supabase.from('leads').update(updates).eq('id', leadId).select();
-    if (!error && data && data[0]) {
-      const updatedRow = data[0];
-      setLeads(prev => prev.map(l => l.id === leadId ? updatedRow : l));
-      setSelectedLead((prev: any) => prev?.id === leadId ? updatedRow : prev);
-    } else {
-      setLeads(prev => prev.map(l => l.id === leadId ? { ...l, ...updates } : l));
-      setSelectedLead((prev: any) => prev?.id === leadId ? { ...prev, ...updates } : prev);
-    }
-    setSavingStatus(false);
   };
 
   const fetchAgendas = async () => {
@@ -466,73 +408,7 @@ export function CRM() {
     setLeads(prev => prev.filter(l => l.id !== leadId));
   };
 
-  const handleUpdateDetails = async () => {
-    if (!selectedLead) return;
-    setSavingDetails(true);
-    try {
-      const { error } = await supabase.from('leads').update({
-        nome_lead: detailsForm.nome_lead,
-        genero: detailsForm.genero,
-        data_nascimento: detailsForm.data_nascimento || null,
-        observacoes: detailsForm.observacoes,
-        procedimento_interesse: detailsForm.procedimento_interesse
-      }).eq('id', selectedLead.id);
-      
-      if (error) throw error;
-      
-      setLeads(prev => prev.map(l => l.id === selectedLead.id ? { ...l, ...detailsForm } : l));
-      setSelectedLead((prev: any) => ({ ...prev, ...detailsForm }));
-      setEditingDetails(false);
-    } catch (err: any) {
-      alert(`Erro ao salvar detalhes: ${err.message}`);
-    } finally {
-      setSavingDetails(false);
-    }
-  };
 
-  const handleRemoveAppointment = async () => {
-    if (!selectedLead || !selectedLead.id_agendamento) return;
-    if (!confirm('Deseja realmente remover este agendamento?')) return;
-    
-    setSavingStatus(true);
-    try {
-      // Opcional: Atualizar agendamento para 'cancelado' se quiser manter histórico, 
-      // ou apenas desvincular do lead como solicitado.
-      const { data: updatedLeads, error } = await supabase
-        .from('leads')
-        .update({
-          data_agendamento: null,
-          id_agendamento: null,
-          agendamento_criado_em: null,
-          modalidade: null,
-          status: 'conversando'
-        })
-        .eq('id', selectedLead.id)
-        .select();
-
-      if (error) throw error;
-      
-      if (updatedLeads && updatedLeads[0]) {
-        const updatedRow = updatedLeads[0];
-        setLeads(prev => prev.map(l => l.id === selectedLead.id ? updatedRow : l));
-        setSelectedLead((prev: any) => prev?.id === selectedLead.id ? updatedRow : prev);
-      } else {
-        const updates = { 
-          data_agendamento: null, 
-          id_agendamento: null, 
-          agendamento_criado_em: null,
-          modalidade: null,
-          status: 'conversando' 
-        };
-        setLeads(prev => prev.map(l => l.id === selectedLead.id ? { ...l, ...updates } : l));
-        setSelectedLead((prev: any) => ({ ...prev, ...updates }));
-      }
-    } catch (err: any) {
-      alert(`Erro ao remover agendamento: ${err.message}`);
-    } finally {
-      setSavingStatus(false);
-    }
-  };
 
   const cardsByCol = COLUMNS.reduce((acc, col) => {
     acc[col.id] = leads.filter(l => l.status === col.id);
@@ -569,14 +445,6 @@ export function CRM() {
                               {(provided, snapshot) => (
                                 <div ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps} className={`bg-white p-4 rounded-[12px] border-l-4 shadow-[0_2px_12px_-3px_rgba(0,0,0,0.06)] cursor-grab hover:shadow-md hover:-translate-y-0.5 transition-all group relative ${col.colorClass} ${snapshot.isDragging ? 'opacity-90 scale-[1.02] shadow-xl ring-1 ring-[var(--color-primary)]/20' : ''}`} onClick={() => { 
                                   setSelectedLead(card); 
-                                  setDetailsForm({
-                                    nome_lead: card.nome_lead || '',
-                                    genero: card.genero || '',
-                                    data_nascimento: card.data_nascimento || '',
-                                    observacoes: card.observacoes || '',
-                                    procedimento_interesse: card.procedimento_interesse || ''
-                                  });
-                                  setEditingDetails(false);
                                   setOpenLeadDetails(true); 
                                 }}>
                                   <button onClick={(e) => { e.stopPropagation(); handleDeleteLead(card.id); }} className="absolute top-2 right-2 p-1 text-gray-300 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -735,206 +603,12 @@ export function CRM() {
         </div>
       </Modal>
 
-      <Modal isOpen={openLeadDetails} onClose={() => setOpenLeadDetails(false)} title="Detalhes do Contato">
-        {selectedLead && (
-          <div className="space-y-6 max-h-[80vh] overflow-y-auto pr-2 custom-scrollbar">
-            {/* Header com Status */}
-            <div className="bg-gray-50 p-5 rounded-[16px] border border-[var(--color-border-card)] shadow-sm">
-                <div className="flex justify-between items-start mb-4">
-                  <div className="flex-1">
-                    {editingDetails ? (
-                       <Input value={detailsForm.nome_lead} onChange={e => setDetailsForm({...detailsForm, nome_lead: e.target.value})} className="text-xl font-bold font-cormorant mb-1" />
-                    ) : (
-                       <h2 className="font-cormorant text-2xl font-bold text-[var(--color-text-main)]">{selectedLead.nome_lead || 'Lead sem nome'}</h2>
-                    )}
-                    <p className="text-sm text-[var(--color-text-muted)] font-medium">{selectedLead.whatsapp_lead}</p>
-                  </div>
-                  <Badge variant={selectedLead.status}>{COLUMNS.find(c => c.id === selectedLead.status)?.title}</Badge>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-[10px] uppercase font-bold text-[var(--color-text-muted)] tracking-wider">Mudar Estágio</label>
-                  <select 
-                    value={selectedLead.status} 
-                    onChange={(e) => handleStatusChange(selectedLead.id, e.target.value)}
-                    disabled={savingStatus}
-                    className="w-full bg-white border border-[var(--color-border-card)] rounded-[8px] px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-[var(--color-primary)] outline-none transition-all"
-                  >
-                    {COLUMNS.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
-                  </select>
-                </div>
-            </div>
-
-            {/* Grid de Informações - Editável */}
-            <div className="grid grid-cols-2 gap-4">
-               <div className="p-3 bg-[var(--color-bg-base)] rounded-[12px] border border-[var(--color-border-card)]">
-                  <span className="text-[10px] text-[var(--color-text-muted)] font-bold uppercase">Gênero</span>
-                  {editingDetails ? (
-                    <select 
-                      value={detailsForm.genero} 
-                      onChange={e => setDetailsForm({...detailsForm, genero: e.target.value})}
-                      className="w-full mt-1 border rounded px-2 py-1 text-sm bg-white"
-                    >
-                      <option value="">Não informado</option>
-                      <option value="Masculino">Masculino</option>
-                      <option value="Feminino">Feminino</option>
-                      <option value="Outro">Outro</option>
-                    </select>
-                  ) : (
-                    <p className="text-sm font-medium mt-1">{selectedLead.genero || 'Não informado'}</p>
-                  )}
-               </div>
-               <div className="p-3 bg-[var(--color-bg-base)] rounded-[12px] border border-[var(--color-border-card)]">
-                  <span className="text-[10px] text-[var(--color-text-muted)] font-bold uppercase">Nascimento</span>
-                  {editingDetails ? (
-                    <input 
-                      type="date" 
-                      value={detailsForm.data_nascimento} 
-                      onChange={e => setDetailsForm({...detailsForm, data_nascimento: e.target.value})}
-                      className="w-full mt-1 border rounded px-2 py-1 text-sm bg-white"
-                    />
-                  ) : (
-                    <p className="text-sm font-medium mt-1">{selectedLead.data_nascimento ? format(parseISO(selectedLead.data_nascimento), 'dd/MM/yyyy') : 'Não informado'}</p>
-                  )}
-               </div>
-               <div className="p-3 bg-[var(--color-bg-base)] rounded-[12px] border border-[var(--color-border-card)]">
-                  <span className="text-[10px] text-[var(--color-text-muted)] font-bold uppercase">Serviço/Assunto</span>
-                  {editingDetails ? (
-                    <Input 
-                      value={detailsForm.procedimento_interesse} 
-                      onChange={e => setDetailsForm({...detailsForm, procedimento_interesse: e.target.value})}
-                      className="mt-1 h-8"
-                    />
-                  ) : (
-                    <p className="text-sm font-medium mt-1">{selectedLead.procedimento_interesse || 'Não informado'}</p>
-                  )}
-               </div>
-               <div className="p-3 bg-[var(--color-bg-base)] rounded-[12px] border border-[var(--color-border-card)]">
-                  <div className="flex justify-between items-start">
-                    <span className="text-[10px] text-[var(--color-text-muted)] font-bold uppercase">Agendamento</span>
-                    {(selectedLead.id_agendamento || selectedLead.data_agendamento) && (
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); handleRemoveAppointment(); }}
-                        className="text-rose-500 hover:bg-rose-50 p-1.5 rounded-full transition-all"
-                        title="Remover agendamento"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    )}
-                  </div>
-                  <p className="text-sm font-medium mt-1">{selectedLead.data_agendamento ? format(parseISO(selectedLead.data_agendamento), "dd/MM 'às' HH:mm", { locale: ptBR }) : 'Sem agendamento'}</p>
-                  
-                  {editingDetails && (selectedLead.data_agendamento || selectedLead.id_agendamento) && (
-                    <button 
-                      onClick={handleRemoveAppointment}
-                      className="mt-2 text-[10px] font-bold text-rose-600 uppercase hover:underline flex items-center gap-1"
-                    >
-                      <Trash2 className="w-3 h-3" /> Limpar Agendamento
-                    </button>
-                  )}
-               </div>
-            </div>
-
-            {/* Ação de Edição */}
-            <div className="flex flex-col gap-2">
-              {editingDetails ? (
-                <>
-                  <Button onClick={handleUpdateDetails} disabled={savingDetails} className="w-full bg-green-600">Salvar Alterações</Button>
-                  <Button variant="secondary" onClick={() => setEditingDetails(false)} className="w-full">Cancelar Edição</Button>
-                </>
-              ) : (
-                <Button variant="secondary" onClick={() => setEditingDetails(true)} className="w-full font-bold">Editar Informações</Button>
-              )}
-            </div>
-
-            {/* Resumo e Observações/Histórico */}
-            <div className="space-y-4">
-              {selectedLead.resumo_conversa && !editingDetails && (
-                <div className="p-4 border border-[var(--color-border-card)] rounded-[12px] bg-white relative">
-                  <span className="absolute -top-2 left-3 bg-white px-2 text-[10px] text-[var(--color-primary)] font-bold uppercase tracking-tight">IA - Resumo Automático</span>
-                  <p className="text-sm text-[var(--color-text-main)] italic leading-relaxed pt-1">"{selectedLead.resumo_conversa}"</p>
-                </div>
-              )}
-
-              {selectedLead.status === 'nao_converteu' && selectedLead.objecao && (
-                <div className="p-4 border-l-4 border-rose-500 bg-rose-50 rounded-[12px]">
-                   <span className="text-[10px] text-rose-600 font-bold uppercase tracking-wider">Motivo da Não Conversão</span>
-                   <p className="text-sm font-bold text-rose-900 mt-1">{selectedLead.objecao}</p>
-                   {selectedLead.motivo_perda && (
-                     <p className="text-sm font-medium text-rose-800 mt-1 italic">{selectedLead.motivo_perda}</p>
-                   )}
-                </div>
-              )}
-
-              {selectedLead.status === 'converteu' && selectedLead.valor_pago > 0 && (
-                <div className="p-4 border-l-4 border-green-500 bg-green-50 rounded-[12px] flex justify-between items-center">
-                   <div>
-                     <span className="text-[10px] text-green-600 font-bold uppercase tracking-wider">Negócio Fechado</span>
-                     <p className="text-lg font-bold text-green-900 mt-1">R$ {selectedLead.valor_pago.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-                   </div>
-                   <DollarSign className="w-8 h-8 text-green-200" />
-                </div>
-              )}
-
-              {/* Jornada do Cliente */}
-              <div className="p-4 bg-gray-50 rounded-[12px] border border-[var(--color-border-card)]">
-                <span className="text-[10px] text-[var(--color-text-muted)] font-bold uppercase tracking-wider block mb-3">Jornada do Cliente</span>
-                {selectedLead.jornada && Array.isArray(selectedLead.jornada) && selectedLead.jornada.length > 0 ? (
-                  <div className="relative pl-6 space-y-4 border-l-2 border-dashed border-gray-300 ml-2">
-                    {selectedLead.jornada.map((item: any, index: number) => {
-                      const col = COLUMNS.find(c => c.id === item.status);
-                      const displayTitle = col ? col.title : item.status;
-                      let formattedTime = '';
-                      try {
-                        formattedTime = format(parseISO(item.timestamp), "dd/MM/yyyy 'às' HH:mm'h'", { locale: ptBR });
-                      } catch (e) {
-                        formattedTime = item.timestamp || '';
-                      }
-                      
-                      // Destaque para a etapa atual/última
-                      const isLatest = index === selectedLead.jornada.length - 1;
-                      
-                      return (
-                        <div key={index} className="relative group">
-                          {/* Pontinho indicador */}
-                          <div className={`absolute -left-[31px] top-1 w-3 h-3 rounded-full border-2 transition-all ${
-                            isLatest 
-                              ? 'bg-[var(--color-primary)] border-[var(--color-primary)] scale-110 shadow-sm' 
-                              : 'bg-white border-gray-400 group-hover:border-gray-600'
-                          }`} />
-                          <div>
-                            <p className={`text-xs font-semibold ${isLatest ? 'text-[var(--color-primary)] font-bold' : 'text-[var(--color-text-main)]'}`}>
-                              {displayTitle}
-                            </p>
-                            <p className="text-[10px] text-[var(--color-text-muted)] mt-0.5">{formattedTime}</p>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <p className="text-xs text-[var(--color-text-muted)] italic">Nenhuma transição registrada.</p>
-                )}
-              </div>
-
-              <div className="p-4 bg-gray-50 rounded-[12px] border border-[var(--color-border-card)]">
-                <span className="text-[10px] text-[var(--color-text-muted)] font-bold uppercase tracking-wider">Histórico / Observações Manuais</span>
-                {editingDetails ? (
-                  <textarea 
-                    rows={4} 
-                    value={detailsForm.observacoes} 
-                    onChange={e => setDetailsForm({...detailsForm, observacoes: e.target.value})}
-                    className="w-full mt-2 border rounded p-2 text-sm bg-white"
-                    placeholder="Escreva algo aqui..."
-                  />
-                ) : (
-                  <p className="text-sm text-[var(--color-text-main)] mt-2 whitespace-pre-wrap">{selectedLead.observacoes || 'Nenhuma observação manual registrada.'}</p>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-      </Modal>
+      <LeadDetailsModal 
+        isOpen={openLeadDetails}
+        onClose={() => setOpenLeadDetails(false)}
+        leadId={selectedLead?.id}
+        onUpdate={fetchLeads}
+      />
     </div>
   );
 }
