@@ -285,7 +285,7 @@ function AbaKanban() {
     { kanban: 'Conversando', db: 'conversando' },
     { kanban: 'Agendado', db: 'agendado' },
     { kanban: 'Reagendado', db: 'reagendado' },
-    { kanban: 'Compareceu', db: 'compareceu' },
+    { kanban: 'Converteu', db: 'converteu' },
     { kanban: 'Cancelou o Agendamento', db: 'cancelou_agendamento' },
     { kanban: 'Follow Up', db: 'follow_up' },
     { kanban: 'Abandonou a Conversa', db: 'abandonou_conversa' },
