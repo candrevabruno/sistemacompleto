@@ -543,6 +543,16 @@ export function LeadDetailsModal({ isOpen, onClose, leadId, onUpdate }: LeadDeta
                     )}
                   </div>
 
+                  <div>
+                    <span className="text-[10px] text-[var(--color-text-muted)] font-bold uppercase block">Idade</span>
+                    <p className="text-sm font-medium mt-1">
+                      {editingDetails 
+                        ? (detailsForm.data_nascimento ? `${calculateAge(detailsForm.data_nascimento)} anos` : 'Não informado')
+                        : (lead.data_nascimento ? `${calculateAge(lead.data_nascimento)} anos` : 'Não informado')
+                      }
+                    </p>
+                  </div>
+
                   <div className="sm:col-span-2">
                     <span className="text-[10px] text-[var(--color-text-muted)] font-bold uppercase block">Serviço de Interesse</span>
                     {editingDetails ? (
