@@ -29,7 +29,14 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- 2. Atualizar função do trigger de cliente para não excluir o cliente da tabela clientes se o status do lead mudar
+-- 2. Vincular o trigger de log de jornada à tabela leads
+DROP TRIGGER IF EXISTS trigger_log_lead_status_change ON public.leads;
+CREATE TRIGGER trigger_log_lead_status_change
+  BEFORE INSERT OR UPDATE ON public.leads
+  FOR EACH ROW
+  EXECUTE FUNCTION public.log_lead_status_change();
+
+-- 3. Atualizar função do trigger de cliente para não excluir o cliente da tabela clientes se o status do lead mudar
 CREATE OR REPLACE FUNCTION public.converter_lead_em_cliente()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -41,3 +48,10 @@ BEGIN
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 4. Vincular o trigger de conversão de lead em cliente à tabela leads
+DROP TRIGGER IF EXISTS on_lead_status_changed ON public.leads;
+CREATE TRIGGER on_lead_status_changed
+  AFTER UPDATE OF status ON public.leads
+  FOR EACH ROW
+  EXECUTE FUNCTION public.converter_lead_em_cliente();
