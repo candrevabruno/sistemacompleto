@@ -119,9 +119,14 @@ export function Dashboard() {
       setLeadsData(leads);
 
       const leadsConvertidos = leads.filter(l => l.status === 'converteu');
+      const leadsAgendadosCount = leads.filter(l => 
+        l.id_agendamento || 
+        l.data_agendamento || 
+        ['agendado', 'reagendado', 'converteu', 'compareceu'].includes(l.status)
+      ).length;
 
       setMetrics({
-        agendamentos: agendamentos.length,
+        agendamentos: leadsAgendadosCount,
         comparecimentos: leads.filter(l => ['agendado', 'reagendado', 'converteu', 'nao_converteu', 'faltou'].includes(l.status)).length,
         leads: leads.length,
         clientes: leadsConvertidos.length,
