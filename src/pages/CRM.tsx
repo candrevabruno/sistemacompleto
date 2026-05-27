@@ -78,6 +78,11 @@ export function CRM() {
         console.error('Erro ao buscar leads:', error);
       } else if (data) {
         setLeads(data);
+        setSelectedLead((prev: any) => {
+          if (!prev) return null;
+          const updated = data.find(l => l.id === prev.id);
+          return updated ? updated : prev;
+        });
       }
     } catch (err) {
       console.error('Falha de rede ao buscar leads:', err);
@@ -823,6 +828,47 @@ export function CRM() {
                    <DollarSign className="w-8 h-8 text-green-200" />
                 </div>
               )}
+
+              {/* Jornada do Cliente */}
+              <div className="p-4 bg-gray-50 rounded-[12px] border border-[var(--color-border-card)]">
+                <span className="text-[10px] text-[var(--color-text-muted)] font-bold uppercase tracking-wider block mb-3">Jornada do Cliente</span>
+                {selectedLead.jornada && Array.isArray(selectedLead.jornada) && selectedLead.jornada.length > 0 ? (
+                  <div className="relative pl-6 space-y-4 border-l-2 border-dashed border-gray-300 ml-2">
+                    {selectedLead.jornada.map((item: any, index: number) => {
+                      const col = COLUMNS.find(c => c.id === item.status);
+                      const displayTitle = col ? col.title : item.status;
+                      let formattedTime = '';
+                      try {
+                        formattedTime = format(parseISO(item.timestamp), "dd/MM/yyyy 'às' HH:mm'h'", { locale: ptBR });
+                      } catch (e) {
+                        formattedTime = item.timestamp || '';
+                      }
+                      
+                      // Destaque para a etapa atual/última
+                      const isLatest = index === selectedLead.jornada.length - 1;
+                      
+                      return (
+                        <div key={index} className="relative group">
+                          {/* Pontinho indicador */}
+                          <div className={`absolute -left-[31px] top-1 w-3 h-3 rounded-full border-2 transition-all ${
+                            isLatest 
+                              ? 'bg-[var(--color-primary)] border-[var(--color-primary)] scale-110 shadow-sm' 
+                              : 'bg-white border-gray-400 group-hover:border-gray-600'
+                          }`} />
+                          <div>
+                            <p className={`text-xs font-semibold ${isLatest ? 'text-[var(--color-primary)] font-bold' : 'text-[var(--color-text-main)]'}`}>
+                              {displayTitle}
+                            </p>
+                            <p className="text-[10px] text-[var(--color-text-muted)] mt-0.5">{formattedTime}</p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-xs text-[var(--color-text-muted)] italic">Nenhuma transição registrada.</p>
+                )}
+              </div>
 
               <div className="p-4 bg-gray-50 rounded-[12px] border border-[var(--color-border-card)]">
                 <span className="text-[10px] text-[var(--color-text-muted)] font-bold uppercase tracking-wider">Histórico / Observações Manuais</span>
