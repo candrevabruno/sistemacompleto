@@ -128,9 +128,15 @@ export function CRM() {
        updates.modalidade = null;
     }
 
-    await supabase.from('leads').update(updates).eq('id', leadId);
-    setLeads(prev => prev.map(l => l.id === leadId ? { ...l, ...updates } : l));
-    setSelectedLead((prev: any) => prev?.id === leadId ? { ...prev, ...updates } : prev);
+    const { data, error } = await supabase.from('leads').update(updates).eq('id', leadId).select();
+    if (!error && data && data[0]) {
+      const updatedRow = data[0];
+      setLeads(prev => prev.map(l => l.id === leadId ? updatedRow : l));
+      setSelectedLead((prev: any) => prev?.id === leadId ? updatedRow : prev);
+    } else {
+      setLeads(prev => prev.map(l => l.id === leadId ? { ...l, ...updates } : l));
+      setSelectedLead((prev: any) => prev?.id === leadId ? { ...prev, ...updates } : prev);
+    }
     setSavingStatus(false);
   };
 
@@ -260,10 +266,15 @@ export function CRM() {
 
     setLeads(prev => prev.map(l => l.id === leadId ? { ...l, ...updates } : l));
     setSelectedLead((prev: any) => prev?.id === leadId ? { ...prev, ...updates } : prev);
-    const { error } = await supabase.from('leads').update(updates).eq('id', leadId);
+    const { data, error } = await supabase.from('leads').update(updates).eq('id', leadId).select();
     if (error) {
        setLeads(prev => prev.map(l => l.id === leadId ? { ...l, status: oldStatus } : l));
+       setSelectedLead((prev: any) => prev?.id === leadId ? { ...prev, status: oldStatus } : prev);
        alert(`Erro ao salvar status: ${error.message}`);
+    } else if (data && data[0]) {
+       const updatedRow = data[0];
+       setLeads(prev => prev.map(l => l.id === leadId ? updatedRow : l));
+       setSelectedLead((prev: any) => prev?.id === leadId ? updatedRow : prev);
     }
   };
 
@@ -294,7 +305,7 @@ export function CRM() {
 
       if (agError) throw agError;
 
-      await supabase
+      const { data: updatedLeads, error: updateError } = await supabase
         .from('leads')
         .update({
           status: 'agendado',
@@ -303,9 +314,18 @@ export function CRM() {
           id_agendamento: agendamento.id,
           modalidade: agendadoForm.modalidade
         })
-        .eq('id', leadId);
+        .eq('id', leadId)
+        .select();
 
-      updateLeadState(leadId, 'agendado');
+      if (updateError) throw updateError;
+
+      if (updatedLeads && updatedLeads[0]) {
+        const updatedRow = updatedLeads[0];
+        setLeads(prev => prev.map(l => l.id === leadId ? updatedRow : l));
+        setSelectedLead((prev: any) => prev?.id === leadId ? updatedRow : prev);
+      } else {
+        updateLeadState(leadId, 'agendado');
+      }
       setConfirmAgendado(null);
       fetchLeads();
     } catch (err: any) {
@@ -320,7 +340,7 @@ export function CRM() {
     const { leadId, lead } = confirmConverteu;
     setSavingConverteu(true);
     try {
-      const { error } = await supabase
+      const { data: updatedLeads, error } = await supabase
         .from('leads')
         .update({ 
           status: 'converteu',
@@ -328,14 +348,21 @@ export function CRM() {
           servicos_contratados: converteuForm.servicos,
           observacoes: converteuForm.observacao ? `${confirmConverteu.lead.observacoes || ''}\nInformações Complementares: ${converteuForm.observacao}` : confirmConverteu.lead.observacoes
         })
-        .eq('id', leadId);
+        .eq('id', leadId)
+        .select();
       if (error) throw error;
 
       if (lead.id_agendamento) {
         await supabase.from('agendamentos').update({ status: 'compareceu' }).eq('id', lead.id_agendamento);
       }
 
-      updateLeadState(leadId, 'converteu');
+      if (updatedLeads && updatedLeads[0]) {
+        const updatedRow = updatedLeads[0];
+        setLeads(prev => prev.map(l => l.id === leadId ? updatedRow : l));
+        setSelectedLead((prev: any) => prev?.id === leadId ? updatedRow : prev);
+      } else {
+        updateLeadState(leadId, 'converteu');
+      }
       setConfirmConverteu(null);
       fetchLeads();
     } catch (err: any) {
@@ -355,10 +382,16 @@ export function CRM() {
         objecao: naoConverteuForm.objecao,
         motivo_perda: naoConverteuForm.objecao === 'Outro' ? naoConverteuForm.motivo : null 
       };
-      const { error } = await supabase.from('leads').update(updates).eq('id', leadId);
+      const { data: updatedLeads, error } = await supabase.from('leads').update(updates).eq('id', leadId).select();
       if (error) throw error;
-      setLeads(prev => prev.map(l => l.id === leadId ? { ...l, ...updates } : l));
-      setSelectedLead((prev: any) => prev?.id === leadId ? { ...prev, ...updates } : prev);
+      if (updatedLeads && updatedLeads[0]) {
+        const updatedRow = updatedLeads[0];
+        setLeads(prev => prev.map(l => l.id === leadId ? updatedRow : l));
+        setSelectedLead((prev: any) => prev?.id === leadId ? updatedRow : prev);
+      } else {
+        setLeads(prev => prev.map(l => l.id === leadId ? { ...l, ...updates } : l));
+        setSelectedLead((prev: any) => prev?.id === leadId ? { ...prev, ...updates } : prev);
+      }
       setConfirmNaoConverteu(null);
       fetchLeads();
     } catch (err: any) {
@@ -395,8 +428,15 @@ export function CRM() {
         if (insertError) throw insertError;
         agId = newAg.id;
       }
-      await supabase.from('leads').update({ status: 'reagendado', data_agendamento: novaData, modalidade: reagendadoForm.modalidade, id_agendamento: agId }).eq('id', leadId);
-      updateLeadState(leadId, 'reagendado');
+      const { data: updatedLeads, error } = await supabase.from('leads').update({ status: 'reagendado', data_agendamento: novaData, modalidade: reagendadoForm.modalidade, id_agendamento: agId }).eq('id', leadId).select();
+      if (error) throw error;
+      if (updatedLeads && updatedLeads[0]) {
+        const updatedRow = updatedLeads[0];
+        setLeads(prev => prev.map(l => l.id === leadId ? updatedRow : l));
+        setSelectedLead((prev: any) => prev?.id === leadId ? updatedRow : prev);
+      } else {
+        updateLeadState(leadId, 'reagendado');
+      }
       setConfirmReagendado(null);
       fetchLeads();
     } catch (err: any) {
@@ -458,7 +498,7 @@ export function CRM() {
     try {
       // Opcional: Atualizar agendamento para 'cancelado' se quiser manter histórico, 
       // ou apenas desvincular do lead como solicitado.
-      const { error } = await supabase
+      const { data: updatedLeads, error } = await supabase
         .from('leads')
         .update({
           data_agendamento: null,
@@ -467,19 +507,26 @@ export function CRM() {
           modalidade: null,
           status: 'conversando'
         })
-        .eq('id', selectedLead.id);
+        .eq('id', selectedLead.id)
+        .select();
 
       if (error) throw error;
       
-      const updates = { 
-        data_agendamento: null, 
-        id_agendamento: null, 
-        agendamento_criado_em: null,
-        modalidade: null,
-        status: 'conversando' 
-      };
-      setLeads(prev => prev.map(l => l.id === selectedLead.id ? { ...l, ...updates } : l));
-      setSelectedLead((prev: any) => ({ ...prev, ...updates }));
+      if (updatedLeads && updatedLeads[0]) {
+        const updatedRow = updatedLeads[0];
+        setLeads(prev => prev.map(l => l.id === selectedLead.id ? updatedRow : l));
+        setSelectedLead((prev: any) => prev?.id === selectedLead.id ? updatedRow : prev);
+      } else {
+        const updates = { 
+          data_agendamento: null, 
+          id_agendamento: null, 
+          agendamento_criado_em: null,
+          modalidade: null,
+          status: 'conversando' 
+        };
+        setLeads(prev => prev.map(l => l.id === selectedLead.id ? { ...l, ...updates } : l));
+        setSelectedLead((prev: any) => ({ ...prev, ...updates }));
+      }
     } catch (err: any) {
       alert(`Erro ao remover agendamento: ${err.message}`);
     } finally {
