@@ -424,10 +424,10 @@ export function Dashboard() {
           </CardHeader>
           <CardContent className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chart1Data}>
+              <LineChart data={chart1Data} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border-card)" />
-                <XAxis dataKey="dia" axisLine={false} tickLine={false} />
-                <YAxis axisLine={false} tickLine={false} />
+                <XAxis dataKey="dia" axisLine={false} tickLine={false} tickMargin={10} padding={{ left: 20, right: 20 }} />
+                <YAxis axisLine={false} tickLine={false} tickMargin={10} />
                 <Tooltip 
                   contentStyle={{ borderRadius: '8px', border: '1px solid var(--color-border-card)', boxShadow: 'var(--shadow-dropdown)' }} 
                 />
@@ -455,8 +455,8 @@ export function Dashboard() {
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chart2Data} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border-card)" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} />
-                <YAxis axisLine={false} tickLine={false} />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tickMargin={10} />
+                <YAxis axisLine={false} tickLine={false} tickMargin={10} />
                 <Tooltip 
                   cursor={{ fill: 'var(--color-bg-base)', opacity: 0.1 }} 
                   contentStyle={{ color: 'var(--color-text-main)', borderRadius: '8px', border: '1px solid var(--color-border-card)', boxShadow: 'var(--shadow-dropdown)', background: 'var(--color-bg-base)' }}
