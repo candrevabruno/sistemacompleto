@@ -425,71 +425,19 @@ export function LeadDetailsModal({ isOpen, onClose, leadId, onUpdate }: LeadDeta
         <div className="space-y-6 max-h-[75vh] overflow-y-auto pr-2 custom-scrollbar">
           {/* Header e Status */}
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-[var(--color-primary-light)] p-5 border border-[var(--color-border-card)] rounded-[12px]">
-            <div className="space-y-2">
+            <div>
               <h2 className="font-cormorant text-2xl font-bold text-[var(--color-text-main)]">
                 {lead.nome_lead || 'Lead sem nome'}
               </h2>
-              
-              {/* Personal Data Grid/Badge Section below name */}
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-[var(--color-text-main)]">
-                {/* Telefone */}
-                <div className="flex items-center gap-1.5 bg-white/70 px-2.5 py-1 rounded-full border border-[var(--color-border-card)]">
-                  <Phone size={12} className="text-[var(--color-primary)]" />
-                  <span className="font-medium">{lead.whatsapp_lead || 'Sem telefone'}</span>
-                  {lead.whatsapp_lead && (
-                    <button 
-                      onClick={() => window.open(`https://wa.me/${lead.whatsapp_lead.replace(/\D/g, '')}`, '_blank')}
-                      className="text-[var(--color-primary)] hover:underline ml-0.5"
-                      title="Enviar WhatsApp"
-                    >
-                      (Conversar)
-                    </button>
-                  )}
-                </div>
-
-                {/* E-mail */}
-                <div className="flex items-center gap-1.5 bg-white/70 px-2.5 py-1 rounded-full border border-[var(--color-border-card)]">
-                  <Mail size={12} className="text-[var(--color-primary)]" />
-                  {lead.email ? (
-                    <a href={`mailto:${lead.email}`} className="font-medium hover:underline">
-                      {lead.email}
-                    </a>
-                  ) : (
-                    <span className="text-[var(--color-text-muted)] italic">Sem e-mail</span>
-                  )}
-                </div>
-
-                {/* CPF */}
-                <div className="flex items-center gap-1.5 bg-white/70 px-2.5 py-1 rounded-full border border-[var(--color-border-card)]">
-                  <IdCard size={12} className="text-[var(--color-primary)]" />
-                  <span className="font-medium">{lead.cpf || 'Sem CPF'}</span>
-                </div>
-
-                {/* Nascimento e Idade */}
-                <div className="flex items-center gap-1.5 bg-white/70 px-2.5 py-1 rounded-full border border-[var(--color-border-card)]">
-                  <Calendar size={12} className="text-[var(--color-primary)]" />
-                  <span className="font-medium">
-                    {lead.data_nascimento 
-                      ? `${format(parseISO(lead.data_nascimento), 'dd/MM/yyyy')} (${calculateAge(lead.data_nascimento)} anos)` 
-                      : 'Nascimento não informado'}
-                  </span>
-                </div>
-
-                {/* Gênero */}
-                <div className="flex items-center gap-1.5 bg-white/70 px-2.5 py-1 rounded-full border border-[var(--color-border-card)]">
-                  <User size={12} className="text-[var(--color-primary)]" />
-                  <span className="font-medium">{lead.genero || 'Gênero não informado'}</span>
-                </div>
-              </div>
             </div>
             
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full md:w-auto">
-              <div className="text-xs font-semibold text-[var(--color-text-muted)] uppercase shrink-0">Estágio Atual:</div>
+            <div className="flex items-center gap-2 w-full md:w-auto justify-start md:justify-end">
+              <span className="text-xs font-semibold text-[var(--color-text-muted)] uppercase shrink-0">Estágio Atual:</span>
               <select 
                 value={lead.status} 
                 onChange={(e) => handleStatusChange(e.target.value)}
                 disabled={savingStatus}
-                className="bg-white border border-[var(--color-border-card)] rounded-[8px] px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-[var(--color-primary)] outline-none transition-all"
+                className="border border-[var(--color-border-card)] rounded-[8px] px-3 py-1.5 text-sm bg-[var(--color-bg-base)] text-[var(--color-text-main)] font-medium focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] cursor-pointer transition-all"
               >
                 {COLUMNS.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
               </select>
