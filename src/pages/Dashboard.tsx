@@ -204,31 +204,16 @@ export function Dashboard() {
   ];
   const COLORS = ['#22c55e', '#f97316']; // Verde sólido e Laranja sólido para contraste profissional
 
-  // 4. Funil de Vendas — usa status dos leads (espelho do CRM Kanban)
+  // 4. Qualificação de Leads (comparativo entre qualificados e abandonaram)
   const totalLeads = leadsData.length;
-  
-  // O status 'abandonou_conversa' não existe no CRM atual, então no momento todos são "Qualificados".
-  // Vamos aguardar a definição do usuário sobre o que seria um lead "abandonado" ou "não qualificado".
   const leadsNaoQualificados = leadsData.filter(l => l.status === 'abandonou_conversa').length;
   const leadsQualificados = totalLeads - leadsNaoQualificados;
 
-  // Agendamentos: Conta leads que possuem um agendamento registrado OU que estão 
-  // em etapas avançadas ('agendado', 'reagendado', 'converteu', 'compareceu').
-  // Isso garante que o funil seja fidedigno e não "perca" leads que mudaram de status.
-  const leadsAgendados = leadsData.filter(l => 
-    l.id_agendamento || 
-    l.data_agendamento || 
-    ['agendado', 'reagendado', 'converteu', 'compareceu'].includes(l.status)
-  ).length;
-
-  // Conversões = leads com status 'converteu'
-  const leadsConverteu = leadsData.filter(l => l.status === 'converteu').length;
-
-  const pctQualificados = totalLeads ? Math.round((leadsQualificados / totalLeads) * 100) : 0;
-  const pctNaoQualificados = totalLeads ? Math.round((leadsNaoQualificados / totalLeads) * 100) : 0;
-
-  const pctAgendaram = leadsQualificados ? Math.round((leadsAgendados / leadsQualificados) * 100) : 0;
-  const pctConverteram = leadsAgendados ? Math.round((leadsConverteu / leadsAgendados) * 100) : 0;
+  const qualificacaoData = [
+    { name: 'Qualificados', value: leadsQualificados },
+    { name: 'Abandonaram', value: leadsNaoQualificados }
+  ];
+  const QUALI_COLORS = ['#C5A059', '#ef4444']; // Dourado do sistema para Qualificados, Vermelho para Abandonaram
 
   // 5. Objeções (Não Converteu)
   const objecoesMap: Record<string, number> = {};
@@ -532,58 +517,41 @@ export function Dashboard() {
 
         <Card className="overflow-hidden">
           <CardHeader>
-            <CardTitle>Funil de Vendas</CardTitle>
-            <p className="text-sm text-[var(--color-text-muted)]">Conversão geral no período</p>
+            <CardTitle>Qualificação dos Leads</CardTitle>
+            <p className="text-sm text-[var(--color-text-muted)]">Comparativo entre qualificados e quem abandonou a conversa</p>
           </CardHeader>
-          <CardContent className="space-y-4 pb-6 px-4 flex flex-col items-center">
-            {/* Leads */}
-            <div className="bg-[var(--color-bg-base)] p-3 sm:p-4 rounded-lg border border-[var(--color-border-card)] w-full">
-              <div className="flex justify-between items-center mb-1">
-                <span className="font-semibold text-[var(--color-text-main)] flex items-center gap-2 truncate pr-2"><div className="w-6 h-6 rounded-full bg-[var(--color-border-card)] flex items-center justify-center text-xs shrink-0">1</div> <span className="truncate">Leads</span></span>
-                <span className="font-bold text-lg shrink-0">{totalLeads}</span>
+          <CardContent className="h-[350px] flex flex-col justify-between">
+            {totalLeads > 0 ? (
+              <div className="flex-1">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie 
+                      data={qualificacaoData} 
+                      cx="50%" 
+                      cy="50%" 
+                      innerRadius="70%" 
+                      outerRadius="90%" 
+                      paddingAngle={5} 
+                      dataKey="value"
+                      stroke="none"
+                    >
+                      {qualificacaoData.map((entry, index) => <Cell key={`cell-${index}`} fill={QUALI_COLORS[index]} />)}
+                    </Pie>
+                    <Tooltip 
+                      contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: 'var(--shadow-dropdown)', backgroundColor: 'rgba(255,255,255,0.95)' }}
+                      itemStyle={{ fontWeight: 'bold' }}
+                    />
+                    <Legend verticalAlign="bottom" height={40} />
+                  </PieChart>
+                </ResponsiveContainer>
               </div>
-              <div className="flex flex-col text-xs mt-2 border-t border-[var(--color-border-card)] pt-2 gap-1 w-full">
-                <div className="flex justify-between items-center text-[var(--color-success)]"><span className="font-medium truncate pr-2">Qualificados</span> <span className="shrink-0 whitespace-nowrap">{leadsQualificados} ({pctQualificados}%)</span></div>
-                <div className="flex justify-between items-center text-[var(--color-error)] opacity-80"><span className="truncate pr-2">Abandonaram</span> <span className="shrink-0 whitespace-nowrap">{leadsNaoQualificados} ({pctNaoQualificados}%)</span></div>
+            ) : (
+              <div className="flex-1 flex items-center justify-center text-sm text-[var(--color-text-muted)]">
+                Nenhum lead registrado no período.
               </div>
-            </div>
-
-            {/* Agendamentos */}
-            <div className="bg-[var(--color-bg-base)] p-3 rounded-lg border border-[var(--color-border-card)] w-[95%] ml-auto relative">
-              <div className="hidden sm:block absolute -left-[25px] top-[-16px] w-[25px] h-[40px] border-l-2 border-b-2 border-[var(--color-border-card)] rounded-bl-lg z-[0]"></div>
-              <div className="flex justify-between items-center gap-2">
-                <span className="font-semibold text-[var(--color-text-main)] flex items-center gap-2 truncate"><div className="w-6 h-6 rounded-full bg-[var(--color-border-card)] flex items-center justify-center text-xs shrink-0">2</div> <span className="truncate">Agendamentos</span></span>
-                <div className="text-right flex items-center shrink-0">
-                  <span className="font-bold text-lg">{leadsAgendados}</span>
-                  <span className="text-[10px] text-[var(--color-primary)] ml-2 font-medium bg-[var(--color-primary-light)] px-1.5 py-0.5 rounded shrink-0">+{pctAgendaram}%</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Conversão (Substituiu Compareceu) */}
-            <div className="bg-[var(--color-bg-base)] p-3 rounded-lg border border-[var(--color-border-card)] w-[90%] ml-auto relative">
-              <div className="hidden sm:block absolute -left-[25px] top-[-16px] w-[25px] h-[40px] border-l-2 border-b-2 border-[var(--color-border-card)] rounded-bl-lg z-[0]"></div>
-              <div className="flex justify-between items-center gap-2">
-                <span className="font-semibold text-[var(--color-text-main)] flex items-center gap-2 truncate"><div className="w-6 h-6 rounded-full bg-[var(--color-border-card)] flex items-center justify-center text-xs shrink-0">3</div> <span className="truncate">Conversão (Venda)</span></span>
-                <div className="text-right flex items-center shrink-0">
-                  <span className="font-bold text-lg">{leadsConverteu}</span>
-                  <span className="text-[10px] text-[var(--color-success)] ml-2 font-medium bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 rounded shrink-0">+{pctConverteram}%</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Valor Faturado Final */}
-            <div className="bg-[var(--color-primary)] text-white p-4 rounded-lg w-[85%] ml-auto shadow-lg relative group transition-all hover:scale-[1.02]">
-              <div className="hidden sm:block absolute -left-[25px] top-[-16px] w-[25px] h-[40px] border-l-2 border-b-2 border-primary/20 rounded-bl-lg z-[0]"></div>
-              <div className="flex justify-between items-center gap-2">
-                <span className="font-semibold flex items-center gap-2 text-sm truncate">
-                  <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center text-xs shrink-0 backdrop-blur-sm">4</div> 
-                  <span className="truncate">Valor Faturado</span>
-                </span>
-                <div className="text-right flex items-center shrink-0">
-                  <span className="font-bold text-xl">R$ {metrics.faturamento.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}</span>
-                </div>
-              </div>
+            )}
+            <div className="mt-2 text-xs text-[var(--color-text-muted)] text-center bg-[var(--color-bg-base)] p-2 rounded-[8px]">
+              Total de <strong>{totalLeads}</strong> leads analisados no período selecionado.
             </div>
           </CardContent>
         </Card>
