@@ -1,0 +1,43 @@
+
+> heroicleaphealth@0.0.0 build
+> tsc -b && vite build
+
+src/pages/CentralAgendamentos.tsx(141,15): error TS2304: Cannot find name 'setAvailableServicos'.
+src/pages/CentralAgendamentos.tsx(177,9): error TS2304: Cannot find name 'setConverteuForm'.
+src/pages/CentralAgendamentos.tsx(178,9): error TS2304: Cannot find name 'setConfirmConverteu'.
+src/pages/CentralAgendamentos.tsx(232,10): error TS2304: Cannot find name 'confirmConverteu'.
+src/pages/CentralAgendamentos.tsx(232,31): error TS2304: Cannot find name 'converteuForm'.
+src/pages/CentralAgendamentos.tsx(232,54): error TS2304: Cannot find name 'converteuForm'.
+src/pages/CentralAgendamentos.tsx(233,30): error TS2304: Cannot find name 'confirmConverteu'.
+src/pages/CentralAgendamentos.tsx(234,5): error TS2304: Cannot find name 'setSavingConverteu'.
+src/pages/CentralAgendamentos.tsx(240,34): error TS2304: Cannot find name 'converteuForm'.
+src/pages/CentralAgendamentos.tsx(241,33): error TS2304: Cannot find name 'converteuForm'.
+src/pages/CentralAgendamentos.tsx(242,24): error TS2304: Cannot find name 'converteuForm'.
+src/pages/CentralAgendamentos.tsx(242,109): error TS2304: Cannot find name 'converteuForm'.
+src/pages/CentralAgendamentos.tsx(251,7): error TS2304: Cannot find name 'setConfirmConverteu'.
+src/pages/CentralAgendamentos.tsx(256,7): error TS2304: Cannot find name 'setSavingConverteu'.
+src/pages/CentralAgendamentos.tsx(534,24): error TS2304: Cannot find name 'confirmConverteu'.
+src/pages/CentralAgendamentos.tsx(534,57): error TS2304: Cannot find name 'setConfirmConverteu'.
+src/pages/CentralAgendamentos.tsx(541,16): error TS2304: Cannot find name 'availableServicos'.
+src/pages/CentralAgendamentos.tsx(541,38): error TS7006: Parameter 'srv' implicitly has an 'any' type.
+src/pages/CentralAgendamentos.tsx(546,30): error TS2304: Cannot find name 'converteuForm'.
+src/pages/CentralAgendamentos.tsx(549,25): error TS2304: Cannot find name 'setConverteuForm'.
+src/pages/CentralAgendamentos.tsx(549,42): error TS7006: Parameter 'prev' implicitly has an 'any' type.
+src/pages/CentralAgendamentos.tsx(551,25): error TS2304: Cannot find name 'setConverteuForm'.
+src/pages/CentralAgendamentos.tsx(551,42): error TS7006: Parameter 'prev' implicitly has an 'any' type.
+src/pages/CentralAgendamentos.tsx(551,93): error TS7006: Parameter 'n' implicitly has an 'any' type.
+src/pages/CentralAgendamentos.tsx(558,16): error TS2304: Cannot find name 'availableServicos'.
+src/pages/CentralAgendamentos.tsx(564,134): error TS2304: Cannot find name 'converteuForm'.
+src/pages/CentralAgendamentos.tsx(564,170): error TS2304: Cannot find name 'setConverteuForm'.
+src/pages/CentralAgendamentos.tsx(564,191): error TS2304: Cannot find name 'converteuForm'.
+src/pages/CentralAgendamentos.tsx(565,126): error TS2304: Cannot find name 'converteuForm'.
+src/pages/CentralAgendamentos.tsx(565,167): error TS2304: Cannot find name 'setConverteuForm'.
+src/pages/CentralAgendamentos.tsx(565,188): error TS2304: Cannot find name 'converteuForm'.
+src/pages/CentralAgendamentos.tsx(567,56): error TS2304: Cannot find name 'setConfirmConverteu'.
+src/pages/CentralAgendamentos.tsx(568,101): error TS2304: Cannot find name 'converteuForm'.
+src/pages/CentralAgendamentos.tsx(568,124): error TS2304: Cannot find name 'converteuForm'.
+src/pages/CentralAgendamentos.tsx(568,163): error TS2304: Cannot find name 'savingConverteu'.
+src/pages/CRM.tsx(44,10): error TS2451: Cannot redeclare block-scoped variable 'savingConverteu'.
+src/pages/CRM.tsx(44,27): error TS2451: Cannot redeclare block-scoped variable 'setSavingConverteu'.
+src/pages/CRM.tsx(46,10): error TS2451: Cannot redeclare block-scoped variable 'savingConverteu'.
+src/pages/CRM.tsx(46,27): error TS2451: Cannot redeclare block-scoped variable 'setSavingConverteu'.

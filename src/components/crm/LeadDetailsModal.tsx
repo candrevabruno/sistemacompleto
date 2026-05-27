@@ -6,7 +6,7 @@ import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { User, Phone, Calendar, DollarSign, Clock, FileText, Check, X, ShieldAlert, Award, TrendingUp } from 'lucide-react';
+import { User, Phone, Calendar, DollarSign, Clock, FileText, Check, X, ShieldAlert, Award, TrendingUp, Mail, IdCard } from 'lucide-react';
 
 const COLUMNS = [
   { id: 'iniciou_atendimento', title: 'Iniciou', colorClass: 'border-[var(--color-primary)]' },
@@ -45,7 +45,10 @@ export function LeadDetailsModal({ isOpen, onClose, leadId, onUpdate }: LeadDeta
     data_nascimento: '', 
     observacoes: '',
     nome_lead: '',
-    procedimento_interesse: ''
+    procedimento_interesse: '',
+    whatsapp_lead: '',
+    email: '',
+    cpf: ''
   });
   const [savingDetails, setSavingDetails] = useState(false);
 
@@ -95,7 +98,10 @@ export function LeadDetailsModal({ isOpen, onClose, leadId, onUpdate }: LeadDeta
         data_nascimento: leadData.data_nascimento || '',
         observacoes: leadData.observacoes || '',
         nome_lead: leadData.nome_lead || '',
-        procedimento_interesse: leadData.procedimento_interesse || ''
+        procedimento_interesse: leadData.procedimento_interesse || '',
+        whatsapp_lead: leadData.whatsapp_lead || '',
+        email: leadData.email || '',
+        cpf: leadData.cpf || ''
       });
 
       // Load Appointments
@@ -138,7 +144,10 @@ export function LeadDetailsModal({ isOpen, onClose, leadId, onUpdate }: LeadDeta
           genero: detailsForm.genero || null,
           data_nascimento: detailsForm.data_nascimento || null,
           procedimento_interesse: detailsForm.procedimento_interesse || null,
-          observacoes: detailsForm.observacoes || null
+          observacoes: detailsForm.observacoes || null,
+          whatsapp_lead: detailsForm.whatsapp_lead,
+          email: detailsForm.email || null,
+          cpf: detailsForm.cpf || null
         })
         .eq('id', lead.id);
         
@@ -383,7 +392,22 @@ export function LeadDetailsModal({ isOpen, onClose, leadId, onUpdate }: LeadDeta
     }
   };
 
-  // Calculations for display
+  const calculateAge = (birthDateStr: string) => {
+    if (!birthDateStr) return null;
+    try {
+      const birthDate = new Date(birthDateStr);
+      const today = new Date();
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const m = today.getMonth() - birthDate.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+      return age;
+    } catch (e) {
+      return null;
+    }
+  };
+
   const conversions = (lead?.jornada || []).filter((item: any) => item.status === 'converteu');
   const sumJourneyLTV = conversions.reduce((sum: number, item: any) => sum + (parseFloat(item.valor_pago) || 0), 0);
   const totalLTV = sumJourneyLTV > 0 ? sumJourneyLTV : (parseFloat(lead?.valor_pago) || 0);
@@ -401,29 +425,61 @@ export function LeadDetailsModal({ isOpen, onClose, leadId, onUpdate }: LeadDeta
         <div className="space-y-6 max-h-[75vh] overflow-y-auto pr-2 custom-scrollbar">
           {/* Header e Status */}
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-[var(--color-primary-light)] p-5 border border-[var(--color-border-card)] rounded-[12px]">
-            <div>
-              {editingDetails ? (
-                <Input 
-                  value={detailsForm.nome_lead} 
-                  onChange={e => setDetailsForm({...detailsForm, nome_lead: e.target.value})} 
-                  className="text-xl font-bold font-cormorant mb-1 bg-white h-9" 
-                />
-              ) : (
-                <h2 className="font-cormorant text-2xl font-bold text-[var(--color-text-main)]">
-                  {lead.nome_lead || 'Lead sem nome'}
-                </h2>
-              )}
-              <div className="flex items-center gap-2 mt-1">
-                <span className="text-sm font-medium opacity-80">{lead.whatsapp_lead}</span>
-                {lead.whatsapp_lead && (
-                  <button 
-                    onClick={() => window.open(`https://wa.me/${lead.whatsapp_lead.replace(/\D/g, '')}`, '_blank')}
-                    className="p-1 hover:bg-white/50 rounded text-[var(--color-primary)] transition-colors"
-                    title="Enviar WhatsApp"
-                  >
-                    <Phone size={14} />
-                  </button>
-                )}
+            <div className="space-y-2">
+              <h2 className="font-cormorant text-2xl font-bold text-[var(--color-text-main)]">
+                {lead.nome_lead || 'Lead sem nome'}
+              </h2>
+              
+              {/* Personal Data Grid/Badge Section below name */}
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-[var(--color-text-main)]">
+                {/* Telefone */}
+                <div className="flex items-center gap-1.5 bg-white/70 px-2.5 py-1 rounded-full border border-[var(--color-border-card)]">
+                  <Phone size={12} className="text-[var(--color-primary)]" />
+                  <span className="font-medium">{lead.whatsapp_lead || 'Sem telefone'}</span>
+                  {lead.whatsapp_lead && (
+                    <button 
+                      onClick={() => window.open(`https://wa.me/${lead.whatsapp_lead.replace(/\D/g, '')}`, '_blank')}
+                      className="text-[var(--color-primary)] hover:underline ml-0.5"
+                      title="Enviar WhatsApp"
+                    >
+                      (Conversar)
+                    </button>
+                  )}
+                </div>
+
+                {/* E-mail */}
+                <div className="flex items-center gap-1.5 bg-white/70 px-2.5 py-1 rounded-full border border-[var(--color-border-card)]">
+                  <Mail size={12} className="text-[var(--color-primary)]" />
+                  {lead.email ? (
+                    <a href={`mailto:${lead.email}`} className="font-medium hover:underline">
+                      {lead.email}
+                    </a>
+                  ) : (
+                    <span className="text-[var(--color-text-muted)] italic">Sem e-mail</span>
+                  )}
+                </div>
+
+                {/* CPF */}
+                <div className="flex items-center gap-1.5 bg-white/70 px-2.5 py-1 rounded-full border border-[var(--color-border-card)]">
+                  <IdCard size={12} className="text-[var(--color-primary)]" />
+                  <span className="font-medium">{lead.cpf || 'Sem CPF'}</span>
+                </div>
+
+                {/* Nascimento e Idade */}
+                <div className="flex items-center gap-1.5 bg-white/70 px-2.5 py-1 rounded-full border border-[var(--color-border-card)]">
+                  <Calendar size={12} className="text-[var(--color-primary)]" />
+                  <span className="font-medium">
+                    {lead.data_nascimento 
+                      ? `${format(parseISO(lead.data_nascimento), 'dd/MM/yyyy')} (${calculateAge(lead.data_nascimento)} anos)` 
+                      : 'Nascimento não informado'}
+                  </span>
+                </div>
+
+                {/* Gênero */}
+                <div className="flex items-center gap-1.5 bg-white/70 px-2.5 py-1 rounded-full border border-[var(--color-border-card)]">
+                  <User size={12} className="text-[var(--color-primary)]" />
+                  <span className="font-medium">{lead.genero || 'Gênero não informado'}</span>
+                </div>
               </div>
             </div>
             
@@ -450,14 +506,68 @@ export function LeadDetailsModal({ isOpen, onClose, leadId, onUpdate }: LeadDeta
                   Informações de Cadastro
                 </h3>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="sm:col-span-2">
+                    <span className="text-[10px] text-[var(--color-text-muted)] font-bold uppercase block">Nome Completo</span>
+                    {editingDetails ? (
+                      <Input 
+                        value={detailsForm.nome_lead} 
+                        onChange={e => setDetailsForm({...detailsForm, nome_lead: e.target.value})} 
+                        className="mt-1 h-9 bg-white" 
+                      />
+                    ) : (
+                      <p className="text-sm font-medium mt-1">{lead.nome_lead || 'Não informado'}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <span className="text-[10px] text-[var(--color-text-muted)] font-bold uppercase block">WhatsApp / Telefone</span>
+                    {editingDetails ? (
+                      <Input 
+                        value={detailsForm.whatsapp_lead} 
+                        onChange={e => setDetailsForm({...detailsForm, whatsapp_lead: e.target.value})} 
+                        className="mt-1 h-9 bg-white" 
+                      />
+                    ) : (
+                      <p className="text-sm font-medium mt-1">{lead.whatsapp_lead || 'Não informado'}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <span className="text-[10px] text-[var(--color-text-muted)] font-bold uppercase block">E-mail</span>
+                    {editingDetails ? (
+                      <Input 
+                        value={detailsForm.email} 
+                        onChange={e => setDetailsForm({...detailsForm, email: e.target.value})} 
+                        className="mt-1 h-9 bg-white" 
+                        placeholder="exemplo@email.com"
+                      />
+                    ) : (
+                      <p className="text-sm font-medium mt-1">{lead.email || 'Não informado'}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <span className="text-[10px] text-[var(--color-text-muted)] font-bold uppercase block">CPF</span>
+                    {editingDetails ? (
+                      <Input 
+                        value={detailsForm.cpf} 
+                        onChange={e => setDetailsForm({...detailsForm, cpf: e.target.value})} 
+                        className="mt-1 h-9 bg-white" 
+                        placeholder="000.000.000-00"
+                      />
+                    ) : (
+                      <p className="text-sm font-medium mt-1">{lead.cpf || 'Não informado'}</p>
+                    )}
+                  </div>
+
                   <div>
                     <span className="text-[10px] text-[var(--color-text-muted)] font-bold uppercase block">Gênero</span>
                     {editingDetails ? (
                       <select 
                         value={detailsForm.genero} 
                         onChange={e => setDetailsForm({...detailsForm, genero: e.target.value})}
-                        className="w-full mt-1 border rounded px-2 py-1 text-sm bg-white"
+                        className="w-full mt-1 border border-gray-300 rounded-[8px] px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
                       >
                         <option value="">Não informado</option>
                         <option value="Masculino">Masculino</option>
@@ -470,13 +580,13 @@ export function LeadDetailsModal({ isOpen, onClose, leadId, onUpdate }: LeadDeta
                   </div>
 
                   <div>
-                    <span className="text-[10px] text-[var(--color-text-muted)] font-bold uppercase block">Nascimento</span>
+                    <span className="text-[10px] text-[var(--color-text-muted)] font-bold uppercase block">Data de Nascimento</span>
                     {editingDetails ? (
                       <input 
                         type="date" 
                         value={detailsForm.data_nascimento} 
                         onChange={e => setDetailsForm({...detailsForm, data_nascimento: e.target.value})}
-                        className="w-full mt-1 border rounded px-2 py-1 text-sm bg-white"
+                        className="w-full mt-1 border border-gray-300 rounded-[8px] px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
                       />
                     ) : (
                       <p className="text-sm font-medium mt-1">
@@ -485,13 +595,13 @@ export function LeadDetailsModal({ isOpen, onClose, leadId, onUpdate }: LeadDeta
                     )}
                   </div>
 
-                  <div className="col-span-2">
+                  <div className="sm:col-span-2">
                     <span className="text-[10px] text-[var(--color-text-muted)] font-bold uppercase block">Serviço de Interesse</span>
                     {editingDetails ? (
                       <Input 
                         value={detailsForm.procedimento_interesse} 
                         onChange={e => setDetailsForm({...detailsForm, procedimento_interesse: e.target.value})}
-                        className="mt-1 h-8 bg-white"
+                        className="mt-1 h-9 bg-white"
                       />
                     ) : (
                       <p className="text-sm font-medium mt-1">{lead.procedimento_interesse || 'Não informado'}</p>
