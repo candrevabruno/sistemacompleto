@@ -304,6 +304,37 @@ export function CRM() {
           .eq('id', lead.id_agendamento);
       }
 
+      // Check if client is registered in clientes table (redundancy check on frontend)
+      const { data: existingClient } = await supabase
+        .from('clientes')
+        .select('id')
+        .eq('lead_id', leadId)
+        .maybeSingle();
+
+      if (!existingClient) {
+        await supabase
+          .from('clientes')
+          .insert({
+            lead_id: leadId,
+            data_primeira_visita: new Date().toISOString(),
+            valor_pago: parseFloat(converteuForm.valor.replace(',', '.'))
+          });
+      } else {
+        // Increment LTV
+        const { data: currentClient } = await supabase
+          .from('clientes')
+          .select('valor_pago')
+          .eq('lead_id', leadId)
+          .single();
+        const currentLTV = parseFloat(currentClient?.valor_pago || '0');
+        await supabase
+          .from('clientes')
+          .update({
+            valor_pago: currentLTV + parseFloat(converteuForm.valor.replace(',', '.'))
+          })
+          .eq('lead_id', leadId);
+      }
+
       if (updatedLeads && updatedLeads[0]) {
         const updatedRow = updatedLeads[0];
         setLeads(prev => prev.map(l => l.id === leadId ? updatedRow : l));
