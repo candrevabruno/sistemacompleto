@@ -22,19 +22,31 @@ export const ClinicProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       let { data, error } = await supabase
         .from('clinic_config')
-        .select('nome, logo_url, chatwoot_url')
+        .select('nome, logo_url, chatwoot_url, whatsapp_provider, meta_phone_number_id, meta_access_token, meta_webhook_verify_token, meta_business_account_id, evolution_server_url, evolution_api_key, evolution_instance_name, nota_webhook_url')
         .eq('id', 1)
         .single();
-        
+
       if (error) {
-        // Fallback caso a coluna chatwoot_url ainda não exista no banco do cliente
+        // Fallback para bancos que ainda não rodaram o stage1_inbox_schema.sql
         const fallback = await supabase
           .from('clinic_config')
-          .select('nome, logo_url')
+          .select('nome, logo_url, chatwoot_url')
           .eq('id', 1)
           .single();
         if (!fallback.error && fallback.data) {
-          data = { ...fallback.data, chatwoot_url: null };
+          data = {
+            ...fallback.data,
+            chatwoot_url: null,
+            whatsapp_provider: null,
+            meta_phone_number_id: null,
+            meta_access_token: null,
+            meta_webhook_verify_token: null,
+            meta_business_account_id: null,
+            evolution_server_url: null,
+            evolution_api_key: null,
+            evolution_instance_name: null,
+            nota_webhook_url: null,
+          };
           error = null;
         }
       }

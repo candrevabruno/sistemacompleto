@@ -2,7 +2,7 @@ import React from 'react';
 import { useClinic } from '../contexts/ClinicContext';
 import { Card, CardContent } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
-import { MessageSquare, Settings } from 'lucide-react';
+import { MessageSquare, Settings, Zap, CheckCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export function Inbox() {
@@ -12,83 +12,80 @@ export function Inbox() {
   if (loading) {
     return (
       <div className="flex h-[calc(100vh-120px)] items-center justify-center">
-        <p className="text-[var(--color-text-muted)] text-sm">Carregando Inbox...</p>
+        <p className="text-[var(--color-text-muted)] text-sm">Carregando...</p>
       </div>
     );
   }
 
-  const rawUrl = config?.chatwoot_url;
+  const isConfigured = !!(
+    (config?.whatsapp_provider === 'meta' && config?.meta_phone_number_id && config?.meta_access_token) ||
+    (config?.whatsapp_provider === 'evolution' && config?.evolution_server_url && config?.evolution_api_key)
+  );
 
-  // Ajusta a URL para focar estritamente no Inbox
-  // Se a URL contiver '/dashboard', e não contiver '?embed=true', podemos adicionar query parameters para esconder elementos do Chatwoot.
-  // Chatwoot aceita query parameters no iframe para customização se estiver configurado.
-  // Mas de forma geral, apenas renderizar a URL limpa já funciona super bem.
-  const getEmbeddableUrl = (url: string) => {
-    try {
-      const parsed = new URL(url);
-      // Opcional: Adicionar query parameters úteis do Chatwoot se for uma rota de dashboard
-      // ex: app.chatwoot.com/app/accounts/1/dashboard?embed=true
-      if (!parsed.searchParams.has('embed')) {
-        parsed.searchParams.set('embed', 'true');
-      }
-      return parsed.toString();
-    } catch {
-      return url;
-    }
-  };
-
-  const iframeUrl = rawUrl ? getEmbeddableUrl(rawUrl) : '';
+  const providerLabel = config?.whatsapp_provider === 'evolution' ? 'Evolution API' : 'Meta Cloud API';
 
   return (
-    <div className="h-[calc(100vh-110px)] -m-6 flex flex-col bg-[var(--color-bg-base)]">
-      {rawUrl ? (
-        <div className="relative flex-1 w-full h-full overflow-hidden">
-          {/* Botão flutuante discreto para reconfigurar no canto superior direito */}
-          <button
-            onClick={() => navigate('/configuracoes')}
-            className="absolute top-4 right-4 z-10 p-2 rounded-full bg-white/80 dark:bg-black/50 border border-[var(--color-border-card)] shadow-sm text-[var(--color-text-muted)] hover:text-[var(--color-primary)] hover:bg-white dark:hover:bg-black transition-all"
-            title="Configurar URL do Chatwoot"
-          >
-            <Settings className="w-4 h-4" />
-          </button>
-          
-          <iframe
-            src={iframeUrl}
-            className="w-full h-full border-none bg-white dark:bg-transparent"
-            allow="camera; microphone; clipboard-write; clipboard-read"
-            title="Chatwoot Inbox"
-          />
-        </div>
-      ) : (
-        <div className="flex-1 flex items-center justify-center p-6">
-          <Card className="max-w-md w-full border border-[var(--color-border-card)] shadow-lg bg-white dark:bg-black/20">
-            <CardContent className="flex flex-col items-center text-center p-8 space-y-6">
-              <div className="p-4 rounded-full bg-[var(--color-primary)]/10 text-[var(--color-primary)] animate-pulse">
-                <MessageSquare className="w-10 h-10" />
-              </div>
-              
-              <div className="space-y-2">
-                <h3 className="text-xl font-cormorant font-bold text-[var(--color-text-main)]">
-                  Inbox do Chatwoot não configurado
-                </h3>
-                <p className="text-sm text-[var(--color-text-muted)] leading-relaxed">
-                  Para visualizar e responder às suas mensagens do WhatsApp diretamente por aqui, você precisa cadastrar a URL da sua Caixa de Entrada do Chatwoot.
-                </p>
+    <div className="flex h-[calc(100vh-110px)] items-center justify-center -m-6 bg-[var(--color-bg-base)]">
+      <Card className="max-w-lg w-full mx-6 border border-[var(--color-border-card)] shadow-lg bg-white dark:bg-black/20">
+        <CardContent className="flex flex-col items-center text-center p-10 space-y-6">
+
+          <div className={`p-4 rounded-full ${isConfigured ? 'bg-[var(--color-primary)]/10 text-[var(--color-primary)]' : 'bg-amber-100 text-amber-600'}`}>
+            <MessageSquare className="w-10 h-10" />
+          </div>
+
+          <div className="space-y-2">
+            <h3 className="text-xl font-cormorant font-bold text-[var(--color-text-main)]">
+              {isConfigured ? 'Inbox WhatsApp' : 'Configure o WhatsApp'}
+            </h3>
+            <p className="text-sm text-[var(--color-text-muted)] leading-relaxed">
+              {isConfigured
+                ? `Integração via ${providerLabel} configurada. O Inbox bidirecional em tempo real estará disponível em breve (Etapa 2).`
+                : 'Para usar o Inbox, primeiro configure as credenciais do WhatsApp em Configurações.'}
+            </p>
+          </div>
+
+          {isConfigured ? (
+            <div className="w-full space-y-3">
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-green-50 border border-green-100">
+                <CheckCircle className="w-5 h-5 text-green-600 shrink-0" />
+                <div className="text-left">
+                  <p className="text-sm font-semibold text-green-800">Integração ativa</p>
+                  <p className="text-xs text-green-700">Provedor: {providerLabel}</p>
+                </div>
               </div>
 
-              <div className="w-full pt-2">
-                <Button 
-                  onClick={() => navigate('/configuracoes')} 
-                  className="w-full flex items-center justify-center gap-2"
-                >
-                  <Settings className="w-4 h-4" />
-                  Ir para Configurações
-                </Button>
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-blue-50 border border-blue-100 text-left">
+                <Zap className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-semibold text-blue-800">Etapa 2 em desenvolvimento</p>
+                  <p className="text-xs text-blue-700 mt-0.5">
+                    O chat bidirecional em tempo real, painel de conversas e alarme sonoro estão sendo construídos.
+                  </p>
+                </div>
               </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+
+              <Button
+                variant="secondary"
+                onClick={() => navigate('/configuracoes')}
+                className="w-full flex items-center justify-center gap-2"
+              >
+                <Settings className="w-4 h-4" />
+                Ajustar configurações
+              </Button>
+            </div>
+          ) : (
+            <div className="w-full pt-2">
+              <Button
+                onClick={() => navigate('/configuracoes')}
+                className="w-full flex items-center justify-center gap-2"
+              >
+                <Settings className="w-4 h-4" />
+                Configurar WhatsApp
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

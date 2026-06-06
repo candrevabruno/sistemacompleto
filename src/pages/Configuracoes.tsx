@@ -6,7 +6,7 @@ import { Input } from '../components/ui/Input';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Modal } from '../components/ui/Modal';
-import { Copy, Plus, Trash2, PowerOff, Pencil } from 'lucide-react';
+import { Copy, Plus, Trash2, PowerOff, Pencil, CheckCircle, AlertCircle } from 'lucide-react';
 
 // For simplicity in this giant file, we will put everything here.
 export function Configuracoes() {
@@ -17,7 +17,8 @@ export function Configuracoes() {
     { id: 'agendas', label: 'Agendas (Cal.com)' },
     { id: 'servicos', label: 'Serviços' },
     { id: 'usuarios', label: 'Usuários' },
-    { id: 'kanban', label: 'Kanban' }
+    { id: 'kanban', label: 'Kanban' },
+    { id: 'whatsapp', label: 'WhatsApp' },
   ];
 
   return (
@@ -39,6 +40,7 @@ export function Configuracoes() {
         {activeTab === 'servicos' && <AbaServicos />}
         {activeTab === 'usuarios' && <AbaUsuarios />}
         {activeTab === 'kanban' && <AbaKanban />}
+        {activeTab === 'whatsapp' && <AbaWhatsApp />}
       </div>
     </div>
   );
@@ -545,10 +547,10 @@ function AbaServicos() {
 
         <Modal isOpen={openNew} onClose={() => { setOpenNew(false); setNome(''); }} title="Adicionar Serviço">
           <div className="space-y-4">
-            <Input 
-              label="Nome do Serviço" 
-              placeholder="Ex: Planejamento Previdenciário" 
-              value={nome} 
+            <Input
+              label="Nome do Serviço"
+              placeholder="Ex: Planejamento Previdenciário"
+              value={nome}
               onChange={e => setNome(e.target.value)}
             />
             <Button className="w-full" disabled={!nome || loading} onClick={saveServico}>
@@ -558,5 +560,218 @@ function AbaServicos() {
         </Modal>
       </CardContent>
     </Card>
+  );
+}
+
+function AbaWhatsApp() {
+  const { config, refreshConfig } = useClinic();
+  const [provider, setProvider] = useState<'meta' | 'evolution'>(
+    (config?.whatsapp_provider as 'meta' | 'evolution') || 'meta'
+  );
+
+  // Meta Cloud API
+  const [metaPhoneId, setMetaPhoneId] = useState(config?.meta_phone_number_id || '');
+  const [metaToken, setMetaToken] = useState(config?.meta_access_token || '');
+  const [metaVerifyToken, setMetaVerifyToken] = useState(config?.meta_webhook_verify_token || '');
+  const [metaBusinessId, setMetaBusinessId] = useState(config?.meta_business_account_id || '');
+
+  // Evolution API
+  const [evoServerUrl, setEvoServerUrl] = useState(config?.evolution_server_url || '');
+  const [evoApiKey, setEvoApiKey] = useState(config?.evolution_api_key || '');
+  const [evoInstance, setEvoInstance] = useState(config?.evolution_instance_name || '');
+
+  // Webhook de nota (IA)
+  const [notaWebhook, setNotaWebhook] = useState(config?.nota_webhook_url || '');
+
+  const [loading, setLoading] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    if (config) {
+      setProvider((config.whatsapp_provider as 'meta' | 'evolution') || 'meta');
+      setMetaPhoneId(config.meta_phone_number_id || '');
+      setMetaToken(config.meta_access_token || '');
+      setMetaVerifyToken(config.meta_webhook_verify_token || '');
+      setMetaBusinessId(config.meta_business_account_id || '');
+      setEvoServerUrl(config.evolution_server_url || '');
+      setEvoApiKey(config.evolution_api_key || '');
+      setEvoInstance(config.evolution_instance_name || '');
+      setNotaWebhook(config.nota_webhook_url || '');
+    }
+  }, [config]);
+
+  const save = async () => {
+    setLoading(true);
+    await supabase.from('clinic_config').update({
+      whatsapp_provider: provider,
+      meta_phone_number_id: metaPhoneId || null,
+      meta_access_token: metaToken || null,
+      meta_webhook_verify_token: metaVerifyToken || null,
+      meta_business_account_id: metaBusinessId || null,
+      evolution_server_url: evoServerUrl || null,
+      evolution_api_key: evoApiKey || null,
+      evolution_instance_name: evoInstance || null,
+      nota_webhook_url: notaWebhook || null,
+    }).eq('id', 1);
+    await refreshConfig();
+    setLoading(false);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 3000);
+  };
+
+  const isConfigured = provider === 'meta'
+    ? !!(metaPhoneId && metaToken)
+    : !!(evoServerUrl && evoApiKey && evoInstance);
+
+  return (
+    <div className="space-y-6">
+      {/* Status */}
+      <div className={`flex items-center gap-3 p-4 rounded-[12px] border ${isConfigured ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200'}`}>
+        {isConfigured
+          ? <CheckCircle className="w-5 h-5 text-green-600 shrink-0" />
+          : <AlertCircle className="w-5 h-5 text-amber-600 shrink-0" />
+        }
+        <div>
+          <p className={`text-sm font-semibold ${isConfigured ? 'text-green-800' : 'text-amber-800'}`}>
+            {isConfigured ? 'Integração configurada' : 'Integração pendente'}
+          </p>
+          <p className={`text-xs mt-0.5 ${isConfigured ? 'text-green-700' : 'text-amber-700'}`}>
+            {isConfigured
+              ? `Provedor ativo: ${provider === 'meta' ? 'Meta Cloud API (oficial)' : 'Evolution API'}`
+              : 'Preencha as credenciais abaixo para ativar o Inbox de WhatsApp.'}
+          </p>
+        </div>
+      </div>
+
+      {/* Seletor de provedor */}
+      <Card>
+        <CardHeader><CardTitle>Provedor de WhatsApp</CardTitle></CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {(['meta', 'evolution'] as const).map(p => (
+              <button
+                key={p}
+                onClick={() => setProvider(p)}
+                className={`flex flex-col items-start gap-1 p-4 rounded-[12px] border-2 text-left transition-colors ${provider === p ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/5' : 'border-[var(--color-border-card)] hover:border-[var(--color-primary)]/40'}`}
+              >
+                <span className="font-semibold text-sm text-[var(--color-text-main)]">
+                  {p === 'meta' ? 'Meta Cloud API' : 'Evolution API'}
+                </span>
+                <span className="text-xs text-[var(--color-text-muted)]">
+                  {p === 'meta' ? 'API oficial do WhatsApp Business (Meta)' : 'API self-hosted (Evolution)'}
+                </span>
+                {provider === p && (
+                  <span className="mt-1 text-[10px] font-bold uppercase tracking-wide text-[var(--color-primary)]">Ativo</span>
+                )}
+              </button>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Credenciais Meta Cloud API */}
+      {provider === 'meta' && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Meta Cloud API — Credenciais</CardTitle>
+            <p className="text-sm text-[var(--color-text-muted)] mt-1">
+              Encontre esses dados em <span className="font-mono text-xs">developers.facebook.com → Seu App → WhatsApp</span>
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Input
+              label="Phone Number ID"
+              placeholder="Ex: 123456789012345"
+              value={metaPhoneId}
+              onChange={e => setMetaPhoneId(e.target.value)}
+            />
+            <Input
+              label="Access Token (permanente)"
+              placeholder="EAABsb..."
+              value={metaToken}
+              onChange={e => setMetaToken(e.target.value)}
+            />
+            <Input
+              label="Webhook Verify Token"
+              placeholder="Token que você criou para verificar o webhook"
+              value={metaVerifyToken}
+              onChange={e => setMetaVerifyToken(e.target.value)}
+            />
+            <Input
+              label="Business Account ID (WABA ID)"
+              placeholder="Ex: 987654321098765"
+              value={metaBusinessId}
+              onChange={e => setMetaBusinessId(e.target.value)}
+            />
+            <div className="p-3 bg-blue-50 rounded-lg border border-blue-100 text-xs text-blue-800">
+              <p className="font-semibold mb-1">URL do Webhook (configure no Meta):</p>
+              <p className="font-mono break-all">{window.location.origin}/api/webhook/whatsapp</p>
+              <p className="mt-1 text-blue-600">Campos assinados: <span className="font-mono">messages</span></p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Credenciais Evolution API */}
+      {provider === 'evolution' && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Evolution API — Credenciais</CardTitle>
+            <p className="text-sm text-[var(--color-text-muted)] mt-1">
+              Servidor self-hosted da Evolution API
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Input
+              label="URL do Servidor"
+              placeholder="Ex: https://evolution.seudominio.com"
+              value={evoServerUrl}
+              onChange={e => setEvoServerUrl(e.target.value)}
+            />
+            <Input
+              label="API Key"
+              placeholder="Chave de autenticação da Evolution API"
+              value={evoApiKey}
+              onChange={e => setEvoApiKey(e.target.value)}
+            />
+            <Input
+              label="Nome da Instância"
+              placeholder="Ex: clinica-principal"
+              value={evoInstance}
+              onChange={e => setEvoInstance(e.target.value)}
+            />
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Webhook de nota da IA */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Webhook — Nota da Médica (IA)</CardTitle>
+          <p className="text-sm text-[var(--color-text-muted)] mt-1">
+            Quando a médica salvar uma nota no perfil do paciente, este webhook será disparado para o n8n. A IA lerá a nota e enviará a mensagem ao paciente via WhatsApp.
+          </p>
+        </CardHeader>
+        <CardContent>
+          <Input
+            label="URL do Webhook (n8n)"
+            placeholder="Ex: https://n8n.seudominio.com/webhook/nota-paciente"
+            value={notaWebhook}
+            onChange={e => setNotaWebhook(e.target.value)}
+          />
+        </CardContent>
+      </Card>
+
+      <div className="flex items-center gap-4">
+        <Button onClick={save} loading={loading}>
+          Salvar configurações
+        </Button>
+        {saved && (
+          <span className="flex items-center gap-1.5 text-sm text-green-700 font-medium">
+            <CheckCircle className="w-4 h-4" /> Salvo com sucesso
+          </span>
+        )}
+      </div>
+    </div>
   );
 }
