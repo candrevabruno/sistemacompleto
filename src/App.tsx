@@ -10,6 +10,7 @@ import { CentralAgendamentos } from './pages/CentralAgendamentos';
 import { LeadsClientes } from './pages/LeadsClientes';
 import { Configuracoes } from './pages/Configuracoes';
 import { Inbox } from './pages/Inbox';
+import { Pacientes } from './pages/Pacientes';
 
 const PrivateRoute = ({ children, adminOnly = false }: { children: React.ReactNode, adminOnly?: boolean }) => {
   const { user, loading } = useAuth();
@@ -34,6 +35,7 @@ export function App() {
                 <Route path="/clientes" element={<LeadsClientes key="clientes" mode="clientes" />} />
                 <Route path="/central-agendamentos" element={<CentralAgendamentos />} />
                 <Route path="/inbox" element={<Inbox />} />
+                <Route path="/pacientes" element={<Pacientes />} />
                 <Route 
                   path="/configuracoes" 
                   element={

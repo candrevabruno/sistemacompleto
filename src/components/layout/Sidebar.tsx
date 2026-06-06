@@ -11,6 +11,7 @@ import {
   Calendar,
   CalendarCheck,
   MessageSquare,
+  ClipboardList,
   Settings,
   Code,
   LogOut,
@@ -30,6 +31,7 @@ export function Sidebar() {
     { to: '/leads', label: 'Leads', icon: Users },
     { to: '/clientes', label: 'Clientes', icon: UserCheck },
     { to: '/central-agendamentos', label: 'Agendamentos', icon: CalendarCheck },
+    { to: '/pacientes', label: 'Pacientes', icon: ClipboardList },
     { to: '/inbox', label: 'Inbox', icon: MessageSquare },
     ...(user?.role === 'admin' ? [{ to: '/configuracoes', label: 'Configurações', icon: Settings }] : []),
   ];
