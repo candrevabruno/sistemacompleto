@@ -41,15 +41,26 @@ export function LeadsClientes({ mode }: { mode?: 'leads' | 'clientes' }) {
 
   useEffect(() => {
     fetchData();
-    
+
     const handleFocus = () => fetchData();
     const handleOnline = () => fetchData();
+    const handleVisibility = () => { if (document.visibilityState === 'visible') fetchData(); };
     window.addEventListener('focus', handleFocus);
     window.addEventListener('online', handleOnline);
-    
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    const channel = supabase
+      .channel(`leads-clientes-changes-${activeTab}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, () => fetchData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'clientes' }, () => fetchData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'agendamentos' }, () => fetchData())
+      .subscribe();
+
     return () => {
       window.removeEventListener('focus', handleFocus);
       window.removeEventListener('online', handleOnline);
+      document.removeEventListener('visibilitychange', handleVisibility);
+      supabase.removeChannel(channel);
     };
   }, [activeTab, dateRange]);
 

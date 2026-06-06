@@ -105,18 +105,12 @@ export function CRM() {
     fetchAgendas();
     fetchServicos();
 
-    const handleFocus = () => {
-      fetchLeads();
-      fetchAgendas();
-      fetchServicos();
-    };
-    const handleOnline = () => {
-      fetchLeads();
-      fetchAgendas();
-      fetchServicos();
-    };
+    const handleFocus = () => { fetchLeads(); fetchAgendas(); fetchServicos(); };
+    const handleOnline = () => { fetchLeads(); fetchAgendas(); fetchServicos(); };
+    const handleVisibility = () => { if (document.visibilityState === 'visible') { fetchLeads(); fetchAgendas(); fetchServicos(); } };
     window.addEventListener('focus', handleFocus);
     window.addEventListener('online', handleOnline);
+    document.addEventListener('visibilitychange', handleVisibility);
 
     const leadsChannel = supabase
       .channel('crm-leads-changes')
@@ -133,6 +127,7 @@ export function CRM() {
       supabase.removeChannel(leadsChannel);
       window.removeEventListener('focus', handleFocus);
       window.removeEventListener('online', handleOnline);
+      document.removeEventListener('visibilitychange', handleVisibility);
     };
   }, []);
 

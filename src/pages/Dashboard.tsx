@@ -45,8 +45,10 @@ export function Dashboard() {
     
     const handleFocus = () => fetchData();
     const handleOnline = () => fetchData();
+    const handleVisibility = () => { if (document.visibilityState === 'visible') fetchData(); };
     window.addEventListener('focus', handleFocus);
     window.addEventListener('online', handleOnline);
+    document.addEventListener('visibilitychange', handleVisibility);
 
     const channel = supabase
       .channel('dashboard-changes')
@@ -58,6 +60,7 @@ export function Dashboard() {
     return () => {
       window.removeEventListener('focus', handleFocus);
       window.removeEventListener('online', handleOnline);
+      document.removeEventListener('visibilitychange', handleVisibility);
       supabase.removeChannel(channel);
     };
   }, [dateRange]);
