@@ -12,6 +12,7 @@ import {
   CalendarCheck,
   MessageSquare,
   ClipboardList,
+  UsersRound,
   Settings,
   Code,
   LogOut,
@@ -33,7 +34,10 @@ export function Sidebar() {
     { to: '/central-agendamentos', label: 'Agendamentos', icon: CalendarCheck },
     { to: '/pacientes', label: 'Pacientes', icon: ClipboardList },
     { to: '/inbox', label: 'Inbox', icon: MessageSquare },
-    ...(user?.role === 'admin' ? [{ to: '/configuracoes', label: 'Configurações', icon: Settings }] : []),
+    ...(user?.role === 'admin' ? [
+      { to: '/equipe', label: 'Equipe', icon: UsersRound },
+      { to: '/configuracoes', label: 'Configurações', icon: Settings },
+    ] : []),
   ];
 
   const sidebarContent = (

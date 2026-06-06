@@ -52,13 +52,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         .single();
         
       if (!error && data) {
-        setUser({
-          id: authUser.id,
-          email: authUser.email,
-          role: data.role as UserRole
-        });
+        // Map legacy 'user' role to 'atendente'
+        const role: UserRole = data.role === 'admin' ? 'admin'
+          : data.role === 'profissional' ? 'profissional'
+          : 'atendente';
+        setUser({ id: authUser.id, email: authUser.email, role });
       } else {
-        setUser({ id: authUser.id, email: authUser.email, role: 'user' });
+        setUser({ id: authUser.id, email: authUser.email, role: 'atendente' });
       }
     } catch (e) {
       console.error(e);
