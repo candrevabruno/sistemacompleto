@@ -72,10 +72,48 @@ Deno.serve(async (req: Request) => {
     const phone = extractPhone(remoteJid);
     if (!phone) return ok(); // pula grupos
 
-    const { content, type, mediaUrl } = extractMessage(data);
+    const { content, type, mediaUrl: rawMediaUrl } = extractMessage(data);
     if (!content) return ok();
 
     const db = createAdminClient();
+
+    // ── Para mensagens de mídia, buscar o base64 da Evolution API ──
+    let mediaUrl: string | null = rawMediaUrl ?? null;
+    if (['audio', 'image', 'video', 'document'].includes(type) && !fromMe) {
+      try {
+        const { data: cfg } = await db
+          .from('clinic_config')
+          .select('evolution_server_url, evolution_api_key, evolution_instance_name')
+          .eq('id', 1)
+          .single();
+
+        if (cfg?.evolution_server_url && cfg?.evolution_api_key) {
+          const baseUrl = (cfg.evolution_server_url as string).replace(/\/+$/, '');
+          const mediaRes = await fetch(
+            `${baseUrl}/message/getBase64FromMediaMessage/${cfg.evolution_instance_name}`,
+            {
+              method: 'POST',
+              headers: {
+                apikey: cfg.evolution_api_key as string,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                message: { key, message: data.message },
+                convertToMp4: false,
+              }),
+            }
+          );
+          if (mediaRes.ok) {
+            const mediaData = await mediaRes.json();
+            if (mediaData.base64) {
+              mediaUrl = `data:${mediaData.mimetype};base64,${mediaData.base64}`;
+            }
+          }
+        }
+      } catch (mediaErr) {
+        console.error('Erro ao buscar mídia:', mediaErr);
+      }
+    }
 
     // ── Deduplicação: mensagens que enviamos já foram salvas pelo whatsapp-send ──
     if (fromMe && evolutionMsgId) {

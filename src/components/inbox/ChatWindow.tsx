@@ -8,9 +8,9 @@ function renderConteudo(m: Mensagem, isOut: boolean) {
   switch (m.tipo) {
     case 'audio':
       return m.media_url ? (
-        <audio controls src={m.media_url} className="max-w-[240px] w-full" />
+        <audio controls src={m.media_url} className="max-w-[240px] w-full" preload="metadata" />
       ) : (
-        <p className="italic text-sm opacity-70">[Áudio indisponível]</p>
+        <p className="text-sm opacity-70">🎤 [Áudio — indisponível]</p>
       );
     case 'image':
       return m.media_url ? (
