@@ -586,6 +586,52 @@ function AbaWhatsApp() {
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
 
+  // Status e QR code da Evolution API
+  const [connectionState, setConnectionState] = useState<'open' | 'close' | 'connecting' | null>(null);
+  const [qrCode, setQrCode] = useState<string | null>(null);
+  const [checkingStatus, setCheckingStatus] = useState(false);
+  const [generatingQr, setGeneratingQr] = useState(false);
+
+  async function verificarStatus() {
+    if (!evoServerUrl || !evoApiKey || !evoInstance) return;
+    setCheckingStatus(true);
+    setQrCode(null);
+    try {
+      const res = await fetch(
+        `${evoServerUrl.replace(/\/+$/, '')}/instance/connectionState/${evoInstance}`,
+        { headers: { apikey: evoApiKey } }
+      );
+      const data = await res.json();
+      const state = data?.instance?.state ?? data?.state ?? 'close';
+      setConnectionState(state === 'open' ? 'open' : state === 'connecting' ? 'connecting' : 'close');
+    } catch {
+      setConnectionState('close');
+    } finally {
+      setCheckingStatus(false);
+    }
+  }
+
+  async function gerarQrCode() {
+    if (!evoServerUrl || !evoApiKey || !evoInstance) return;
+    setGeneratingQr(true);
+    setQrCode(null);
+    try {
+      const res = await fetch(
+        `${evoServerUrl.replace(/\/+$/, '')}/instance/connect/${evoInstance}`,
+        { headers: { apikey: evoApiKey } }
+      );
+      const data = await res.json();
+      const base64 = data?.base64 ?? data?.qrcode?.base64 ?? null;
+      setQrCode(base64);
+      // Verificar status automaticamente após 20s (tempo para escanear)
+      setTimeout(verificarStatus, 20000);
+    } catch {
+      alert('Erro ao gerar QR Code. Verifique a URL e a API Key.');
+    } finally {
+      setGeneratingQr(false);
+    }
+  }
+
   useEffect(() => {
     if (config) {
       setProvider((config.whatsapp_provider as 'meta' | 'evolution') || 'meta');
@@ -744,6 +790,85 @@ function AbaWhatsApp() {
               value={evoInstance}
               onChange={e => setEvoInstance(e.target.value)}
             />
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Status da conexão Evolution API */}
+      {provider === 'evolution' && evoServerUrl && evoApiKey && evoInstance && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Status da Conexão WhatsApp</CardTitle>
+              <button
+                onClick={verificarStatus}
+                disabled={checkingStatus}
+                className="text-xs text-[var(--color-primary)] hover:underline disabled:opacity-50"
+              >
+                {checkingStatus ? 'Verificando...' : 'Verificar status'}
+              </button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Badge de status */}
+            {connectionState !== null && (
+              <div className={`flex items-center gap-2 px-3 py-2 rounded-[8px] border text-sm font-medium ${
+                connectionState === 'open'
+                  ? 'bg-green-50 border-green-200 text-green-700'
+                  : connectionState === 'connecting'
+                  ? 'bg-yellow-50 border-yellow-200 text-yellow-700'
+                  : 'bg-red-50 border-red-200 text-red-700'
+              }`}>
+                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                  connectionState === 'open' ? 'bg-green-500' : connectionState === 'connecting' ? 'bg-yellow-500 animate-pulse' : 'bg-red-500'
+                }`} />
+                {connectionState === 'open' ? 'Conectado — WhatsApp ativo' : connectionState === 'connecting' ? 'Conectando...' : 'Desconectado'}
+              </div>
+            )}
+
+            {/* Botão e QR Code */}
+            {connectionState !== 'open' && (
+              <div className="space-y-3">
+                <button
+                  onClick={gerarQrCode}
+                  disabled={generatingQr}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-[8px] bg-[var(--color-primary)] text-white text-sm font-medium hover:opacity-90 disabled:opacity-50 transition-opacity"
+                >
+                  {generatingQr ? 'Gerando QR Code...' : 'Gerar QR Code para conectar'}
+                </button>
+
+                {qrCode && (
+                  <div className="flex flex-col items-center gap-3 p-4 bg-white border border-[var(--color-border-card)] rounded-[12px]">
+                    <p className="text-sm font-medium text-[var(--color-text-main)]">Escaneie com o WhatsApp do celular</p>
+                    <img src={qrCode} alt="QR Code WhatsApp" className="w-48 h-48 rounded-[8px]" />
+                    <ol className="text-xs text-[var(--color-text-muted)] space-y-1 self-start">
+                      <li>1. Abra o WhatsApp no celular</li>
+                      <li>2. Toque em <strong>⋮ → Aparelhos conectados</strong></li>
+                      <li>3. Toque em <strong>Conectar um aparelho</strong></li>
+                      <li>4. Escaneie este QR code</li>
+                    </ol>
+                    <button
+                      onClick={verificarStatus}
+                      disabled={checkingStatus}
+                      className="text-xs text-[var(--color-primary)] hover:underline disabled:opacity-50"
+                    >
+                      {checkingStatus ? 'Verificando...' : 'Já escaneei — verificar conexão'}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Se ainda não verificou, mostrar botão inicial */}
+            {connectionState === null && (
+              <button
+                onClick={verificarStatus}
+                disabled={checkingStatus}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-[8px] border border-[var(--color-border-card)] text-sm font-medium hover:bg-[var(--color-bg-card)] disabled:opacity-50 transition-colors"
+              >
+                {checkingStatus ? 'Verificando...' : 'Verificar status da conexão'}
+              </button>
+            )}
           </CardContent>
         </Card>
       )}
