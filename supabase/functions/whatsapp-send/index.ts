@@ -65,15 +65,17 @@ Deno.serve(async (req: Request) => {
     } catch (sendErr) {
       const msg = sendErr instanceof Error ? sendErr.message : String(sendErr);
       console.error('whatsapp-send error:', msg);
-      await db.from('whatsapp_logs').insert({
-        provider: config.whatsapp_provider,
-        direction: 'outbound',
-        phone,
-        message_type: type,
-        payload: { message },
-        status: 'error',
-        error_message: msg,
-      }).catch(() => {});
+      try {
+        await db.from('whatsapp_logs').insert({
+          provider: config.whatsapp_provider,
+          direction: 'outbound',
+          phone,
+          message_type: type,
+          payload: { message },
+          status: 'error',
+          error_message: msg,
+        });
+      } catch { /* ignorar falha no log */ }
       return json({ error: msg }, 500);
     }
 
