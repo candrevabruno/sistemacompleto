@@ -28,6 +28,38 @@ function playNotificationBeep() {
   }
 }
 
+// Alerta distinto quando IA transfere para humano: 3 bipes urgentes
+function playHumanHandoffAlert() {
+  try {
+    const ctx = new AudioContext();
+    const beep = (startTime: number, freq: number) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.value = freq;
+      osc.type = 'triangle';
+      gain.gain.setValueAtTime(0, startTime);
+      gain.gain.linearRampToValueAtTime(0.5, startTime + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.25);
+      osc.start(startTime);
+      osc.stop(startTime + 0.25);
+    };
+    beep(ctx.currentTime, 660);
+    beep(ctx.currentTime + 0.3, 880);
+    beep(ctx.currentTime + 0.6, 1100);
+    // Notificação do browser se permitida
+    if (Notification.permission === 'granted') {
+      new Notification('Atendimento humano solicitado', {
+        body: 'Um cliente precisa de atendimento humano no Inbox.',
+        icon: '/favicon.ico',
+      });
+    }
+  } catch {
+    // AudioContext not available
+  }
+}
+
 export function Inbox() {
   const { config, loading: configLoading } = useClinic();
   const { user } = useAuth();
@@ -99,9 +131,14 @@ export function Inbox() {
                 setMensagens([]);
               }
             } else {
-              setConversas(prev =>
-                prev.map(c => (c.id === updated.id ? updated : c))
-              );
+              setConversas(prev => {
+                const anterior = prev.find(c => c.id === updated.id);
+                // Alerta quando IA transfere para humano
+                if (anterior && !anterior.is_human && updated.is_human) {
+                  playHumanHandoffAlert();
+                }
+                return prev.map(c => (c.id === updated.id ? updated : c));
+              });
               if (conversaSelecionadaRef.current?.id === updated.id) {
                 setConversaSelecionada(updated);
               }
