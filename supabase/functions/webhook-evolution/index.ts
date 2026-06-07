@@ -102,28 +102,33 @@ Deno.serve(async (req: Request) => {
             const instance = cfg.evolution_instance_name as string;
             const apiKey = cfg.evolution_api_key as string;
 
-            // Evolution API v2 — POST /message/getBase64FromMediaMessage/{instance}
-            const mediaRes = await fetch(
+            // Tenta /chat/ (Evolution API v2) e /message/ (v1) como fallback
+            const endpoints = [
+              `${baseUrl}/chat/getBase64FromMediaMessage/${instance}`,
               `${baseUrl}/message/getBase64FromMediaMessage/${instance}`,
-              {
+            ];
+            for (const endpoint of endpoints) {
+              const mediaRes = await fetch(endpoint, {
                 method: 'POST',
                 headers: { apikey: apiKey, 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                   message: { key, message: data.message },
                   convertToMp4: false,
                 }),
+              });
+              console.log(`media fetch [${endpoint.split('/').slice(-2).join('/')}]:`, mediaRes.status);
+              if (mediaRes.status === 404) continue; // tenta próximo endpoint
+              if (mediaRes.ok) {
+                const mediaData = await mediaRes.json();
+                console.log('media fetch keys:', Object.keys(mediaData));
+                const b64 = mediaData.base64 ?? mediaData.data;
+                const mime = mediaData.mimetype ?? inlineMime;
+                if (b64) { mediaUrl = `data:${mime};base64,${b64}`; break; }
+              } else {
+                const errText = await mediaRes.text();
+                console.error('media fetch error:', mediaRes.status, errText.slice(0, 200));
+                break;
               }
-            );
-            console.log('media fetch status:', mediaRes.status);
-            if (mediaRes.ok) {
-              const mediaData = await mediaRes.json();
-              console.log('media fetch keys:', Object.keys(mediaData));
-              const b64 = mediaData.base64 ?? mediaData.data;
-              const mime = mediaData.mimetype ?? inlineMime;
-              if (b64) mediaUrl = `data:${mime};base64,${b64}`;
-            } else {
-              const errText = await mediaRes.text();
-              console.error('media fetch error:', mediaRes.status, errText.slice(0, 200));
             }
           }
         } catch (mediaErr) {
