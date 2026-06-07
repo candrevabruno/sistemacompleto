@@ -51,14 +51,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         .eq('id', authUser.id)
         .single();
         
+      const nome: string | null =
+        authUser.user_metadata?.full_name ||
+        authUser.user_metadata?.name ||
+        null;
       if (!error && data) {
         // Map legacy 'user' role to 'atendente'
         const role: UserRole = data.role === 'admin' ? 'admin'
           : data.role === 'profissional' ? 'profissional'
           : 'atendente';
-        setUser({ id: authUser.id, email: authUser.email, role });
+        setUser({ id: authUser.id, email: authUser.email, role, nome });
       } else {
-        setUser({ id: authUser.id, email: authUser.email, role: 'atendente' });
+        setUser({ id: authUser.id, email: authUser.email, role: 'atendente', nome });
       }
     } catch (e) {
       console.error(e);

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Send, Loader2, User, MessageSquare, FileText, Download, Mic, Square, Paperclip } from 'lucide-react';
+import { Send, Loader2, User, MessageSquare, FileText, Download, Mic, Square, Paperclip, UserCheck } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { Conversa, Mensagem } from '../../types';
@@ -177,26 +177,40 @@ export function ChatWindow({ conversa, mensagens, loadingMensagens, onEnviar, on
             <p className="text-sm text-[var(--color-text-muted)]">Nenhuma mensagem ainda</p>
           </div>
         ) : (
-          mensagens.map(m => (
-            <div key={m.id} className={`flex ${m.direcao === 'saida' ? 'justify-end' : 'justify-start'}`}>
-              <div
-                className={`${m.tipo === 'audio' ? 'w-[260px]' : 'max-w-[70%]'} px-3 py-2 rounded-2xl text-sm ${
-                  m.direcao === 'saida'
-                    ? 'bg-[var(--color-primary)] text-white rounded-br-sm'
-                    : 'bg-white dark:bg-white/10 text-[var(--color-text-main)] border border-[var(--color-border-card)] rounded-bl-sm shadow-sm'
-                }`}
-              >
-                {renderConteudo(m, m.direcao === 'saida')}
-                <p
-                  className={`text-[10px] mt-1 text-right ${
-                    m.direcao === 'saida' ? 'text-white/70' : 'text-[var(--color-text-muted)]'
+          mensagens.map(m => {
+            if (m.tipo === 'sistema') {
+              return (
+                <div key={m.id} className="flex justify-center my-1">
+                  <div className="flex items-center gap-1.5 px-3 py-1 bg-[var(--color-bg-card)] rounded-full border border-[var(--color-border-card)] text-[10px] text-[var(--color-text-muted)]">
+                    <UserCheck className="w-3 h-3 flex-shrink-0" />
+                    <span>{m.conteudo}</span>
+                    <span>·</span>
+                    <span>{format(new Date(m.created_at), 'HH:mm', { locale: ptBR })}</span>
+                  </div>
+                </div>
+              );
+            }
+            return (
+              <div key={m.id} className={`flex ${m.direcao === 'saida' ? 'justify-end' : 'justify-start'}`}>
+                <div
+                  className={`${m.tipo === 'audio' ? 'w-[260px]' : 'max-w-[70%]'} px-3 py-2 rounded-2xl text-sm ${
+                    m.direcao === 'saida'
+                      ? 'bg-[var(--color-primary)] text-white rounded-br-sm'
+                      : 'bg-white dark:bg-white/10 text-[var(--color-text-main)] border border-[var(--color-border-card)] rounded-bl-sm shadow-sm'
                   }`}
                 >
-                  {format(new Date(m.created_at), 'HH:mm', { locale: ptBR })}
-                </p>
+                  {renderConteudo(m, m.direcao === 'saida')}
+                  <p
+                    className={`text-[10px] mt-1 text-right ${
+                      m.direcao === 'saida' ? 'text-white/70' : 'text-[var(--color-text-muted)]'
+                    }`}
+                  >
+                    {format(new Date(m.created_at), 'HH:mm', { locale: ptBR })}
+                  </p>
+                </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
         <div ref={bottomRef} />
       </div>

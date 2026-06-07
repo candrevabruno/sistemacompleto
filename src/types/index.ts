@@ -6,6 +6,7 @@ export interface AppUser {
   id: string;
   email: string | undefined;
   role: UserRole;
+  nome: string | null;
 }
 
 export interface ClinicConfig {
@@ -37,13 +38,35 @@ export interface Conversa {
   nao_lidas: number;
   created_at: string;
   updated_at: string;
+  handoff_at: string | null;
+  handoff_by: string | null;
+  handoff_by_name: string | null;
+  ia_ultima_acao: string | null;
+  ia_ultima_interacao_at: string | null;
+}
+
+export interface Lead {
+  id: string;
+  nome_lead: string | null;
+  resumo_conversa: string | null;
+  status: string;
+  origem: string | null;
+  inicio_atendimento: string;
+}
+
+export interface Agendamento {
+  id: string;
+  procedimento_nome: string | null;
+  data_hora_inicio: string;
+  status: string;
+  agenda: { nome: string } | null;
 }
 
 export interface Mensagem {
   id: string;
   conversa_id: string;
   conteudo: string;
-  tipo: 'text' | 'image' | 'audio' | 'document' | 'video';
+  tipo: 'text' | 'image' | 'audio' | 'document' | 'video' | 'sistema';
   direcao: 'entrada' | 'saida';
   status: 'enviado' | 'entregue' | 'lido' | 'erro';
   whatsapp_message_id: string | null;

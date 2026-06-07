@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useClinic } from '../contexts/ClinicContext';
+import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
 import { Settings, MessageSquare } from 'lucide-react';
@@ -29,6 +30,7 @@ function playNotificationBeep() {
 
 export function Inbox() {
   const { config, loading: configLoading } = useClinic();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   const [conversas, setConversas] = useState<Conversa[]>([]);
@@ -320,6 +322,68 @@ export function Inbox() {
     }
   }
 
+  // ── Handoff IA ↔ Humano ────────────────────────────────────────
+  async function assumirAtendimento() {
+    if (!conversaSelecionada || !user) return;
+    const displayName = user.nome || user.email?.split('@')[0] || 'Atendente';
+    const now = new Date().toISOString();
+
+    await supabase.from('conversas').update({
+      is_human: true,
+      assigned_to: user.id,
+      handoff_at: now,
+      handoff_by: user.id,
+      handoff_by_name: displayName,
+    }).eq('id', conversaSelecionada.id);
+
+    const { data: msg } = await supabase.from('mensagens').insert({
+      conversa_id: conversaSelecionada.id,
+      conteudo: `${displayName} assumiu o atendimento`,
+      tipo: 'sistema',
+      direcao: 'saida',
+      status: 'enviado',
+    }).select().single();
+
+    if (msg?.id) {
+      localMsgIds.current.add(msg.id);
+      setMensagens(prev => [...prev, msg]);
+    }
+
+    const updated = { ...conversaSelecionada, is_human: true, handoff_at: now, handoff_by: user.id, handoff_by_name: displayName, assigned_to: user.id };
+    setConversaSelecionada(updated);
+    setConversas(prev => prev.map(c => c.id === conversaSelecionada.id ? updated : c));
+  }
+
+  async function retornarParaIA() {
+    if (!conversaSelecionada || !user) return;
+    const displayName = user.nome || user.email?.split('@')[0] || 'Atendente';
+
+    await supabase.from('conversas').update({
+      is_human: false,
+      assigned_to: null,
+      handoff_at: null,
+      handoff_by: null,
+      handoff_by_name: null,
+    }).eq('id', conversaSelecionada.id);
+
+    const { data: msg } = await supabase.from('mensagens').insert({
+      conversa_id: conversaSelecionada.id,
+      conteudo: `${displayName} devolveu o atendimento para a IA`,
+      tipo: 'sistema',
+      direcao: 'saida',
+      status: 'enviado',
+    }).select().single();
+
+    if (msg?.id) {
+      localMsgIds.current.add(msg.id);
+      setMensagens(prev => [...prev, msg]);
+    }
+
+    const updated = { ...conversaSelecionada, is_human: false, handoff_at: null, handoff_by: null, handoff_by_name: null, assigned_to: null };
+    setConversaSelecionada(updated);
+    setConversas(prev => prev.map(c => c.id === conversaSelecionada.id ? updated : c));
+  }
+
   // ── Delete conversation ─────────────────────────────────────────
   async function excluirConversa(conversaId: string) {
     await supabase.from('conversas').update({ status: 'arquivada' }).eq('id', conversaId);
@@ -405,7 +469,11 @@ export function Inbox() {
       />
 
       {/* Painel lateral */}
-      <SidePanel conversa={conversaSelecionada} />
+      <SidePanel
+        conversa={conversaSelecionada}
+        onAssumirAtendimento={assumirAtendimento}
+        onRetornarParaIA={retornarParaIA}
+      />
     </div>
   );
 }
