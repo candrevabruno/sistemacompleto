@@ -1,8 +1,21 @@
-import React, { useEffect, useState } from 'react';
-import { Plus, X, Check, Phone, User } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Plus, X, Check, Phone, User, TrendingUp } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import type { Conversa, Tag, Tarefa } from '../../types';
+
+const CRM_STAGES: Record<string, { label: string; color: string }> = {
+  iniciou_atendimento:    { label: 'Iniciou',               color: '#7A9E87' },
+  conversando:            { label: 'Conversando',           color: '#6B9EC4' },
+  follow_up:              { label: 'Follow-Up',             color: '#3b82f6' },
+  agendado:               { label: 'Agendado',              color: '#10b981' },
+  reagendado:             { label: 'Reagendado',            color: '#f59e0b' },
+  faltou:                 { label: 'Faltou',                color: '#64748b' },
+  cancelou_agendamento:   { label: 'Cancelou Agendamento',  color: '#fb7185' },
+  converteu:              { label: 'Converteu (Venda)',      color: '#16a34a' },
+  nao_converteu:          { label: 'Não Converteu',         color: '#dc2626' },
+  abandonou_conversa:     { label: 'Abandonou',             color: '#9ca3af' },
+};
 
 interface Props {
   conversa: Conversa | null;
@@ -17,6 +30,7 @@ export function SidePanel({ conversa }: Props) {
   const [novaTag, setNovaTag] = useState('');
   const [addingTag, setAddingTag] = useState(false);
   const [addingTarefa, setAddingTarefa] = useState(false);
+  const [leadStatus, setLeadStatus] = useState<string | null>(null);
 
   useEffect(() => {
     loadAllTags();
@@ -26,11 +40,17 @@ export function SidePanel({ conversa }: Props) {
     if (!conversa) {
       setConversaTagIds([]);
       setTarefas([]);
+      setLeadStatus(null);
       return;
     }
     loadConversaTags(conversa.id);
-    if (conversa.lead_id) loadTarefas(conversa.lead_id);
-    else setTarefas([]);
+    if (conversa.lead_id) {
+      loadTarefas(conversa.lead_id);
+      loadLeadStatus(conversa.lead_id);
+    } else {
+      setTarefas([]);
+      setLeadStatus(null);
+    }
   }, [conversa?.id]);
 
   async function loadAllTags() {
@@ -44,6 +64,15 @@ export function SidePanel({ conversa }: Props) {
       .select('tag_id')
       .eq('conversa_id', conversaId);
     if (data) setConversaTagIds(data.map(d => d.tag_id));
+  }
+
+  async function loadLeadStatus(leadId: string) {
+    const { data } = await supabase
+      .from('leads')
+      .select('status')
+      .eq('id', leadId)
+      .single();
+    setLeadStatus(data?.status ?? null);
   }
 
   async function loadTarefas(leadId: string) {
@@ -137,6 +166,27 @@ export function SidePanel({ conversa }: Props) {
               <span className="truncate">{conversa.whatsapp_number}</span>
             </div>
           </div>
+
+          {/* Pipeline CRM */}
+          {leadStatus && CRM_STAGES[leadStatus] && (
+            <div className="p-4 border-b border-[var(--color-border-card)]">
+              <h3 className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-2">
+                Pipeline CRM
+              </h3>
+              <div className="flex items-center gap-2">
+                <TrendingUp className="w-3.5 h-3.5 flex-shrink-0" style={{ color: CRM_STAGES[leadStatus].color }} />
+                <span
+                  className="text-xs font-semibold px-2 py-0.5 rounded-full"
+                  style={{
+                    backgroundColor: CRM_STAGES[leadStatus].color + '22',
+                    color: CRM_STAGES[leadStatus].color,
+                  }}
+                >
+                  {CRM_STAGES[leadStatus].label}
+                </span>
+              </div>
+            </div>
+          )}
 
           {/* Tags */}
           <div className="p-4 border-b border-[var(--color-border-card)]">

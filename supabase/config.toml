@@ -16,7 +16,6 @@ major_version = 15
 enabled = true
 port = 54323
 api_url = "http://localhost"
-openapi_url = "http://localhost:54321/"
 
 [inbucket]
 enabled = true
@@ -46,3 +45,9 @@ enable_confirmations = false
 enabled = true
 policy = "per_worker"
 inspector_port = 8083
+
+[functions.webhook-evolution]
+verify_jwt = false
+
+[functions.webhook-meta]
+verify_jwt = false

@@ -54,6 +54,8 @@ Deno.serve(async (req: Request) => {
       const result = await whatsapp.sendText(phone, message);
       whatsappMsgId = result.whatsapp_message_id;
     } catch (sendErr) {
+      const msg = sendErr instanceof Error ? sendErr.message : String(sendErr);
+      console.error('whatsapp-send error:', msg);
       await db.from('whatsapp_logs').insert({
         provider: config.whatsapp_provider,
         direction: 'outbound',
@@ -61,9 +63,9 @@ Deno.serve(async (req: Request) => {
         message_type: type,
         payload: { message },
         status: 'error',
-        error_message: sendErr.message,
+        error_message: msg,
       });
-      return json({ error: sendErr.message }, 500);
+      return json({ error: msg }, 500);
     }
 
     // ── Salvar mensagem no banco ──────────────────────────────────
@@ -104,6 +106,8 @@ Deno.serve(async (req: Request) => {
 
     return json({ success: true, whatsapp_message_id: whatsappMsgId, mensagem });
   } catch (err) {
-    return json({ error: err.message }, 500);
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error('whatsapp-send fatal:', msg);
+    return json({ error: msg }, 500);
   }
 });

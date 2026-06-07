@@ -92,29 +92,69 @@ Deno.serve(async (req: Request) => {
     let conversaId: string;
     const { data: existingConversa } = await db
       .from('conversas')
-      .select('id, nao_lidas')
+      .select('id, nao_lidas, lead_id')
       .eq('whatsapp_number', phone)
       .eq('status', 'aberta')
       .order('created_at', { ascending: false })
       .limit(1)
       .single();
 
+    // Para fromMe=true (mensagem enviada por nós), pushName é o nome da conta conectada,
+    // não o nome do contato. Só usar pushName para mensagens recebidas do contato.
+    const contactName = !fromMe ? pushName : null;
+
     if (existingConversa) {
       conversaId = existingConversa.id;
+
+      // Se conversa existente não tem lead vinculado, tenta encontrar e vincular agora
+      if (!existingConversa.lead_id) {
+        const { data: lead } = await db
+          .from('leads')
+          .select('id, nome_lead')
+          .or(`whatsapp_lead.eq.${phone},whatsapp_lead.ilike.%${phone}%`)
+          .limit(1)
+          .single();
+        if (lead) {
+          await db
+            .from('conversas')
+            .update({ lead_id: lead.id, nome_contato: contactName || lead.nome_lead })
+            .eq('id', conversaId);
+        } else if (contactName) {
+          // Atualiza nome se chegou pushName e ainda não temos nome
+          await db
+            .from('conversas')
+            .update({ nome_contato: contactName })
+            .eq('id', conversaId);
+        }
+      }
     } else {
-      // Tentar vincular ao lead pelo número
-      const { data: lead } = await db
+      // Tentar vincular ao lead existente pelo número
+      let { data: lead } = await db
         .from('leads')
-        .select('id, nome')
-        .or(`whatsapp.eq.${phone},whatsapp.ilike.%${phone}%`)
+        .select('id, nome_lead')
+        .or(`whatsapp_lead.eq.${phone},whatsapp_lead.ilike.%${phone}%`)
         .limit(1)
         .single();
+
+      // Se não existe lead, criar automaticamente para entrar no CRM
+      if (!lead && !fromMe) {
+        const { data: novoLead } = await db
+          .from('leads')
+          .insert({
+            whatsapp_lead: phone,
+            nome_lead: contactName || null,
+            status: 'iniciou_atendimento',
+          })
+          .select('id, nome_lead')
+          .single();
+        lead = novoLead;
+      }
 
       const { data: novaConversa, error: cErr } = await db
         .from('conversas')
         .insert({
           whatsapp_number: phone,
-          nome_contato: pushName || lead?.nome || phone,
+          nome_contato: contactName || lead?.nome_lead || phone,
           provider: 'evolution',
           status: 'aberta',
           is_human: false,
@@ -175,7 +215,8 @@ Deno.serve(async (req: Request) => {
   } catch (err) {
     console.error('webhook-evolution error:', err);
     // Sempre retorna 200 para a Evolution API não re-tentar
-    return new Response(JSON.stringify({ received: true, error: err.message }), {
+    const msg = err instanceof Error ? err.message : String(err);
+    return new Response(JSON.stringify({ received: true, error: msg }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }

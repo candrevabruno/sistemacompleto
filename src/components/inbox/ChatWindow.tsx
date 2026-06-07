@@ -1,8 +1,48 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Send, Loader2, User, MessageSquare } from 'lucide-react';
+import { Send, Loader2, User, MessageSquare, FileText, Download } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { Conversa, Mensagem } from '../../types';
+
+function renderConteudo(m: Mensagem, isOut: boolean) {
+  switch (m.tipo) {
+    case 'audio':
+      return m.media_url ? (
+        <audio controls src={m.media_url} className="max-w-[240px] w-full" />
+      ) : (
+        <p className="italic text-sm opacity-70">[Áudio indisponível]</p>
+      );
+    case 'image':
+      return m.media_url ? (
+        <img src={m.media_url} alt="imagem" className="max-w-[240px] rounded-lg" />
+      ) : (
+        <p className="italic text-sm opacity-70">[Imagem indisponível]</p>
+      );
+    case 'video':
+      return m.media_url ? (
+        <video controls src={m.media_url} className="max-w-[240px] rounded-lg" />
+      ) : (
+        <p className="italic text-sm opacity-70">[Vídeo indisponível]</p>
+      );
+    case 'document':
+      return m.media_url ? (
+        <a
+          href={m.media_url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={`flex items-center gap-2 text-sm underline ${isOut ? 'text-white' : 'text-[var(--color-primary)]'}`}
+        >
+          <FileText className="w-4 h-4 flex-shrink-0" />
+          <span>{m.conteudo || 'Documento'}</span>
+          <Download className="w-3.5 h-3.5 flex-shrink-0" />
+        </a>
+      ) : (
+        <p className="italic text-sm opacity-70">[Documento indisponível]</p>
+      );
+    default:
+      return <p className="whitespace-pre-wrap break-words">{m.conteudo}</p>;
+  }
+}
 
 interface Props {
   conversa: Conversa | null;
@@ -98,7 +138,7 @@ export function ChatWindow({ conversa, mensagens, loadingMensagens, onEnviar, en
                     : 'bg-white dark:bg-white/10 text-[var(--color-text-main)] border border-[var(--color-border-card)] rounded-bl-sm shadow-sm'
                 }`}
               >
-                <p className="whitespace-pre-wrap break-words">{m.conteudo}</p>
+                {renderConteudo(m, m.direcao === 'saida')}
                 <p
                   className={`text-[10px] mt-1 text-right ${
                     m.direcao === 'saida' ? 'text-white/70' : 'text-[var(--color-text-muted)]'

@@ -602,7 +602,7 @@ function AbaWhatsApp() {
 
   const save = async () => {
     setLoading(true);
-    await supabase.from('clinic_config').update({
+    const { error } = await supabase.from('clinic_config').update({
       whatsapp_provider: provider,
       meta_phone_number_id: metaPhoneId || null,
       meta_access_token: metaToken || null,
@@ -613,8 +613,12 @@ function AbaWhatsApp() {
       evolution_instance_name: evoInstance || null,
       nota_webhook_url: notaWebhook || null,
     }).eq('id', 1);
-    await refreshConfig();
     setLoading(false);
+    if (error) {
+      alert('Erro ao salvar: ' + error.message);
+      return;
+    }
+    await refreshConfig();
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
   };

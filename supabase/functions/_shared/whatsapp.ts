@@ -14,7 +14,11 @@ export interface SendResult {
 }
 
 export class WhatsAppService {
-  constructor(private cfg: ClinicWhatsAppConfig) {}
+  private baseUrl: string;
+
+  constructor(private cfg: ClinicWhatsAppConfig) {
+    this.baseUrl = (cfg.evolution_server_url ?? '').replace(/\/+$/, '');
+  }
 
   async sendText(phone: string, message: string): Promise<SendResult> {
     return this.cfg.whatsapp_provider === 'evolution'
@@ -38,14 +42,13 @@ export class WhatsAppService {
   // ── Evolution ──────────────────────────────────────────────────────
 
   private async evolutionSendText(phone: string, message: string): Promise<SendResult> {
-    const url = `${this.cfg.evolution_server_url}/message/sendText/${this.cfg.evolution_instance_name}`;
+    const url = `${this.baseUrl}/message/sendText/${this.cfg.evolution_instance_name}`;
     const res = await fetch(url, {
       method: 'POST',
       headers: { apikey: this.cfg.evolution_api_key!, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         number: phone,
-        options: { delay: 1200 },
-        textMessage: { text: message },
+        text: message,
       }),
     });
     if (!res.ok) {
@@ -57,7 +60,7 @@ export class WhatsAppService {
   }
 
   private async evolutionSendDocument(phone: string, fileUrl: string, caption?: string): Promise<SendResult> {
-    const url = `${this.cfg.evolution_server_url}/message/sendMedia/${this.cfg.evolution_instance_name}`;
+    const url = `${this.baseUrl}/message/sendMedia/${this.cfg.evolution_instance_name}`;
     const res = await fetch(url, {
       method: 'POST',
       headers: { apikey: this.cfg.evolution_api_key!, 'Content-Type': 'application/json' },

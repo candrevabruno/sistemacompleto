@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useClinic } from '../contexts/ClinicContext';
 import { useNavigate } from 'react-router-dom';
@@ -153,14 +153,20 @@ export function Inbox() {
     setLoadingMensagens(true);
     setMensagens([]);
 
-    const { data } = await supabase
-      .from('mensagens')
-      .select('*')
-      .eq('conversa_id', conversa.id)
-      .order('created_at', { ascending: true });
+    try {
+      const { data, error } = await supabase
+        .from('mensagens')
+        .select('*')
+        .eq('conversa_id', conversa.id)
+        .order('created_at', { ascending: true });
 
-    if (data) setMensagens(data);
-    setLoadingMensagens(false);
+      if (error) console.error('Erro ao carregar mensagens:', error);
+      if (data) setMensagens(data);
+    } catch (err) {
+      console.error('Falha ao buscar mensagens:', err);
+    } finally {
+      setLoadingMensagens(false);
+    }
 
     // Mark conversation as read
     if (conversa.nao_lidas > 0) {
