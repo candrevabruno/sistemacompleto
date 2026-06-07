@@ -80,38 +80,55 @@ Deno.serve(async (req: Request) => {
     // ── Para mensagens de mídia, buscar o base64 da Evolution API ──
     let mediaUrl: string | null = rawMediaUrl ?? null;
     if (['audio', 'image', 'video', 'document'].includes(type) && !fromMe) {
-      try {
-        const { data: cfg } = await db
-          .from('clinic_config')
-          .select('evolution_server_url, evolution_api_key, evolution_instance_name')
-          .eq('id', 1)
-          .single();
+      // Tenta 1: base64 embutido no payload (quando webhook_base64=true na instância)
+      const msg = (data.message ?? {}) as Record<string, unknown>;
+      const mediaMsg = (msg[`${data.messageType}`] ?? {}) as Record<string, unknown>;
+      const inlineBase64 = mediaMsg.base64 as string | undefined;
+      const inlineMime = (mediaMsg.mimetype as string | undefined) ?? 'audio/ogg';
+      if (inlineBase64) {
+        mediaUrl = `data:${inlineMime};base64,${inlineBase64}`;
+        console.log('media: base64 inline encontrado');
+      } else {
+        // Tenta 2: chamar endpoint da Evolution API para obter base64
+        try {
+          const { data: cfg } = await db
+            .from('clinic_config')
+            .select('evolution_server_url, evolution_api_key, evolution_instance_name')
+            .eq('id', 1)
+            .single();
 
-        if (cfg?.evolution_server_url && cfg?.evolution_api_key) {
-          const baseUrl = (cfg.evolution_server_url as string).replace(/\/+$/, '');
-          const mediaRes = await fetch(
-            `${baseUrl}/message/getBase64FromMediaMessage/${cfg.evolution_instance_name}`,
-            {
-              method: 'POST',
-              headers: {
-                apikey: cfg.evolution_api_key as string,
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                message: { key, message: data.message },
-                convertToMp4: false,
-              }),
-            }
-          );
-          if (mediaRes.ok) {
-            const mediaData = await mediaRes.json();
-            if (mediaData.base64) {
-              mediaUrl = `data:${mediaData.mimetype};base64,${mediaData.base64}`;
+          if (cfg?.evolution_server_url && cfg?.evolution_api_key) {
+            const baseUrl = (cfg.evolution_server_url as string).replace(/\/+$/, '');
+            const instance = cfg.evolution_instance_name as string;
+            const apiKey = cfg.evolution_api_key as string;
+
+            // Evolution API v2 — POST /message/getBase64FromMediaMessage/{instance}
+            const mediaRes = await fetch(
+              `${baseUrl}/message/getBase64FromMediaMessage/${instance}`,
+              {
+                method: 'POST',
+                headers: { apikey: apiKey, 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  message: { key, message: data.message },
+                  convertToMp4: false,
+                }),
+              }
+            );
+            console.log('media fetch status:', mediaRes.status);
+            if (mediaRes.ok) {
+              const mediaData = await mediaRes.json();
+              console.log('media fetch keys:', Object.keys(mediaData));
+              const b64 = mediaData.base64 ?? mediaData.data;
+              const mime = mediaData.mimetype ?? inlineMime;
+              if (b64) mediaUrl = `data:${mime};base64,${b64}`;
+            } else {
+              const errText = await mediaRes.text();
+              console.error('media fetch error:', mediaRes.status, errText.slice(0, 200));
             }
           }
+        } catch (mediaErr) {
+          console.error('Erro ao buscar mídia:', mediaErr);
         }
-      } catch (mediaErr) {
-        console.error('Erro ao buscar mídia:', mediaErr);
       }
     }
 

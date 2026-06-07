@@ -8,7 +8,12 @@ function renderConteudo(m: Mensagem, isOut: boolean) {
   switch (m.tipo) {
     case 'audio':
       return m.media_url ? (
-        <audio controls src={m.media_url} className="max-w-[240px] w-full" preload="metadata" />
+        <audio
+          controls
+          src={m.media_url}
+          preload="metadata"
+          style={{ minWidth: '240px', width: '240px', display: 'block' }}
+        />
       ) : (
         <p className="text-sm opacity-70">🎤 [Áudio — indisponível]</p>
       );
@@ -132,7 +137,7 @@ export function ChatWindow({ conversa, mensagens, loadingMensagens, onEnviar, en
           mensagens.map(m => (
             <div key={m.id} className={`flex ${m.direcao === 'saida' ? 'justify-end' : 'justify-start'}`}>
               <div
-                className={`max-w-[70%] px-3 py-2 rounded-2xl text-sm ${
+                className={`${m.tipo === 'audio' ? 'w-[260px]' : 'max-w-[70%]'} px-3 py-2 rounded-2xl text-sm ${
                   m.direcao === 'saida'
                     ? 'bg-[var(--color-primary)] text-white rounded-br-sm'
                     : 'bg-white dark:bg-white/10 text-[var(--color-text-main)] border border-[var(--color-border-card)] rounded-bl-sm shadow-sm'
