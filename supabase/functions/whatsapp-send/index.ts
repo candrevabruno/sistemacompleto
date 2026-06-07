@@ -55,8 +55,10 @@ Deno.serve(async (req: Request) => {
     try {
       let result: { whatsapp_message_id?: string };
       if (type === 'audio') {
-        // mediaUrl vem como data URL (data:audio/webm;base64,...)
-        const base64 = (mediaUrl as string).replace(/^data:[^;]+;base64,/, '');
+        // mediaUrl = data:audio/webm;codecs=opus;base64,AAAA...
+        // split em ';base64,' para lidar com MIME types com parâmetros (ex: codecs=opus)
+        const parts = (mediaUrl as string).split(';base64,');
+        const base64 = parts.length > 1 ? parts[parts.length - 1] : (mediaUrl as string);
         result = await whatsapp.sendAudio(phone, base64);
       } else {
         result = await whatsapp.sendText(phone, message);
