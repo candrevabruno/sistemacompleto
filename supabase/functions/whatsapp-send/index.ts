@@ -102,7 +102,7 @@ Deno.serve(async (req: Request) => {
           direcao: 'saida',
           status: 'enviado',
           whatsapp_message_id: whatsappMsgId ?? null,
-          media_url: type === 'audio' ? (mediaUrl as string) : null,
+          media_url: mediaUrl ? (mediaUrl as string) : null,
         })
         .select()
         .single();
