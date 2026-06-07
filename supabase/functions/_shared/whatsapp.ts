@@ -104,18 +104,21 @@ export class WhatsAppService {
     caption?: string,
   ): Promise<SendResult> {
     const url = `${this.baseUrl}/message/sendMedia/${this.cfg.evolution_instance_name}`;
+    // Evolution API v2 usa estrutura plana (sem wrapper mediaMessage)
+    const body = JSON.stringify({
+      number: phone,
+      mediatype: mediaType,
+      media: mediaUrl,
+      caption: caption ?? '',
+    });
     const res = await fetch(url, {
       method: 'POST',
       headers: { apikey: this.cfg.evolution_api_key!, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        number: phone,
-        options: { delay: 1200 },
-        mediaMessage: { mediatype: mediaType, media: mediaUrl, caption: caption ?? '' },
-      }),
+      body,
     });
     if (!res.ok) {
-      const body = await res.text();
-      throw new Error(`Evolution API ${res.status}: ${body}`);
+      const text = await res.text();
+      throw new Error(`Evolution API ${res.status}: ${text}`);
     }
     const data = await res.json();
     return { whatsapp_message_id: data?.key?.id };
