@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Send, Loader2, User, MessageSquare, FileText, Download, Mic, Square } from 'lucide-react';
+import { Send, Loader2, User, MessageSquare, FileText, Download, Mic, Square, Paperclip } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { Conversa, Mensagem } from '../../types';
@@ -55,15 +55,17 @@ interface Props {
   loadingMensagens: boolean;
   onEnviar: (texto: string) => Promise<void>;
   onEnviarAudio: (dataUrl: string) => Promise<void>;
+  onEnviarArquivo: (file: File) => Promise<void>;
   enviando: boolean;
 }
 
-export function ChatWindow({ conversa, mensagens, loadingMensagens, onEnviar, onEnviarAudio, enviando }: Props) {
+export function ChatWindow({ conversa, mensagens, loadingMensagens, onEnviar, onEnviarAudio, onEnviarArquivo, enviando }: Props) {
   const [texto, setTexto] = useState('');
   const [gravando, setGravando] = useState(false);
   const [segundos, setSegundos] = useState(0);
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -201,6 +203,17 @@ export function ChatWindow({ conversa, mensagens, loadingMensagens, onEnviar, on
 
       {/* Input */}
       <div className="px-4 py-3 border-t border-[var(--color-border-card)] bg-[var(--color-bg-base)] flex-shrink-0">
+        {/* File input oculto */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
+          className="hidden"
+          onChange={e => {
+            const file = e.target.files?.[0];
+            if (file) { onEnviarArquivo(file); e.target.value = ''; }
+          }}
+        />
         {gravando ? (
           /* ── Modo gravação ── */
           <div className="flex gap-2 items-center">
@@ -231,16 +244,26 @@ export function ChatWindow({ conversa, mensagens, loadingMensagens, onEnviar, on
               className="flex-1 border border-[var(--color-border-card)] rounded-[8px] px-3 py-2 text-sm bg-[var(--color-bg-base)] text-[var(--color-text-main)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] resize-none max-h-32 overflow-y-auto"
               style={{ fieldSizing: 'content' } as React.CSSProperties}
             />
-            {/* Botão microfone — só quando não há texto */}
+            {/* Botões de mídia — só quando não há texto */}
             {!texto.trim() && (
-              <button
-                onClick={startRecording}
-                disabled={enviando}
-                className="flex-shrink-0 w-10 h-10 rounded-[8px] border border-[var(--color-border-card)] text-[var(--color-text-muted)] flex items-center justify-center hover:text-[var(--color-primary)] hover:border-[var(--color-primary)] disabled:opacity-40 transition-colors"
-                title="Gravar áudio"
-              >
-                <Mic className="w-4 h-4" />
-              </button>
+              <>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={enviando}
+                  className="flex-shrink-0 w-10 h-10 rounded-[8px] border border-[var(--color-border-card)] text-[var(--color-text-muted)] flex items-center justify-center hover:text-[var(--color-primary)] hover:border-[var(--color-primary)] disabled:opacity-40 transition-colors"
+                  title="Enviar arquivo"
+                >
+                  <Paperclip className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={startRecording}
+                  disabled={enviando}
+                  className="flex-shrink-0 w-10 h-10 rounded-[8px] border border-[var(--color-border-card)] text-[var(--color-text-muted)] flex items-center justify-center hover:text-[var(--color-primary)] hover:border-[var(--color-primary)] disabled:opacity-40 transition-colors"
+                  title="Gravar áudio"
+                >
+                  <Mic className="w-4 h-4" />
+                </button>
+              </>
             )}
             <button
               onClick={handleSend}

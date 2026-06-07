@@ -265,6 +265,61 @@ export function Inbox() {
     }
   }
 
+  // ── Send file (image / video / document) ───────────────────────
+  async function enviarArquivo(file: File) {
+    if (!conversaSelecionada) return;
+    setEnviando(true);
+    try {
+      const ext = file.name.split('.').pop() ?? 'bin';
+      const path = `conversas/${conversaSelecionada.id}/${Date.now()}.${ext}`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('inbox-media')
+        .upload(path, file, { contentType: file.type });
+      if (uploadError) throw new Error(uploadError.message);
+
+      const { data: urlData } = supabase.storage.from('inbox-media').getPublicUrl(uploadData.path);
+      const publicUrl = urlData.publicUrl;
+
+      const mediaType = file.type.startsWith('image/') ? 'image'
+        : file.type.startsWith('video/') ? 'video'
+        : 'document';
+
+      const { data, error } = await supabase.functions.invoke('whatsapp-send', {
+        body: {
+          phone: conversaSelecionada.whatsapp_number,
+          conversa_id: conversaSelecionada.id,
+          type: mediaType,
+          mediaUrl: publicUrl,
+          message: file.name,
+        },
+      });
+
+      if (error) throw new Error(error.message);
+      if (!data?.success) throw new Error(data?.error || 'Erro ao enviar arquivo');
+
+      if (data.mensagem?.id) {
+        localMsgIds.current.add(data.mensagem.id);
+        setMensagens(prev => [...prev, data.mensagem]);
+      }
+
+      const previewText = mediaType === 'image' ? '[Imagem]'
+        : mediaType === 'video' ? '[Vídeo]'
+        : `[📎 ${file.name}]`;
+      const now = new Date().toISOString();
+      setConversas(prev =>
+        prev.map(c =>
+          c.id === conversaSelecionada.id
+            ? { ...c, ultima_mensagem: previewText, ultima_mensagem_at: now }
+            : c
+        )
+      );
+    } catch (err) {
+      console.error('Erro ao enviar arquivo:', err);
+    } finally {
+      setEnviando(false);
+    }
+  }
+
   // ── Delete conversation ─────────────────────────────────────────
   async function excluirConversa(conversaId: string) {
     await supabase.from('conversas').update({ status: 'arquivada' }).eq('id', conversaId);
@@ -345,6 +400,7 @@ export function Inbox() {
         loadingMensagens={loadingMensagens}
         onEnviar={enviarMensagem}
         onEnviarAudio={enviarAudio}
+        onEnviarArquivo={enviarArquivo}
         enviando={enviando}
       />
 

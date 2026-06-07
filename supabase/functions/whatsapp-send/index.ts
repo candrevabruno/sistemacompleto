@@ -29,9 +29,10 @@ Deno.serve(async (req: Request) => {
 
     // ── Input ────────────────────────────────────────────────────
     const { phone, message, conversa_id, type = 'text', mediaUrl } = await req.json();
+    const MEDIA_TYPES = new Set(['audio', 'image', 'video', 'document']);
     if (!phone) return json({ error: 'phone é obrigatório' }, 400);
-    if (type !== 'audio' && !message) return json({ error: 'message é obrigatório' }, 400);
-    if (type === 'audio' && !mediaUrl) return json({ error: 'mediaUrl é obrigatório para áudio' }, 400);
+    if (!MEDIA_TYPES.has(type) && !message) return json({ error: 'message é obrigatório' }, 400);
+    if (MEDIA_TYPES.has(type) && !mediaUrl) return json({ error: 'mediaUrl é obrigatório para mídia' }, 400);
 
     const db = createAdminClient();
 
@@ -60,6 +61,8 @@ Deno.serve(async (req: Request) => {
         const parts = (mediaUrl as string).split(';base64,');
         const base64 = parts.length > 1 ? parts[parts.length - 1] : (mediaUrl as string);
         result = await whatsapp.sendAudio(phone, base64);
+      } else if (type === 'image' || type === 'video' || type === 'document') {
+        result = await whatsapp.sendMedia(phone, mediaUrl as string, type, message);
       } else {
         result = await whatsapp.sendText(phone, message);
       }
@@ -82,7 +85,12 @@ Deno.serve(async (req: Request) => {
     }
 
     // ── Salvar mensagem no banco ──────────────────────────────────
-    const previewText = type === 'audio' ? '[Áudio]' : message;
+    const previewText =
+      type === 'audio' ? '[Áudio]' :
+      type === 'image' ? '[Imagem]' :
+      type === 'video' ? '[Vídeo]' :
+      type === 'document' ? `[📎 ${message || 'Documento'}]` :
+      message;
     let mensagem: Record<string, unknown> | null = null;
     if (conversa_id) {
       const { data: msg } = await db

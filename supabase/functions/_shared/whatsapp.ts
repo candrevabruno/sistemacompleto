@@ -43,7 +43,19 @@ export class WhatsAppService {
   async sendAudio(phone: string, base64Audio: string): Promise<SendResult> {
     return this.cfg.whatsapp_provider === 'evolution'
       ? this.evolutionSendAudio(phone, base64Audio)
-      : { }; // Meta não implementado ainda
+      : {};
+  }
+
+  // Envia imagem, vídeo ou documento via URL pública
+  async sendMedia(
+    phone: string,
+    mediaUrl: string,
+    mediaType: 'image' | 'video' | 'document',
+    caption?: string,
+  ): Promise<SendResult> {
+    return this.cfg.whatsapp_provider === 'evolution'
+      ? this.evolutionSendMedia(phone, mediaUrl, mediaType, caption)
+      : this.metaSendMedia(phone, mediaUrl, mediaType, caption);
   }
 
   // ── Evolution ──────────────────────────────────────────────────────
@@ -82,6 +94,15 @@ export class WhatsAppService {
   }
 
   private async evolutionSendDocument(phone: string, fileUrl: string, caption?: string): Promise<SendResult> {
+    return this.evolutionSendMedia(phone, fileUrl, 'document', caption);
+  }
+
+  private async evolutionSendMedia(
+    phone: string,
+    mediaUrl: string,
+    mediaType: string,
+    caption?: string,
+  ): Promise<SendResult> {
     const url = `${this.baseUrl}/message/sendMedia/${this.cfg.evolution_instance_name}`;
     const res = await fetch(url, {
       method: 'POST',
@@ -89,7 +110,7 @@ export class WhatsAppService {
       body: JSON.stringify({
         number: phone,
         options: { delay: 1200 },
-        mediaMessage: { mediatype: 'document', media: fileUrl, caption: caption ?? '' },
+        mediaMessage: { mediatype: mediaType, media: mediaUrl, caption: caption ?? '' },
       }),
     });
     if (!res.ok) {
@@ -146,6 +167,15 @@ export class WhatsAppService {
   }
 
   private async metaSendDocument(phone: string, fileUrl: string, caption?: string): Promise<SendResult> {
+    return this.metaSendMedia(phone, fileUrl, 'document', caption);
+  }
+
+  private async metaSendMedia(
+    phone: string,
+    mediaUrl: string,
+    mediaType: 'image' | 'video' | 'document',
+    caption?: string,
+  ): Promise<SendResult> {
     const url = `https://graph.facebook.com/v19.0/${this.cfg.meta_phone_number_id}/messages`;
     const res = await fetch(url, {
       method: 'POST',
@@ -153,8 +183,8 @@ export class WhatsAppService {
       body: JSON.stringify({
         messaging_product: 'whatsapp',
         to: phone,
-        type: 'document',
-        document: { link: fileUrl, caption: caption ?? '' },
+        type: mediaType,
+        [mediaType]: { link: mediaUrl, caption: caption ?? '' },
       }),
     });
     if (!res.ok) {
