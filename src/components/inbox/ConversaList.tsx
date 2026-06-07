@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { MessageSquare, User, Trash2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -29,7 +28,6 @@ export function ConversaList({
   loading,
   totalNaoLidasHumano,
 }: Props) {
-  const [hoverId, setHoverId] = useState<string | null>(null);
   return (
     <div className="flex flex-col h-full border-r border-[var(--color-border-card)]">
       {/* Tabs */}
@@ -91,23 +89,22 @@ export function ConversaList({
           conversas.map(c => (
             <div
               key={c.id}
-              className="relative border-b border-[var(--color-border-card)]/40"
-              onMouseEnter={() => setHoverId(c.id)}
-              onMouseLeave={() => setHoverId(null)}
+              className={`group border-b border-[var(--color-border-card)]/40 flex items-stretch hover:bg-[var(--color-primary-light)] transition-colors cursor-pointer ${
+                conversaSelecionada?.id === c.id ? 'bg-[var(--color-primary-light)]' : ''
+              }`}
             >
+              {/* Área clicável principal */}
               <button
                 onClick={() => onSelect(c)}
-                className={`w-full text-left px-4 py-3 flex gap-3 hover:bg-[var(--color-primary-light)] transition-colors ${
-                  conversaSelecionada?.id === c.id ? 'bg-[var(--color-primary-light)]' : ''
-                }`}
+                className="flex-1 text-left px-4 py-3 flex gap-3 min-w-0"
               >
                 <div className="flex-shrink-0 w-10 h-10 rounded-full bg-[var(--color-primary)] flex items-center justify-center text-white font-semibold text-sm uppercase">
                   {c.nome_contato ? c.nome_contato.charAt(0) : <User className="w-4 h-4" />}
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-1">
-                    <span className="text-sm font-medium text-[var(--color-text-main)] truncate">
+                  <div className="flex items-center gap-1">
+                    <span className="text-sm font-medium text-[var(--color-text-main)] truncate flex-1">
                       {c.nome_contato || c.whatsapp_number}
                     </span>
                     {c.ultima_mensagem_at && (
@@ -134,16 +131,14 @@ export function ConversaList({
                 </div>
               </button>
 
-              {/* Botão excluir — aparece no hover */}
-              {hoverId === c.id && (
-                <button
-                  onClick={e => { e.stopPropagation(); onExcluir(c.id); }}
-                  className="absolute top-2 right-2 p-1.5 rounded-md text-[var(--color-text-muted)] hover:text-red-500 hover:bg-red-50/20 transition-colors"
-                  title="Arquivar conversa"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
-              )}
+              {/* Botão arquivar — visível ao lado, fica vermelho no hover do row */}
+              <button
+                onClick={e => { e.stopPropagation(); onExcluir(c.id); }}
+                className="flex-shrink-0 flex items-center px-2 text-[var(--color-text-muted)]/30 group-hover:text-[var(--color-text-muted)]/70 hover:!text-red-500 transition-colors"
+                title="Arquivar conversa"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
             </div>
           ))
         )}

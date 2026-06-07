@@ -73,18 +73,19 @@ Deno.serve(async (req: Request) => {
         payload: { message },
         status: 'error',
         error_message: msg,
-      });
+      }).catch(() => {});
       return json({ error: msg }, 500);
     }
 
     // ── Salvar mensagem no banco ──────────────────────────────────
+    const previewText = type === 'audio' ? '[Áudio]' : message;
     let mensagem: Record<string, unknown> | null = null;
     if (conversa_id) {
       const { data: msg } = await db
         .from('mensagens')
         .insert({
           conversa_id,
-          conteudo: type === 'audio' ? '[Áudio]' : message,
+          conteudo: previewText,
           tipo: type,
           direcao: 'saida',
           status: 'enviado',
@@ -96,10 +97,9 @@ Deno.serve(async (req: Request) => {
 
       if (msg) {
         mensagem = msg;
-        // Atualizar preview da conversa
         await db
           .from('conversas')
-          .update({ ultima_mensagem: message, ultima_mensagem_at: new Date().toISOString() })
+          .update({ ultima_mensagem: previewText, ultima_mensagem_at: new Date().toISOString() })
           .eq('id', conversa_id);
       }
     }

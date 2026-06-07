@@ -68,6 +68,7 @@ export function Inbox() {
     const { data } = await supabase
       .from('conversas')
       .select('*')
+      .neq('status', 'arquivada')
       .order('ultima_mensagem_at', { ascending: false, nullsFirst: false });
     if (data) setConversas(data);
     setLoadingConversas(false);
@@ -89,11 +90,19 @@ export function Inbox() {
             }
           } else if (payload.eventType === 'UPDATE') {
             const updated = payload.new as Conversa;
-            setConversas(prev =>
-              prev.map(c => (c.id === updated.id ? updated : c))
-            );
-            if (conversaSelecionadaRef.current?.id === updated.id) {
-              setConversaSelecionada(updated);
+            if (updated.status === 'arquivada') {
+              setConversas(prev => prev.filter(c => c.id !== updated.id));
+              if (conversaSelecionadaRef.current?.id === updated.id) {
+                setConversaSelecionada(null);
+                setMensagens([]);
+              }
+            } else {
+              setConversas(prev =>
+                prev.map(c => (c.id === updated.id ? updated : c))
+              );
+              if (conversaSelecionadaRef.current?.id === updated.id) {
+                setConversaSelecionada(updated);
+              }
             }
           }
         }
