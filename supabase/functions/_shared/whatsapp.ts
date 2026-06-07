@@ -39,6 +39,13 @@ export class WhatsAppService {
       : this.metaSendDocument(phone, fileUrl, caption);
   }
 
+  // Envia áudio como mensagem de voz (PTT) no WhatsApp
+  async sendAudio(phone: string, base64Audio: string): Promise<SendResult> {
+    return this.cfg.whatsapp_provider === 'evolution'
+      ? this.evolutionSendAudio(phone, base64Audio)
+      : { }; // Meta não implementado ainda
+  }
+
   // ── Evolution ──────────────────────────────────────────────────────
 
   private async evolutionSendText(phone: string, message: string): Promise<SendResult> {
@@ -50,6 +57,21 @@ export class WhatsAppService {
         number: phone,
         text: message,
       }),
+    });
+    if (!res.ok) {
+      const body = await res.text();
+      throw new Error(`Evolution API ${res.status}: ${body}`);
+    }
+    const data = await res.json();
+    return { whatsapp_message_id: data?.key?.id };
+  }
+
+  private async evolutionSendAudio(phone: string, base64Audio: string): Promise<SendResult> {
+    const url = `${this.baseUrl}/message/sendWhatsAppAudio/${this.cfg.evolution_instance_name}`;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { apikey: this.cfg.evolution_api_key!, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ number: phone, audio: base64Audio, encoding: true }),
     });
     if (!res.ok) {
       const body = await res.text();

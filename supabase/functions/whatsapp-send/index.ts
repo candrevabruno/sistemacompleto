@@ -28,8 +28,10 @@ Deno.serve(async (req: Request) => {
     if (authError || !user) return json({ error: 'Unauthorized' }, 401);
 
     // ── Input ────────────────────────────────────────────────────
-    const { phone, message, conversa_id, type = 'text' } = await req.json();
-    if (!phone || !message) return json({ error: 'phone e message são obrigatórios' }, 400);
+    const { phone, message, conversa_id, type = 'text', mediaUrl } = await req.json();
+    if (!phone) return json({ error: 'phone é obrigatório' }, 400);
+    if (type !== 'audio' && !message) return json({ error: 'message é obrigatório' }, 400);
+    if (type === 'audio' && !mediaUrl) return json({ error: 'mediaUrl é obrigatório para áudio' }, 400);
 
     const db = createAdminClient();
 
@@ -51,7 +53,14 @@ Deno.serve(async (req: Request) => {
     let whatsappMsgId: string | undefined;
 
     try {
-      const result = await whatsapp.sendText(phone, message);
+      let result: { whatsapp_message_id?: string };
+      if (type === 'audio') {
+        // mediaUrl vem como data URL (data:audio/webm;base64,...)
+        const base64 = (mediaUrl as string).replace(/^data:[^;]+;base64,/, '');
+        result = await whatsapp.sendAudio(phone, base64);
+      } else {
+        result = await whatsapp.sendText(phone, message);
+      }
       whatsappMsgId = result.whatsapp_message_id;
     } catch (sendErr) {
       const msg = sendErr instanceof Error ? sendErr.message : String(sendErr);
@@ -75,11 +84,12 @@ Deno.serve(async (req: Request) => {
         .from('mensagens')
         .insert({
           conversa_id,
-          conteudo: message,
+          conteudo: type === 'audio' ? '[Áudio]' : message,
           tipo: type,
           direcao: 'saida',
           status: 'enviado',
           whatsapp_message_id: whatsappMsgId ?? null,
+          media_url: type === 'audio' ? (mediaUrl as string) : null,
         })
         .select()
         .single();

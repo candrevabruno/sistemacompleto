@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Send, Loader2, User, MessageSquare, FileText, Download } from 'lucide-react';
+import { Send, Loader2, User, MessageSquare, FileText, Download, Mic, Square } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { Conversa, Mensagem } from '../../types';
@@ -54,13 +54,19 @@ interface Props {
   mensagens: Mensagem[];
   loadingMensagens: boolean;
   onEnviar: (texto: string) => Promise<void>;
+  onEnviarAudio: (dataUrl: string) => Promise<void>;
   enviando: boolean;
 }
 
-export function ChatWindow({ conversa, mensagens, loadingMensagens, onEnviar, enviando }: Props) {
+export function ChatWindow({ conversa, mensagens, loadingMensagens, onEnviar, onEnviarAudio, enviando }: Props) {
   const [texto, setTexto] = useState('');
+  const [gravando, setGravando] = useState(false);
+  const [segundos, setSegundos] = useState(0);
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<BlobPart[]>([]);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -69,7 +75,42 @@ export function ChatWindow({ conversa, mensagens, loadingMensagens, onEnviar, en
   // Reset input when conversation changes
   useEffect(() => {
     setTexto('');
+    stopRecording();
   }, [conversa?.id]);
+
+  // Cleanup on unmount
+  useEffect(() => () => stopRecording(), []);
+
+  async function startRecording() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      chunksRef.current = [];
+      recorder.ondataavailable = e => { if (e.data.size > 0) chunksRef.current.push(e.data); };
+      recorder.onstop = async () => {
+        stream.getTracks().forEach(t => t.stop());
+        const blob = new Blob(chunksRef.current, { type: recorder.mimeType || 'audio/webm' });
+        const reader = new FileReader();
+        reader.onloadend = () => { if (reader.result) onEnviarAudio(reader.result as string); };
+        reader.readAsDataURL(blob);
+      };
+      recorder.start();
+      mediaRecorderRef.current = recorder;
+      setGravando(true);
+      setSegundos(0);
+      timerRef.current = setInterval(() => setSegundos(s => s + 1), 1000);
+    } catch {
+      alert('Permissão de microfone negada.');
+    }
+  }
+
+  function stopRecording() {
+    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+    if (mediaRecorderRef.current?.state === 'recording') mediaRecorderRef.current.stop();
+    mediaRecorderRef.current = null;
+    setGravando(false);
+    setSegundos(0);
+  }
 
   async function handleSend() {
     const t = texto.trim();
@@ -160,32 +201,65 @@ export function ChatWindow({ conversa, mensagens, loadingMensagens, onEnviar, en
 
       {/* Input */}
       <div className="px-4 py-3 border-t border-[var(--color-border-card)] bg-[var(--color-bg-base)] flex-shrink-0">
-        <div className="flex gap-2 items-end">
-          <textarea
-            ref={textareaRef}
-            value={texto}
-            onChange={e => setTexto(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Escreva uma mensagem... (Enter para enviar)"
-            rows={1}
-            className="flex-1 border border-[var(--color-border-card)] rounded-[8px] px-3 py-2 text-sm bg-[var(--color-bg-base)] text-[var(--color-text-main)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] resize-none max-h-32 overflow-y-auto"
-            style={{ fieldSizing: 'content' } as React.CSSProperties}
-          />
-          <button
-            onClick={handleSend}
-            disabled={!texto.trim() || enviando}
-            className="flex-shrink-0 w-10 h-10 rounded-[8px] bg-[var(--color-primary)] text-white flex items-center justify-center hover:opacity-90 disabled:opacity-40 transition-opacity"
-          >
-            {enviando ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Send className="w-4 h-4" />
+        {gravando ? (
+          /* ── Modo gravação ── */
+          <div className="flex gap-2 items-center">
+            <div className="flex-1 flex items-center gap-3 px-3 py-2 rounded-[8px] border border-red-400/60 bg-red-50/10">
+              <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+              <span className="text-sm text-[var(--color-text-main)] font-medium">
+                Gravando {String(Math.floor(segundos / 60)).padStart(2, '0')}:{String(segundos % 60).padStart(2, '0')}
+              </span>
+            </div>
+            <button
+              onClick={stopRecording}
+              className="flex-shrink-0 w-10 h-10 rounded-[8px] bg-red-500 text-white flex items-center justify-center hover:opacity-90 transition-opacity"
+              title="Parar e enviar"
+            >
+              <Square className="w-4 h-4 fill-white" />
+            </button>
+          </div>
+        ) : (
+          /* ── Modo texto ── */
+          <div className="flex gap-2 items-end">
+            <textarea
+              ref={textareaRef}
+              value={texto}
+              onChange={e => setTexto(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Escreva uma mensagem... (Enter para enviar)"
+              rows={1}
+              className="flex-1 border border-[var(--color-border-card)] rounded-[8px] px-3 py-2 text-sm bg-[var(--color-bg-base)] text-[var(--color-text-main)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] resize-none max-h-32 overflow-y-auto"
+              style={{ fieldSizing: 'content' } as React.CSSProperties}
+            />
+            {/* Botão microfone — só quando não há texto */}
+            {!texto.trim() && (
+              <button
+                onClick={startRecording}
+                disabled={enviando}
+                className="flex-shrink-0 w-10 h-10 rounded-[8px] border border-[var(--color-border-card)] text-[var(--color-text-muted)] flex items-center justify-center hover:text-[var(--color-primary)] hover:border-[var(--color-primary)] disabled:opacity-40 transition-colors"
+                title="Gravar áudio"
+              >
+                <Mic className="w-4 h-4" />
+              </button>
             )}
-          </button>
-        </div>
-        <p className="text-[10px] text-[var(--color-text-muted)] mt-1.5">
-          Enter para enviar · Shift+Enter para nova linha
-        </p>
+            <button
+              onClick={handleSend}
+              disabled={!texto.trim() || enviando}
+              className="flex-shrink-0 w-10 h-10 rounded-[8px] bg-[var(--color-primary)] text-white flex items-center justify-center hover:opacity-90 disabled:opacity-40 transition-opacity"
+            >
+              {enviando ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Send className="w-4 h-4" />
+              )}
+            </button>
+          </div>
+        )}
+        {!gravando && (
+          <p className="text-[10px] text-[var(--color-text-muted)] mt-1.5">
+            Enter para enviar · Shift+Enter para nova linha
+          </p>
+        )}
       </div>
     </div>
   );

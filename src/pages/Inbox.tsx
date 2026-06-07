@@ -186,7 +186,6 @@ export function Inbox() {
     setEnviando(true);
 
     try {
-      // Chama Edge Function — resolve CORS e isola credenciais no servidor
       const { data, error } = await supabase.functions.invoke('whatsapp-send', {
         body: {
           phone: conversaSelecionada.whatsapp_number,
@@ -199,13 +198,11 @@ export function Inbox() {
       if (error) throw new Error(error.message);
       if (!data?.success) throw new Error(data?.error || 'Erro ao enviar mensagem');
 
-      // Edge Function já salvou no banco — apenas adiciona ao estado local
       if (data.mensagem?.id) {
         localMsgIds.current.add(data.mensagem.id);
         setMensagens(prev => [...prev, data.mensagem]);
       }
 
-      // Atualizar preview local da conversa
       const now = new Date().toISOString();
       setConversas(prev =>
         prev.map(c =>
@@ -218,6 +215,54 @@ export function Inbox() {
       console.error('Erro ao enviar mensagem:', err);
     } finally {
       setEnviando(false);
+    }
+  }
+
+  // ── Send audio ──────────────────────────────────────────────────
+  async function enviarAudio(dataUrl: string) {
+    if (!conversaSelecionada) return;
+    setEnviando(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('whatsapp-send', {
+        body: {
+          phone: conversaSelecionada.whatsapp_number,
+          conversa_id: conversaSelecionada.id,
+          type: 'audio',
+          mediaUrl: dataUrl,
+        },
+      });
+
+      if (error) throw new Error(error.message);
+      if (!data?.success) throw new Error(data?.error || 'Erro ao enviar áudio');
+
+      if (data.mensagem?.id) {
+        localMsgIds.current.add(data.mensagem.id);
+        setMensagens(prev => [...prev, data.mensagem]);
+      }
+
+      const now = new Date().toISOString();
+      setConversas(prev =>
+        prev.map(c =>
+          c.id === conversaSelecionada.id
+            ? { ...c, ultima_mensagem: '[Áudio]', ultima_mensagem_at: now }
+            : c
+        )
+      );
+    } catch (err) {
+      console.error('Erro ao enviar áudio:', err);
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  // ── Delete conversation ─────────────────────────────────────────
+  async function excluirConversa(conversaId: string) {
+    await supabase.from('conversas').update({ status: 'arquivada' }).eq('id', conversaId);
+    setConversas(prev => prev.filter(c => c.id !== conversaId));
+    if (conversaSelecionada?.id === conversaId) {
+      setConversaSelecionada(null);
+      setMensagens([]);
     }
   }
 
@@ -274,6 +319,7 @@ export function Inbox() {
           conversas={conversasFiltradas}
           conversaSelecionada={conversaSelecionada}
           onSelect={selecionarConversa}
+          onExcluir={excluirConversa}
           activeTab={activeTab}
           onTabChange={setActiveTab}
           search={search}
@@ -289,6 +335,7 @@ export function Inbox() {
         mensagens={mensagens}
         loadingMensagens={loadingMensagens}
         onEnviar={enviarMensagem}
+        onEnviarAudio={enviarAudio}
         enviando={enviando}
       />
 

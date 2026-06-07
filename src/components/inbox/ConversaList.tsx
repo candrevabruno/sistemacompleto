@@ -1,5 +1,5 @@
-import React from 'react';
-import { MessageSquare, User } from 'lucide-react';
+import { useState } from 'react';
+import { MessageSquare, User, Trash2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { Conversa } from '../../types';
@@ -8,6 +8,7 @@ interface Props {
   conversas: Conversa[];
   conversaSelecionada: Conversa | null;
   onSelect: (c: Conversa) => void;
+  onExcluir: (id: string) => void;
   activeTab: 'todas' | 'humano';
   onTabChange: (tab: 'todas' | 'humano') => void;
   search: string;
@@ -20,6 +21,7 @@ export function ConversaList({
   conversas,
   conversaSelecionada,
   onSelect,
+  onExcluir,
   activeTab,
   onTabChange,
   search,
@@ -27,6 +29,7 @@ export function ConversaList({
   loading,
   totalNaoLidasHumano,
 }: Props) {
+  const [hoverId, setHoverId] = useState<string | null>(null);
   return (
     <div className="flex flex-col h-full border-r border-[var(--color-border-card)]">
       {/* Tabs */}
@@ -86,52 +89,62 @@ export function ConversaList({
           </div>
         ) : (
           conversas.map(c => (
-            <button
+            <div
               key={c.id}
-              onClick={() => onSelect(c)}
-              className={`w-full text-left px-4 py-3 flex gap-3 hover:bg-[var(--color-primary-light)] transition-colors border-b border-[var(--color-border-card)]/40 ${
-                conversaSelecionada?.id === c.id ? 'bg-[var(--color-primary-light)]' : ''
-              }`}
+              className="relative border-b border-[var(--color-border-card)]/40"
+              onMouseEnter={() => setHoverId(c.id)}
+              onMouseLeave={() => setHoverId(null)}
             >
-              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-[var(--color-primary)] flex items-center justify-center text-white font-semibold text-sm uppercase">
-                {c.nome_contato ? (
-                  c.nome_contato.charAt(0)
-                ) : (
-                  <User className="w-4 h-4" />
-                )}
-              </div>
-
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between gap-1">
-                  <span className="text-sm font-medium text-[var(--color-text-main)] truncate">
-                    {c.nome_contato || c.whatsapp_number}
-                  </span>
-                  {c.ultima_mensagem_at && (
-                    <span className="text-[10px] text-[var(--color-text-muted)] flex-shrink-0">
-                      {formatDistanceToNow(new Date(c.ultima_mensagem_at), { locale: ptBR, addSuffix: false })}
-                    </span>
-                  )}
+              <button
+                onClick={() => onSelect(c)}
+                className={`w-full text-left px-4 py-3 flex gap-3 hover:bg-[var(--color-primary-light)] transition-colors ${
+                  conversaSelecionada?.id === c.id ? 'bg-[var(--color-primary-light)]' : ''
+                }`}
+              >
+                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-[var(--color-primary)] flex items-center justify-center text-white font-semibold text-sm uppercase">
+                  {c.nome_contato ? c.nome_contato.charAt(0) : <User className="w-4 h-4" />}
                 </div>
-                <div className="flex items-center justify-between mt-0.5 gap-1">
-                  <p className="text-xs text-[var(--color-text-muted)] truncate flex-1">
-                    {c.ultima_mensagem || 'Sem mensagens'}
-                  </p>
-                  <div className="flex items-center gap-1.5 flex-shrink-0">
-                    {c.is_human && (
-                      <span
-                        className="w-2 h-2 rounded-full bg-orange-400 flex-shrink-0"
-                        title="Aguardando atendimento humano"
-                      />
-                    )}
-                    {c.nao_lidas > 0 && (
-                      <span className="bg-[var(--color-primary)] text-white text-[10px] font-bold rounded-full px-1.5 py-0.5 min-w-[18px] text-center leading-none">
-                        {c.nao_lidas > 99 ? '99+' : c.nao_lidas}
+
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="text-sm font-medium text-[var(--color-text-main)] truncate">
+                      {c.nome_contato || c.whatsapp_number}
+                    </span>
+                    {c.ultima_mensagem_at && (
+                      <span className="text-[10px] text-[var(--color-text-muted)] flex-shrink-0">
+                        {formatDistanceToNow(new Date(c.ultima_mensagem_at), { locale: ptBR, addSuffix: false })}
                       </span>
                     )}
                   </div>
+                  <div className="flex items-center justify-between mt-0.5 gap-1">
+                    <p className="text-xs text-[var(--color-text-muted)] truncate flex-1">
+                      {c.ultima_mensagem || 'Sem mensagens'}
+                    </p>
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      {c.is_human && (
+                        <span className="w-2 h-2 rounded-full bg-orange-400" title="Aguardando atendimento humano" />
+                      )}
+                      {c.nao_lidas > 0 && (
+                        <span className="bg-[var(--color-primary)] text-white text-[10px] font-bold rounded-full px-1.5 py-0.5 min-w-[18px] text-center leading-none">
+                          {c.nao_lidas > 99 ? '99+' : c.nao_lidas}
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </button>
+              </button>
+
+              {/* Botão excluir — aparece no hover */}
+              {hoverId === c.id && (
+                <button
+                  onClick={e => { e.stopPropagation(); onExcluir(c.id); }}
+                  className="absolute top-2 right-2 p-1.5 rounded-md text-[var(--color-text-muted)] hover:text-red-500 hover:bg-red-50/20 transition-colors"
+                  title="Arquivar conversa"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
           ))
         )}
       </div>
