@@ -180,76 +180,27 @@ export function Inbox() {
     setEnviando(true);
 
     try {
-      // Send via WhatsApp provider
-      if (
-        config.whatsapp_provider === 'meta' &&
-        config.meta_phone_number_id &&
-        config.meta_access_token
-      ) {
-        await fetch(
-          `https://graph.facebook.com/v19.0/${config.meta_phone_number_id}/messages`,
-          {
-            method: 'POST',
-            headers: {
-              Authorization: `Bearer ${config.meta_access_token}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              messaging_product: 'whatsapp',
-              to: conversaSelecionada.whatsapp_number,
-              type: 'text',
-              text: { body: texto },
-            }),
-          }
-        );
-      } else if (
-        config.whatsapp_provider === 'evolution' &&
-        config.evolution_server_url &&
-        config.evolution_api_key
-      ) {
-        await fetch(
-          `${config.evolution_server_url}/message/sendText/${config.evolution_instance_name}`,
-          {
-            method: 'POST',
-            headers: {
-              apikey: config.evolution_api_key,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              number: conversaSelecionada.whatsapp_number,
-              options: { delay: 1200 },
-              textMessage: { text: texto },
-            }),
-          }
-        );
-      }
-
-      // Persist in database
-      const { data: novaMsg } = await supabase
-        .from('mensagens')
-        .insert({
+      // Chama Edge Function — resolve CORS e isola credenciais no servidor
+      const { data, error } = await supabase.functions.invoke('whatsapp-send', {
+        body: {
+          phone: conversaSelecionada.whatsapp_number,
+          message: texto,
           conversa_id: conversaSelecionada.id,
-          conteudo: texto,
-          tipo: 'text',
-          direcao: 'saida',
-          status: 'enviado',
-        })
-        .select()
-        .single();
+          type: 'text',
+        },
+      });
 
-      if (novaMsg) {
-        // Mark as local so Realtime handler skips the duplicate
-        localMsgIds.current.add(novaMsg.id);
-        setMensagens(prev => [...prev, novaMsg]);
+      if (error) throw new Error(error.message);
+      if (!data?.success) throw new Error(data?.error || 'Erro ao enviar mensagem');
+
+      // Edge Function já salvou no banco — apenas adiciona ao estado local
+      if (data.mensagem?.id) {
+        localMsgIds.current.add(data.mensagem.id);
+        setMensagens(prev => [...prev, data.mensagem]);
       }
 
-      // Update conversation preview
+      // Atualizar preview local da conversa
       const now = new Date().toISOString();
-      await supabase
-        .from('conversas')
-        .update({ ultima_mensagem: texto, ultima_mensagem_at: now })
-        .eq('id', conversaSelecionada.id);
-
       setConversas(prev =>
         prev.map(c =>
           c.id === conversaSelecionada.id
@@ -257,6 +208,8 @@ export function Inbox() {
             : c
         )
       );
+    } catch (err) {
+      console.error('Erro ao enviar mensagem:', err);
     } finally {
       setEnviando(false);
     }
