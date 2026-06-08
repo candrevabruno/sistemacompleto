@@ -158,15 +158,13 @@ export function Dashboard() {
     const startIso = dateRange.start.toISOString();
     const endIso   = dateRange.end.toISOString();
 
-    const [aReq, lReq, procsReq] = await Promise.all([
+    const [aReq, lReq] = await Promise.all([
       supabase.from('agendamentos').select('*').gte('created_at', startIso).lte('created_at', endIso),
       supabase.from('leads').select('*').gte('inicio_atendimento', startIso).lte('inicio_atendimento', endIso),
-      supabase.from('procedimentos_paciente').select('valor').gte('created_at', startIso).lte('created_at', endIso),
     ]);
 
     const leadsArr = lReq.data || [];
     const agendamentosArr = aReq.data || [];
-    const procsArr = procsReq.data || [];
 
     setAgendamentosData(agendamentosArr);
     setLeadsData(leadsArr);
@@ -176,7 +174,9 @@ export function Dashboard() {
     setMetricsAgendamentos(agendamentosArr.length);
     const convertidos = leadsArr.filter(l => l.status === 'converteu').length;
     setMetricsConversao(leadsArr.length > 0 ? Math.round((convertidos / leadsArr.length) * 100) : 0);
-    const fat = procsArr.reduce((s, p) => s + (parseFloat(p.valor) || 0), 0);
+    const fat = leadsArr
+      .filter(l => l.status === 'converteu')
+      .reduce((s, l) => s + (parseFloat(l.valor_pago) || 0), 0);
     setMetricsFaturamento(fat);
 
     setLoading(false);
