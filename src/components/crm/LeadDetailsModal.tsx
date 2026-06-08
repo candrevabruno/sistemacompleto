@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { Modal } from '../ui/Modal';
 import { Badge } from '../ui/Badge';
@@ -6,11 +7,13 @@ import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { User, Phone, Calendar, DollarSign, Clock, FileText, Check, X, ShieldAlert, Award, TrendingUp, Mail, IdCard } from 'lucide-react';
+import { User, Phone, Calendar, DollarSign, Clock, FileText, Check, X, ShieldAlert, Mail, IdCard, MessageCircle } from 'lucide-react';
+import { calcularDataReativacao } from '../../lib/lead-utils';
+import type { LeadDetalhes } from '../../types';
 
 const COLUMNS = [
-  { id: 'iniciou_atendimento', title: 'Iniciou', colorClass: 'border-[var(--color-primary)]' },
-  { id: 'conversando', title: 'Conversando', colorClass: 'border-[var(--color-text-main)]' },
+  { id: 'iniciou_atendimento', title: 'Iniciou', colorClass: 'border-[var(--sage-dark)]' },
+  { id: 'conversando', title: 'Conversando', colorClass: 'border-[var(--ink)]' },
   { id: 'follow_up', title: 'Follow-Up', colorClass: 'border-blue-500' },
   { id: 'agendado', title: 'Agendado', colorClass: 'border-emerald-500' },
   { id: 'reagendado', title: 'Reagendado', colorClass: 'border-amber-400' },
@@ -29,7 +32,8 @@ interface LeadDetailsModalProps {
 }
 
 export function LeadDetailsModal({ isOpen, onClose, leadId, onUpdate }: LeadDetailsModalProps) {
-  const [lead, setLead] = useState<any>(null);
+  const navigate = useNavigate();
+  const [lead, setLead] = useState<LeadDetalhes | null>(null);
   const [loading, setLoading] = useState(true);
   const [appointments, setAppointments] = useState<any[]>([]);
   const [agendas, setAgendas] = useState<any[]>([]);
@@ -411,37 +415,54 @@ export function LeadDetailsModal({ isOpen, onClose, leadId, onUpdate }: LeadDeta
     }
   };
 
-  const sumApptsLTV = appointments.reduce((sum: number, appt: any) => sum + (parseFloat(appt.valor_pago) || 0), 0);
-  const conversions = (lead?.jornada || []).filter((item: any) => item.status === 'converteu');
-  const sumJourneyLTV = conversions.reduce((sum: number, item: any) => sum + (parseFloat(item.valor_pago) || 0), 0);
-  const totalLTV = Math.max(sumJourneyLTV, sumApptsLTV, parseFloat(lead?.valor_pago) || 0);
-
-  const totalCompareceu = appointments.filter(a => a.status === 'compareceu').length;
-
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Detalhes do Lead / Cliente" className="max-w-5xl">
+    <Modal isOpen={isOpen} onClose={onClose} title="Detalhes do Lead" className="max-w-5xl">
       {loading ? (
-        <div className="py-20 text-center text-sm text-[var(--color-text-muted)] flex flex-col items-center gap-3">
-          <div className="w-8 h-8 rounded-full border-4 border-[var(--color-primary-light)] border-t-[var(--color-primary)] animate-spin" />
+        <div className="py-20 text-center text-sm text-[var(--muted)] flex flex-col items-center gap-3">
+          <div className="w-8 h-8 rounded-full border-4 border-[var(--sage-xlight)] border-t-[var(--sage-dark)] animate-spin" />
           <span>Carregando informações do lead...</span>
         </div>
       ) : lead ? (
         <div className="space-y-6 max-h-[75vh] overflow-y-auto pr-2 custom-scrollbar">
           {/* Header e Status */}
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-[var(--color-primary-light)] p-5 border border-[var(--color-border-card)] rounded-[12px]">
-            <div>
-              <h2 className="font-cormorant text-2xl font-bold text-[var(--color-text-main)]">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-[var(--sage-xlight)] p-5 border border-[var(--border)] rounded-[12px]">
+            <div className="space-y-2">
+              <h2 className="font-cormorant text-2xl font-bold text-[var(--ink)]">
                 {lead.nome_lead || 'Lead sem nome'}
               </h2>
+              {(() => {
+                const { data, reativarHoje } = calcularDataReativacao(lead);
+                if (!data) return null;
+                return (
+                  <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full border ${
+                    reativarHoje
+                      ? 'bg-green-100 text-green-700 border-green-300'
+                      : 'bg-gray-100 text-gray-600 border-gray-200'
+                  }`}>
+                    <Clock size={11} />
+                    Reativar em {format(data, 'dd/MM/yyyy')}
+                    {reativarHoje && ' — Hoje!'}
+                  </span>
+                );
+              })()}
             </div>
-            
-            <div className="flex items-center gap-2 w-full md:w-auto justify-start md:justify-end">
-              <span className="text-xs font-semibold text-[var(--color-text-muted)] uppercase shrink-0">Estágio Atual:</span>
-              <select 
-                value={lead.status} 
+
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full md:w-auto justify-start md:justify-end">
+              {lead.whatsapp_lead && (
+                <button
+                  onClick={() => { onClose(); navigate('/inbox', { state: { lead_id: lead.id } }); }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white text-xs font-semibold rounded-[8px] transition-colors shrink-0"
+                >
+                  <MessageCircle size={14} />
+                  WhatsApp
+                </button>
+              )}
+              <span className="text-xs font-semibold text-[var(--muted)] uppercase shrink-0">Estágio Atual:</span>
+              <select
+                value={lead.status}
                 onChange={(e) => handleStatusChange(e.target.value)}
                 disabled={savingStatus}
-                className="border border-[var(--color-border-card)] rounded-[8px] px-3 py-1.5 text-sm bg-[var(--color-bg-base)] text-[var(--color-text-main)] font-medium focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] cursor-pointer transition-all"
+                className="border border-[var(--border)] rounded-[8px] px-3 py-1.5 text-sm bg-[var(--bg)] text-[var(--ink)] font-medium focus:outline-none focus:ring-2 focus:ring-[var(--sage-dark)] cursor-pointer transition-all"
               >
                 {COLUMNS.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
               </select>
@@ -452,15 +473,15 @@ export function LeadDetailsModal({ isOpen, onClose, leadId, onUpdate }: LeadDeta
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             {/* Coluna Esquerda - Campos Cadastrais e Observações Manuais */}
             <div className="lg:col-span-7 space-y-6">
-              <div className="bg-[var(--color-bg-card)] border border-[var(--color-border-card)] rounded-[12px] p-5 space-y-4">
+              <div className="bg-[var(--white)] border border-[var(--border)] rounded-[12px] p-5 space-y-4">
                 <h3 className="font-semibold text-sm border-b pb-2 flex items-center gap-2">
-                  <User size={16} className="text-[var(--color-primary)]" />
+                  <User size={16} className="text-[var(--sage-dark)]" />
                   Informações de Cadastro
                 </h3>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="sm:col-span-2">
-                    <span className="text-[10px] text-[var(--color-text-muted)] font-bold uppercase block">Nome Completo</span>
+                    <span className="text-[10px] text-[var(--muted)] font-bold uppercase block">Nome Completo</span>
                     {editingDetails ? (
                       <Input 
                         value={detailsForm.nome_lead} 
@@ -473,7 +494,7 @@ export function LeadDetailsModal({ isOpen, onClose, leadId, onUpdate }: LeadDeta
                   </div>
 
                   <div>
-                    <span className="text-[10px] text-[var(--color-text-muted)] font-bold uppercase block">WhatsApp / Telefone</span>
+                    <span className="text-[10px] text-[var(--muted)] font-bold uppercase block">WhatsApp / Telefone</span>
                     {editingDetails ? (
                       <Input 
                         value={detailsForm.whatsapp_lead} 
@@ -486,7 +507,7 @@ export function LeadDetailsModal({ isOpen, onClose, leadId, onUpdate }: LeadDeta
                   </div>
 
                   <div>
-                    <span className="text-[10px] text-[var(--color-text-muted)] font-bold uppercase block">E-mail</span>
+                    <span className="text-[10px] text-[var(--muted)] font-bold uppercase block">E-mail</span>
                     {editingDetails ? (
                       <Input 
                         value={detailsForm.email} 
@@ -500,26 +521,12 @@ export function LeadDetailsModal({ isOpen, onClose, leadId, onUpdate }: LeadDeta
                   </div>
 
                   <div>
-                    <span className="text-[10px] text-[var(--color-text-muted)] font-bold uppercase block">CPF</span>
-                    {editingDetails ? (
-                      <Input 
-                        value={detailsForm.cpf} 
-                        onChange={e => setDetailsForm({...detailsForm, cpf: e.target.value})} 
-                        className="mt-1 h-9 bg-white" 
-                        placeholder="000.000.000-00"
-                      />
-                    ) : (
-                      <p className="text-sm font-medium mt-1">{lead.cpf || 'Não informado'}</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <span className="text-[10px] text-[var(--color-text-muted)] font-bold uppercase block">Gênero</span>
+                    <span className="text-[10px] text-[var(--muted)] font-bold uppercase block">Gênero</span>
                     {editingDetails ? (
                       <select 
                         value={detailsForm.genero} 
                         onChange={e => setDetailsForm({...detailsForm, genero: e.target.value})}
-                        className="w-full mt-1 border border-gray-300 rounded-[8px] px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                        className="w-full mt-1 border border-gray-300 rounded-[8px] px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[var(--sage-dark)]"
                       >
                         <option value="">Não informado</option>
                         <option value="Masculino">Masculino</option>
@@ -531,34 +538,8 @@ export function LeadDetailsModal({ isOpen, onClose, leadId, onUpdate }: LeadDeta
                     )}
                   </div>
 
-                  <div>
-                    <span className="text-[10px] text-[var(--color-text-muted)] font-bold uppercase block">Data de Nascimento</span>
-                    {editingDetails ? (
-                      <input 
-                        type="date" 
-                        value={detailsForm.data_nascimento} 
-                        onChange={e => setDetailsForm({...detailsForm, data_nascimento: e.target.value})}
-                        className="w-full mt-1 border border-gray-300 rounded-[8px] px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
-                      />
-                    ) : (
-                      <p className="text-sm font-medium mt-1">
-                        {lead.data_nascimento ? format(parseISO(lead.data_nascimento), 'dd/MM/yyyy') : 'Não informado'}
-                      </p>
-                    )}
-                  </div>
-
-                  <div>
-                    <span className="text-[10px] text-[var(--color-text-muted)] font-bold uppercase block">Idade</span>
-                    <p className="text-sm font-medium mt-1">
-                      {editingDetails 
-                        ? (detailsForm.data_nascimento ? `${calculateAge(detailsForm.data_nascimento)} anos` : 'Não informado')
-                        : (lead.data_nascimento ? `${calculateAge(lead.data_nascimento)} anos` : 'Não informado')
-                      }
-                    </p>
-                  </div>
-
                   <div className="sm:col-span-2">
-                    <span className="text-[10px] text-[var(--color-text-muted)] font-bold uppercase block">Serviço de Interesse</span>
+                    <span className="text-[10px] text-[var(--muted)] font-bold uppercase block">Serviço de Interesse</span>
                     {editingDetails ? (
                       <Input 
                         value={detailsForm.procedimento_interesse} 
@@ -589,23 +570,30 @@ export function LeadDetailsModal({ isOpen, onClose, leadId, onUpdate }: LeadDeta
                 </div>
               </div>
 
-              {/* Observações da Secretária */}
-              <div className="bg-[var(--color-bg-card)] border border-[var(--color-border-card)] rounded-[12px] p-5 space-y-4">
+              {/* Resumo da Conversa */}
+              <div className="bg-[var(--white)] border border-[var(--border)] rounded-[12px] p-5 space-y-4">
                 <h3 className="font-semibold text-sm border-b pb-2 flex items-center gap-2">
-                  <FileText size={16} className="text-[var(--color-primary)]" />
-                  Informações Pessoais / Observações Manuais
+                  <FileText size={16} className="text-[var(--sage-dark)]" />
+                  Resumo da Conversa
                 </h3>
 
+                {lead.procedimento_interesse && (
+                  <div>
+                    <span className="text-[10px] text-[var(--muted)] font-bold uppercase block">Procedimento de Interesse</span>
+                    <p className="text-sm font-medium mt-1">{lead.procedimento_interesse}</p>
+                  </div>
+                )}
+
                 {editingDetails ? (
-                  <textarea 
-                    rows={6} 
-                    value={detailsForm.observacoes} 
+                  <textarea
+                    rows={6}
+                    value={detailsForm.observacoes}
                     onChange={e => setDetailsForm({...detailsForm, observacoes: e.target.value})}
                     className="w-full mt-2 border rounded p-2 text-sm bg-white"
-                    placeholder="Anote informações pertinentes coletadas no atendimento (ex: restrições, preferências, observações pessoais)..."
+                    placeholder="Anote informações pertinentes coletadas no atendimento..."
                   />
                 ) : (
-                  <p className="text-sm text-[var(--color-text-main)] whitespace-pre-wrap leading-relaxed min-h-[100px] p-3 bg-gray-50 rounded-[8px] border border-gray-100">
+                  <p className="text-sm text-[var(--ink)] whitespace-pre-wrap leading-relaxed min-h-[100px] p-3 bg-gray-50 rounded-[8px] border border-gray-100">
                     {lead.observacoes || 'Nenhuma observação interna anotada pela equipe.'}
                   </p>
                 )}
@@ -613,9 +601,9 @@ export function LeadDetailsModal({ isOpen, onClose, leadId, onUpdate }: LeadDeta
 
               {/* Resumo Automático da Conversa */}
               {lead.resumo_conversa && (
-                <div className="p-4 border border-[var(--color-border-card)] rounded-[12px] bg-white relative">
-                  <span className="absolute -top-2 left-3 bg-white px-2 text-[10px] text-[var(--color-primary)] font-bold uppercase tracking-tight">IA - Resumo Automático</span>
-                  <p className="text-sm text-[var(--color-text-main)] italic leading-relaxed pt-1">
+                <div className="p-4 border border-[var(--border)] rounded-[12px] bg-white relative">
+                  <span className="absolute -top-2 left-3 bg-white px-2 text-[10px] text-[var(--sage-dark)] font-bold uppercase tracking-tight">IA - Resumo Automático</span>
+                  <p className="text-sm text-[var(--ink)] italic leading-relaxed pt-1">
                     "{lead.resumo_conversa}"
                   </p>
                 </div>
@@ -624,51 +612,28 @@ export function LeadDetailsModal({ isOpen, onClose, leadId, onUpdate }: LeadDeta
 
             {/* Coluna Direita - Histórico de Atendimentos & LTV e Jornada */}
             <div className="lg:col-span-5 space-y-6">
-              {/* Resumo Financeiro & Consultas */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-emerald-50/50 border border-emerald-100 p-4 rounded-[12px] flex flex-col justify-between">
-                  <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wide flex items-center gap-1">
-                    <TrendingUp size={12} />
-                    LTV (Lifetime Value)
-                  </span>
-                  <span className="text-xl font-bold text-emerald-700 mt-2 block">
-                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalLTV)}
-                  </span>
-                </div>
-
-                <div className="bg-indigo-50/50 border border-indigo-100 p-4 rounded-[12px] flex flex-col justify-between">
-                  <span className="text-[10px] font-bold text-indigo-800 uppercase tracking-wide flex items-center gap-1">
-                    <Award size={12} />
-                    Consultas Comparecidas
-                  </span>
-                  <span className="text-xl font-bold text-indigo-700 mt-2 block">
-                    {totalCompareceu} / {appointments.length}
-                  </span>
-                </div>
-              </div>
-
               {/* Timeline da Jornada do Cliente */}
-              <div className="bg-[var(--color-bg-card)] border border-[var(--color-border-card)] rounded-[12px] p-5">
+              <div className="bg-[var(--white)] border border-[var(--border)] rounded-[12px] p-5">
                 <h3 className="font-semibold text-sm border-b pb-2 mb-4">Jornada do Cliente</h3>
                 {lead.jornada && Array.isArray(lead.jornada) && lead.jornada.length > 0 ? (
                   <div className="max-h-[250px] overflow-y-auto pr-1 custom-scrollbar py-1">
                     <div className="relative pl-6 space-y-4 border-l-2 border-gray-200 ml-3">
-                      {lead.jornada.map((item: any, index: number) => {
+                      {(lead.jornada ?? []).map((item: any, index: number) => {
                         const col = COLUMNS.find(c => c.id === item.status);
                         const displayTitle = col ? col.title : item.status;
                         const formattedTime = format(parseISO(item.timestamp), "dd/MM/yyyy 'às' HH:mm'h'", { locale: ptBR });
-                        const isLatest = index === lead.jornada.length - 1;
+                        const isLatest = index === (lead.jornada?.length ?? 0) - 1;
                         
                         return (
                           <div key={index} className="relative group">
                             {/* Pontinho indicador */}
                             <div className={`absolute -left-[31px] top-1 w-3 h-3 rounded-full border-2 transition-all ${
                               isLatest 
-                                ? 'bg-[var(--color-primary)] border-[var(--color-primary)] scale-110 shadow-sm' 
+                                ? 'bg-[var(--sage-dark)] border-[var(--sage-dark)] scale-110 shadow-sm' 
                                 : 'bg-white border-gray-400 group-hover:border-gray-600'
                             }`} />
                             <div>
-                              <p className={`text-xs font-semibold ${isLatest ? 'text-[var(--color-primary)] font-bold' : 'text-[var(--color-text-main)]'}`}>
+                              <p className={`text-xs font-semibold ${isLatest ? 'text-[var(--sage-dark)] font-bold' : 'text-[var(--ink)]'}`}>
                                 {displayTitle}
                                 {item.valor_pago && (
                                   <span className="ml-2 text-[10px] px-1.5 py-0.5 bg-emerald-100 text-emerald-800 rounded font-bold">
@@ -676,7 +641,7 @@ export function LeadDetailsModal({ isOpen, onClose, leadId, onUpdate }: LeadDeta
                                   </span>
                                 )}
                               </p>
-                              <p className="text-[10px] text-[var(--color-text-muted)] mt-0.5">{formattedTime}</p>
+                              <p className="text-[10px] text-[var(--muted)] mt-0.5">{formattedTime}</p>
                             </div>
                           </div>
                         );
@@ -684,51 +649,15 @@ export function LeadDetailsModal({ isOpen, onClose, leadId, onUpdate }: LeadDeta
                     </div>
                   </div>
                 ) : (
-                  <p className="text-xs text-[var(--color-text-muted)] italic">Nenhuma transição registrada.</p>
+                  <p className="text-xs text-[var(--muted)] italic">Nenhuma transição registrada.</p>
                 )}
               </div>
 
-              {/* Histórico de Agendamentos */}
-              <div className="bg-[var(--color-bg-card)] border border-[var(--color-border-card)] rounded-[12px] p-5">
-                <h3 className="font-semibold text-sm border-b pb-2 mb-3 flex items-center justify-between">
-                  <span>Histórico de Consultas</span>
-                  <span className="text-xs font-normal text-gray-500">Qtd: {appointments.length}</span>
-                </h3>
-                
-                {appointments.length > 0 ? (
-                  <div className="space-y-3 max-h-[220px] overflow-y-auto pr-1 custom-scrollbar">
-                    {appointments.map((appt: any) => {
-                      const apptDate = format(parseISO(appt.data_hora_inicio), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
-                      return (
-                        <div key={appt.id} className="p-3 bg-gray-50 hover:bg-gray-100/70 border border-gray-100 rounded-[8px] text-xs transition-colors">
-                          <div className="flex justify-between items-start">
-                            <span className="font-semibold text-[var(--color-text-main)]">{appt.procedimento_nome || 'Consulta'}</span>
-                            <div className="flex flex-col items-end gap-1">
-                              <Badge variant={appt.status}>{appt.status}</Badge>
-                              {appt.valor_pago > 0 && (
-                                <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
-                                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(appt.valor_pago)}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                          <div className="mt-2 text-[var(--color-text-muted)] space-y-1">
-                            <p className="flex items-center gap-1"><Clock size={11} /> {apptDate}</p>
-                            <p className="flex items-center gap-1"><User size={11} /> Agenda: {appt.agendas?.nome || 'N/A'}</p>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <p className="text-xs text-[var(--color-text-muted)] italic">Nenhum agendamento realizado.</p>
-                )}
-              </div>
             </div>
           </div>
         </div>
       ) : (
-        <div className="py-20 text-center text-sm text-[var(--color-text-muted)]">
+        <div className="py-20 text-center text-sm text-[var(--muted)]">
           Lead não encontrado ou excluído.
         </div>
       )}
@@ -737,7 +666,7 @@ export function LeadDetailsModal({ isOpen, onClose, leadId, onUpdate }: LeadDeta
       {/* 1. Modal Agendamento */}
       <Modal isOpen={confirmAgendado} onClose={() => setConfirmAgendado(false)} title="Criar Agendamento">
         <div className="space-y-4">
-          <p className="text-sm text-[var(--color-text-main)]">Defina as informações de agendamento do lead.</p>
+          <p className="text-sm text-[var(--ink)]">Defina as informações de agendamento do lead.</p>
           
           <div>
             <label className="block text-sm font-medium mb-1">Data e Hora *</label>
@@ -783,7 +712,7 @@ export function LeadDetailsModal({ isOpen, onClose, leadId, onUpdate }: LeadDeta
           </div>
 
           <div className="flex gap-2 pt-2">
-            <Button onClick={confirmAgendadoAction} disabled={savingAgendado} className="w-full bg-[var(--color-primary)]">
+            <Button onClick={confirmAgendadoAction} disabled={savingAgendado} className="w-full bg-[var(--sage-dark)]">
               Agendar Lead
             </Button>
             <Button variant="secondary" onClick={() => setConfirmAgendado(false)} className="w-full">
@@ -796,7 +725,7 @@ export function LeadDetailsModal({ isOpen, onClose, leadId, onUpdate }: LeadDeta
       {/* 2. Modal Reagendamento */}
       <Modal isOpen={confirmReagendado} onClose={() => setConfirmReagendado(false)} title="Reagendar Lead">
         <div className="space-y-4">
-          <p className="text-sm text-[var(--color-text-main)]">Defina o novo horário de agendamento do lead.</p>
+          <p className="text-sm text-[var(--ink)]">Defina o novo horário de agendamento do lead.</p>
           
           <div>
             <label className="block text-sm font-medium mb-1">Data e Hora *</label>
@@ -833,7 +762,7 @@ export function LeadDetailsModal({ isOpen, onClose, leadId, onUpdate }: LeadDeta
           </div>
 
           <div className="flex gap-2 pt-2">
-            <Button onClick={confirmReagendadoAction} disabled={savingReagendado} className="w-full bg-[var(--color-primary)]">
+            <Button onClick={confirmReagendadoAction} disabled={savingReagendado} className="w-full bg-[var(--sage-dark)]">
               Reagendar Lead
             </Button>
             <Button variant="secondary" onClick={() => setConfirmReagendado(false)} className="w-full">
@@ -854,7 +783,7 @@ export function LeadDetailsModal({ isOpen, onClose, leadId, onUpdate }: LeadDeta
             <label className="block text-sm font-medium mb-2">Serviços Contratados *</label>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto custom-scrollbar pr-2 p-1">
               {availableServicos.map(srv => (
-                <label key={srv.id} className="flex items-center gap-2 p-2 border border-[var(--color-border-card)] rounded-[8px] hover:bg-[var(--color-bg-base)] cursor-pointer transition-colors text-sm">
+                <label key={srv.id} className="flex items-center gap-2 p-2 border border-[var(--border)] rounded-[8px] hover:bg-[var(--bg)] cursor-pointer transition-colors text-sm">
                   <input 
                     type="checkbox" 
                     checked={converteuForm.servicos.includes(srv.nome)}
@@ -865,13 +794,13 @@ export function LeadDetailsModal({ isOpen, onClose, leadId, onUpdate }: LeadDeta
                         setConverteuForm({ ...converteuForm, servicos: converteuForm.servicos.filter(s => s !== srv.nome) });
                       }
                     }}
-                    className="rounded text-[var(--color-primary)] focus:ring-[var(--color-primary)]"
+                    className="rounded text-[var(--sage-dark)] focus:ring-[var(--sage-dark)]"
                   />
                   <span>{srv.nome}</span>
                 </label>
               ))}
               {availableServicos.length === 0 && (
-                <p className="text-xs text-[var(--color-text-muted)] italic">Nenhum serviço/procedimento cadastrado.</p>
+                <p className="text-xs text-[var(--muted)] italic">Nenhum serviço/procedimento cadastrado.</p>
               )}
             </div>
           </div>

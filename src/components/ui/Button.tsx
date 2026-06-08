@@ -11,9 +11,9 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = 'primary', size = 'md', loading, children, disabled, ...props }, ref) => {
     const variants = {
-      primary: 'bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-hover)] border border-transparent shadow-sm',
-      secondary: 'bg-transparent border border-[var(--color-border-card)] text-[var(--color-text-main)] hover:bg-[var(--color-primary-light)]',
-      ghost: 'bg-transparent text-[var(--color-text-main)] hover:bg-[var(--color-primary-light)]',
+      primary: 'bg-[var(--sage-dark)] text-white hover:opacity-90 border border-transparent shadow-sm',
+      secondary: 'bg-transparent border border-[var(--border)] text-[var(--ink)] hover:bg-[var(--sage-xlight)]',
+      ghost: 'bg-transparent text-[var(--ink)] hover:bg-[var(--sage-xlight)]',
       danger: 'bg-[var(--color-error)] text-white hover:opacity-90 transition-opacity'
     };
 
@@ -28,7 +28,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         disabled={disabled || loading}
         className={cn(
-          'inline-flex items-center justify-center font-dm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none rounded-[8px]',
+          'inline-flex items-center justify-center font-dm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--sage-dark)] focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none rounded-[8px]',
           variants[variant],
           sizes[size],
           className

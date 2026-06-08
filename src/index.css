@@ -5,61 +5,72 @@
   --color-bg-sidebar: var(--bg-sidebar);
   --color-bg-card: var(--bg-card);
   --color-border-card: var(--border-card);
-  
+
   --color-primary: var(--primary);
   --color-primary-hover: var(--primary-hover);
   --color-primary-light: var(--primary-light);
-  
+
   --color-text-main: var(--text-main);
   --color-text-muted: var(--text-muted);
-  
+
   --color-success: var(--success);
   --color-warning: var(--warning);
   --color-error: var(--error);
   --color-sidebar-active: var(--sidebar-active);
 
+  --font-display:   'Cormorant Garamond', serif;
   --font-cormorant: 'Cormorant Garamond', serif;
-  --font-dm: 'DM Sans', sans-serif;
-  
+  --font-dm-serif:  'Cormorant Garamond', serif;
+  --font-dm:        'Plus Jakarta Sans', sans-serif;
+
   --shadow-card: var(--shadow-card);
   --shadow-modal: var(--shadow-modal);
   --shadow-dropdown: var(--shadow-dropdown);
 }
 
 :root {
-  --bg-base: #F7F5F2; /* Warm White */
-  --bg-sidebar: #1A2B4A; /* Navy Deep */
-  --bg-card: #FFFFFF;
-  --border-card: #E8E2D9; /* Warm Border */
-  
-  --primary: #E8C97A; /* Gold Main */
-  --primary-hover: #C9A84C; /* Gold Deep */
-  --primary-light: rgba(255, 255, 255, 0.05); /* Subtle white overlay for dark backgrounds */
-  
-  --text-main: #1A2B4A; /* Navy Deep */
-  --text-muted: #9A9088; /* Warm Muted */
-  
-  --success: #7A9E87;
-  --warning: #E8A87C;
-  --error: #C47E7E;
-  --sidebar-active: rgba(232, 201, 122, 0.12); /* Gold Subtle */
+  /* ── Bridges: tokens legados apontam para o novo sistema ClinicOS ── */
+  --g900: var(--sage-dark);
+  --g800: var(--sage-dark);
+  --g700: var(--sage-dark);
+  --g600: var(--sage);
+  --g400: var(--sage);
+  --g200: var(--sage-light);
+  --g100: var(--sage-light);
+  --g50:  var(--sage-xlight);
 
-  --shadow-card: 0 1px 3px rgba(26, 43, 74, 0.06), 0 1px 2px rgba(26, 43, 74, 0.04);
-  --shadow-modal: 0 20px 60px rgba(26, 43, 74, 0.15);
-  --shadow-dropdown: 0 4px 16px rgba(26, 43, 74, 0.10);
+  --bg-base:    var(--bg);
+  --bg-sidebar: var(--sage-dark);
+  --bg-card:    var(--white);
+  --border-card: var(--border);
+
+  --primary:       var(--sage-dark);
+  --primary-hover: var(--sage-dark);
+  --primary-light: var(--sage-xlight);
+
+  --text-main:  var(--ink);
+  --text-muted: var(--muted);
+
+  --success: #10b981;
+  --warning: #f59e0b;
+  --error:   #ef4444;
+
+  --sidebar-active: var(--sage-dark);
+
+  --shadow-card:     0 1px 3px rgba(143,174,154,0.12), 0 4px 16px rgba(143,174,154,0.08);
+  --shadow-modal:    0 20px 60px rgba(30,41,59,0.18);
+  --shadow-dropdown: 0 4px 16px rgba(143,174,154,0.12);
 }
 
-
-
 body {
-  background-color: var(--bg-base);
-  color: var(--text-main);
-  font-family: 'DM Sans', sans-serif;
+  background-color: var(--bg);
+  color: var(--ink);
+  font-family: 'Plus Jakarta Sans', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   transition: background-color 0.2s, color 0.2s;
 }
 
-h1, h2, h3, .font-cormorant {
+h1, h2, h3, .font-cormorant, .font-dm-serif, .font-display {
   font-family: 'Cormorant Garamond', serif;
 }

@@ -1,0 +1,41 @@
+:root {
+  /* Backgrounds */
+  --bg:           #FAF9F7;
+  --white:        #FFFFFF;
+
+  /* Texto */
+  --ink:          #1E293B;
+  --muted:        #64748B;
+
+  /* Verde Sálvia — cor principal */
+  --sage:         #8FAE9A;
+  --sage-dark:    #56705F;
+  --sage-light:   #BFE3D0;
+  --sage-xlight:  #EEF5F1;
+
+  /* Champagne — cor secundária */
+  --champ:        #DCCFB5;
+  --champ-light:  #F5F0E8;
+  --champ-text:   #7A6040;
+
+  /* Status */
+  --status-agendado:    #BFE3D0;
+  --status-compareceu:  #8FAE9A;
+  --status-converteu:   #56705F;
+  --status-nao-conv:    #F6D6D6;
+  --rose-light:         #F6D6D6;
+  --rose-text:          #8B4444;
+
+  /* Bordas */
+  --border:    rgba(143,174,154,0.18);
+  --border-md: rgba(143,174,154,0.28);
+
+  /* Sombra tingida de sálvia */
+  --shadow-sm: 0 1px 3px rgba(143,174,154,0.12), 0 2px 8px rgba(30,41,59,0.06);
+  --shadow:    0 1px 2px rgba(30,41,59,0.04), 0 4px 16px rgba(143,174,154,0.14);
+
+  /* Raios */
+  --r:    16px;
+  --r-sm: 10px;
+  --r-xs: 7px;
+}

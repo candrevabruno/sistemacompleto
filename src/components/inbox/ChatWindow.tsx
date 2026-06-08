@@ -35,7 +35,7 @@ function renderConteudo(m: Mensagem, isOut: boolean) {
           href={m.media_url}
           target="_blank"
           rel="noopener noreferrer"
-          className={`flex items-center gap-2 text-sm underline ${isOut ? 'text-white' : 'text-[var(--color-primary)]'}`}
+          className={`flex items-center gap-2 text-sm underline ${isOut ? 'text-white' : 'text-[var(--sage-dark)]'}`}
         >
           <FileText className="w-4 h-4 flex-shrink-0" />
           <span>{m.conteudo || 'Documento'}</span>
@@ -131,12 +131,12 @@ export function ChatWindow({ conversa, mensagens, loadingMensagens, onEnviar, on
 
   if (!conversa) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-[var(--color-bg-base)]">
+      <div className="flex-1 flex items-center justify-center bg-[var(--bg)]">
         <div className="text-center">
-          <div className="w-16 h-16 rounded-full bg-[var(--color-primary)]/10 flex items-center justify-center mx-auto mb-4">
-            <MessageSquare className="w-8 h-8 text-[var(--color-primary)] opacity-50" />
+          <div className="w-16 h-16 rounded-full bg-[var(--sage-dark)]/10 flex items-center justify-center mx-auto mb-4">
+            <MessageSquare className="w-8 h-8 text-[var(--sage-dark)] opacity-50" />
           </div>
-          <p className="text-[var(--color-text-muted)] text-sm">Selecione uma conversa para começar</p>
+          <p className="text-[var(--muted)] text-sm">Selecione uma conversa para começar</p>
         </div>
       </div>
     );
@@ -145,8 +145,8 @@ export function ChatWindow({ conversa, mensagens, loadingMensagens, onEnviar, on
   return (
     <div className="flex-1 flex flex-col min-h-0 min-w-0">
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-[var(--color-border-card)] bg-[var(--color-bg-base)] flex-shrink-0">
-        <div className="w-9 h-9 rounded-full bg-[var(--color-primary)] flex items-center justify-center text-white font-semibold text-sm uppercase flex-shrink-0">
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-[var(--border)] bg-[var(--bg)] flex-shrink-0">
+        <div className="w-9 h-9 rounded-full bg-[var(--sage-dark)] flex items-center justify-center text-white font-semibold text-sm uppercase flex-shrink-0">
           {conversa.nome_contato ? (
             conversa.nome_contato.charAt(0)
           ) : (
@@ -154,10 +154,10 @@ export function ChatWindow({ conversa, mensagens, loadingMensagens, onEnviar, on
           )}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-[var(--color-text-main)] truncate">
+          <p className="text-sm font-semibold text-[var(--ink)] truncate">
             {conversa.nome_contato || conversa.whatsapp_number}
           </p>
-          <p className="text-xs text-[var(--color-text-muted)]">{conversa.whatsapp_number}</p>
+          <p className="text-xs text-[var(--muted)]">{conversa.whatsapp_number}</p>
         </div>
         {conversa.is_human && (
           <span className="flex-shrink-0 text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded-full font-medium border border-orange-200">
@@ -167,21 +167,21 @@ export function ChatWindow({ conversa, mensagens, loadingMensagens, onEnviar, on
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-2 bg-[var(--color-bg-base)]">
+      <div className="flex-1 overflow-y-auto p-4 space-y-2 bg-[var(--bg)]">
         {loadingMensagens ? (
           <div className="flex items-center justify-center h-full">
-            <Loader2 className="w-5 h-5 animate-spin text-[var(--color-text-muted)]" />
+            <Loader2 className="w-5 h-5 animate-spin text-[var(--muted)]" />
           </div>
         ) : mensagens.length === 0 ? (
           <div className="flex items-center justify-center h-full">
-            <p className="text-sm text-[var(--color-text-muted)]">Nenhuma mensagem ainda</p>
+            <p className="text-sm text-[var(--muted)]">Nenhuma mensagem ainda</p>
           </div>
         ) : (
           mensagens.map(m => {
             if (m.tipo === 'sistema') {
               return (
                 <div key={m.id} className="flex justify-center my-1">
-                  <div className="flex items-center gap-1.5 px-3 py-1 bg-[var(--color-bg-card)] rounded-full border border-[var(--color-border-card)] text-[10px] text-[var(--color-text-muted)]">
+                  <div className="flex items-center gap-1.5 px-3 py-1 bg-[var(--white)] rounded-full border border-[var(--border)] text-[10px] text-[var(--muted)]">
                     <UserCheck className="w-3 h-3 flex-shrink-0" />
                     <span>{m.conteudo}</span>
                     <span>·</span>
@@ -195,14 +195,14 @@ export function ChatWindow({ conversa, mensagens, loadingMensagens, onEnviar, on
                 <div
                   className={`${m.tipo === 'audio' ? 'w-[260px]' : 'max-w-[70%]'} px-3 py-2 rounded-2xl text-sm ${
                     m.direcao === 'saida'
-                      ? 'bg-[var(--color-primary)] text-white rounded-br-sm'
-                      : 'bg-white dark:bg-white/10 text-[var(--color-text-main)] border border-[var(--color-border-card)] rounded-bl-sm shadow-sm'
+                      ? 'bg-[var(--sage-dark)] text-white rounded-br-sm'
+                      : 'bg-white dark:bg-white/10 text-[var(--ink)] border border-[var(--border)] rounded-bl-sm shadow-sm'
                   }`}
                 >
                   {renderConteudo(m, m.direcao === 'saida')}
                   <p
                     className={`text-[10px] mt-1 text-right ${
-                      m.direcao === 'saida' ? 'text-white/70' : 'text-[var(--color-text-muted)]'
+                      m.direcao === 'saida' ? 'text-white/70' : 'text-[var(--muted)]'
                     }`}
                   >
                     {format(new Date(m.created_at), 'HH:mm', { locale: ptBR })}
@@ -216,7 +216,7 @@ export function ChatWindow({ conversa, mensagens, loadingMensagens, onEnviar, on
       </div>
 
       {/* Input */}
-      <div className="px-4 py-3 border-t border-[var(--color-border-card)] bg-[var(--color-bg-base)] flex-shrink-0">
+      <div className="px-4 py-3 border-t border-[var(--border)] bg-[var(--bg)] flex-shrink-0">
         {/* File input oculto */}
         <input
           ref={fileInputRef}
@@ -233,7 +233,7 @@ export function ChatWindow({ conversa, mensagens, loadingMensagens, onEnviar, on
           <div className="flex gap-2 items-center">
             <div className="flex-1 flex items-center gap-3 px-3 py-2 rounded-[8px] border border-red-400/60 bg-red-50/10">
               <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-              <span className="text-sm text-[var(--color-text-main)] font-medium">
+              <span className="text-sm text-[var(--ink)] font-medium">
                 Gravando {String(Math.floor(segundos / 60)).padStart(2, '0')}:{String(segundos % 60).padStart(2, '0')}
               </span>
             </div>
@@ -255,7 +255,7 @@ export function ChatWindow({ conversa, mensagens, loadingMensagens, onEnviar, on
               onKeyDown={handleKeyDown}
               placeholder="Escreva uma mensagem... (Enter para enviar)"
               rows={1}
-              className="flex-1 border border-[var(--color-border-card)] rounded-[8px] px-3 py-2 text-sm bg-[var(--color-bg-base)] text-[var(--color-text-main)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] resize-none max-h-32 overflow-y-auto"
+              className="flex-1 border border-[var(--border)] rounded-[8px] px-3 py-2 text-sm bg-[var(--bg)] text-[var(--ink)] placeholder:text-[var(--muted)] focus:outline-none focus:ring-2 focus:ring-[var(--sage-dark)] resize-none max-h-32 overflow-y-auto"
               style={{ fieldSizing: 'content' } as React.CSSProperties}
             />
             {/* Botões de mídia — só quando não há texto */}
@@ -264,7 +264,7 @@ export function ChatWindow({ conversa, mensagens, loadingMensagens, onEnviar, on
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   disabled={enviando}
-                  className="flex-shrink-0 w-10 h-10 rounded-[8px] border border-[var(--color-border-card)] text-[var(--color-text-muted)] flex items-center justify-center hover:text-[var(--color-primary)] hover:border-[var(--color-primary)] disabled:opacity-40 transition-colors"
+                  className="flex-shrink-0 w-10 h-10 rounded-[8px] border border-[var(--border)] text-[var(--muted)] flex items-center justify-center hover:text-[var(--sage-dark)] hover:border-[var(--sage-dark)] disabled:opacity-40 transition-colors"
                   title="Enviar arquivo"
                 >
                   <Paperclip className="w-4 h-4" />
@@ -272,7 +272,7 @@ export function ChatWindow({ conversa, mensagens, loadingMensagens, onEnviar, on
                 <button
                   onClick={startRecording}
                   disabled={enviando}
-                  className="flex-shrink-0 w-10 h-10 rounded-[8px] border border-[var(--color-border-card)] text-[var(--color-text-muted)] flex items-center justify-center hover:text-[var(--color-primary)] hover:border-[var(--color-primary)] disabled:opacity-40 transition-colors"
+                  className="flex-shrink-0 w-10 h-10 rounded-[8px] border border-[var(--border)] text-[var(--muted)] flex items-center justify-center hover:text-[var(--sage-dark)] hover:border-[var(--sage-dark)] disabled:opacity-40 transition-colors"
                   title="Gravar áudio"
                 >
                   <Mic className="w-4 h-4" />
@@ -282,7 +282,7 @@ export function ChatWindow({ conversa, mensagens, loadingMensagens, onEnviar, on
             <button
               onClick={handleSend}
               disabled={!texto.trim() || enviando}
-              className="flex-shrink-0 w-10 h-10 rounded-[8px] bg-[var(--color-primary)] text-white flex items-center justify-center hover:opacity-90 disabled:opacity-40 transition-opacity"
+              className="flex-shrink-0 w-10 h-10 rounded-[8px] bg-[var(--sage-dark)] text-white flex items-center justify-center hover:opacity-90 disabled:opacity-40 transition-opacity"
             >
               {enviando ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -293,7 +293,7 @@ export function ChatWindow({ conversa, mensagens, loadingMensagens, onEnviar, on
           </div>
         )}
         {!gravando && (
-          <p className="text-[10px] text-[var(--color-text-muted)] mt-1.5">
+          <p className="text-[10px] text-[var(--muted)] mt-1.5">
             Enter para enviar · Shift+Enter para nova linha
           </p>
         )}

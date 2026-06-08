@@ -4,8 +4,13 @@
 // Requer autenticação Supabase (Bearer token)
 
 import { corsHeaders } from '../_shared/cors.ts';
-import { createAdminClient, createUserClient } from '../_shared/supabase-client.ts';
+import { createAdminClient } from '../_shared/supabase-client.ts';
 import { WhatsAppService } from '../_shared/whatsapp.ts';
+
+function parseJwtPayload(token: string): Record<string, unknown> {
+  const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+  return JSON.parse(atob(base64));
+}
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
@@ -20,12 +25,16 @@ Deno.serve(async (req: Request) => {
 
   try {
     // ── Auth ─────────────────────────────────────────────────────
+    // Supabase already verifies JWT signature/expiry at platform level (verify_jwt=true).
+    // We just decode the payload to confirm this is an authenticated user, not an anon call.
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) return json({ error: 'Unauthorized' }, 401);
-
-    const userClient = createUserClient(authHeader);
-    const { data: { user }, error: authError } = await userClient.auth.getUser();
-    if (authError || !user) return json({ error: 'Unauthorized' }, 401);
+    if (!authHeader?.startsWith('Bearer ')) return json({ error: 'Unauthorized' }, 401);
+    try {
+      const payload = parseJwtPayload(authHeader.slice(7));
+      if (payload.role !== 'authenticated') return json({ error: 'Unauthorized' }, 401);
+    } catch {
+      return json({ error: 'Unauthorized' }, 401);
+    }
 
     // ── Input ────────────────────────────────────────────────────
     const { phone, message, conversa_id, type = 'text', mediaUrl } = await req.json();

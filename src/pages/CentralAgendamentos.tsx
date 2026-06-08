@@ -167,9 +167,9 @@ export function CentralAgendamentos() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="font-cormorant text-2xl font-bold">Central de Agendamentos</h1>
-          <p className="text-sm text-[var(--color-text-muted)] mt-1">Gerencie todos os agendamentos por profissional e status.</p>
+          <p className="text-sm text-[var(--muted)] mt-1">Gerencie todos os agendamentos por profissional e status.</p>
         </div>
-        <button onClick={fetchAgendamentos} className="flex items-center gap-2 text-sm text-[var(--color-text-muted)] hover:text-[var(--color-primary)] transition-colors">
+        <button onClick={fetchAgendamentos} className="flex items-center gap-2 text-sm text-[var(--muted)] hover:text-[var(--sage-dark)] transition-colors">
           <RefreshCw className="w-4 h-4" /> Atualizar
         </button>
       </div>
@@ -182,32 +182,32 @@ export function CentralAgendamentos() {
             <div className="flex flex-wrap gap-2">
               {(['hoje', 'amanha', '7_dias', '14_dias', 'mes'] as Filtro[]).map(f => (
                 <button key={f} onClick={() => setFiltro(f)}
-                  className={`px-3 py-1.5 text-sm font-medium rounded-[8px] transition-colors ${filtro === f ? 'bg-[var(--color-primary)] text-white' : 'bg-[var(--color-bg-base)] text-[var(--color-text-main)] hover:bg-[var(--color-primary-light)]'}`}>
+                  className={`px-3 py-1.5 text-sm font-medium rounded-[8px] transition-colors ${filtro === f ? 'bg-[var(--sage-dark)] text-white' : 'bg-[var(--bg)] text-[var(--ink)] hover:bg-[var(--sage-xlight)]'}`}>
                   {f === 'hoje' ? 'Hoje' : f === 'amanha' ? 'Amanhã' : f === '7_dias' ? '7 dias' : f === '14_dias' ? '14 dias' : 'Mês'}
                 </button>
               ))}
               <div className="flex items-center gap-2">
                 <input type="date" value={customStart}
                   onChange={e => { setCustomStart(e.target.value); setFiltro('custom'); }}
-                  className="border border-[var(--color-border-card)] rounded-[8px] px-2 py-1.5 text-sm bg-[var(--color-bg-base)] text-[var(--color-text-main)]" />
-                <span className="text-[var(--color-text-muted)] text-sm">até</span>
+                  className="border border-[var(--border)] rounded-[8px] px-2 py-1.5 text-sm bg-[var(--bg)] text-[var(--ink)]" />
+                <span className="text-[var(--muted)] text-sm">até</span>
                 <input type="date" value={customEnd}
                   onChange={e => { setCustomEnd(e.target.value); setFiltro('custom'); }}
-                  className="border border-[var(--color-border-card)] rounded-[8px] px-2 py-1.5 text-sm bg-[var(--color-bg-base)] text-[var(--color-text-main)]" />
+                  className="border border-[var(--border)] rounded-[8px] px-2 py-1.5 text-sm bg-[var(--bg)] text-[var(--ink)]" />
               </div>
             </div>
 
             <div className="flex gap-3 flex-wrap xl:ml-auto">
               {/* Filtro por agenda */}
               <select value={agendaFiltro} onChange={e => setAgendaFiltro(e.target.value)}
-                className="border border-[var(--color-border-card)] rounded-[8px] px-3 py-1.5 text-sm bg-[var(--color-bg-base)] text-[var(--color-text-main)]">
+                className="border border-[var(--border)] rounded-[8px] px-3 py-1.5 text-sm bg-[var(--bg)] text-[var(--ink)]">
                 <option value="todas">Todas as agendas</option>
                 {agendas.map(a => <option key={a.id} value={a.id}>{a.nome}</option>)}
               </select>
 
               {/* Filtro por status */}
               <select value={statusFiltro} onChange={e => setStatusFiltro(e.target.value)}
-                className="border border-[var(--color-border-card)] rounded-[8px] px-3 py-1.5 text-sm bg-[var(--color-bg-base)] text-[var(--color-text-main)]">
+                className="border border-[var(--border)] rounded-[8px] px-3 py-1.5 text-sm bg-[var(--bg)] text-[var(--ink)]">
                 <option value="todos">Todos os status</option>
                 {Object.entries(STATUS_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
               </select>
@@ -220,22 +220,22 @@ export function CentralAgendamentos() {
       <Card>
         <CardContent className="p-0">
           {loading ? (
-            <div className="flex items-center justify-center py-16 text-[var(--color-text-muted)]">Carregando...</div>
+            <div className="flex items-center justify-center py-16 text-[var(--muted)]">Carregando...</div>
           ) : agendamentos.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 gap-3 text-[var(--color-text-muted)]">
+            <div className="flex flex-col items-center justify-center py-16 gap-3 text-[var(--muted)]">
               <CalendarIcon className="w-12 h-12 opacity-30" />
               <p className="font-medium">Nenhum agendamento no período</p>
               <p className="text-sm">Tente ajustar os filtros acima</p>
             </div>
           ) : (
-            <div className="divide-y divide-[var(--color-border-card)]">
+            <div className="divide-y divide-[var(--border)]">
               {agendamentos.map(ag => (
-                <div key={ag.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-[var(--color-bg-base)] transition-colors">
+                <div key={ag.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-[var(--bg)] transition-colors">
                   
                   {/* Info Principal: Horário */}
-                  <div className="flex flex-col items-center justify-center gap-1 min-w-[100px] border-r pr-4 border-[var(--color-border-card)] shrink-0">
+                  <div className="flex flex-col items-center justify-center gap-1 min-w-[100px] border-r pr-4 border-[var(--border)] shrink-0">
                     <div className="font-bold text-lg leading-none">{format(parseISO(ag.data_hora_inicio), 'dd/MM')}</div>
-                    <div className="text-sm font-medium text-[var(--color-text-muted)] flex items-center gap-1">
+                    <div className="text-sm font-medium text-[var(--muted)] flex items-center gap-1">
                       <Clock className="w-3.5 h-3.5" />
                       {format(parseISO(ag.data_hora_inicio), 'HH:mm')}
                     </div>
@@ -250,14 +250,14 @@ export function CentralAgendamentos() {
                           setOpenLeadDetails(true);
                         }
                       }}
-                      className="font-bold text-base hover:text-[var(--color-primary)] transition-colors text-left group flex items-center gap-2"
+                      className="font-bold text-base hover:text-[var(--sage-dark)] transition-colors text-left group flex items-center gap-2"
                     >
                       {ag.nome_lead || 'Cliente não informado'}
                       <ExternalLink className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
                     </button>
                     <div className="flex items-center gap-3 mt-1.5 flex-wrap">
                       {/* Procedimento/Serviço */}
-                      <span className="text-sm font-medium text-[var(--color-text-main)]">
+                      <span className="text-sm font-medium text-[var(--ink)]">
                         {ag.procedimento_nome && ag.procedimento_nome !== 'Consulta Jurídica' 
                           ? ag.procedimento_nome 
                           : ag.leads?.procedimento_interesse || 'Procedimento não especificado'}

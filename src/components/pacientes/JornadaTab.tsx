@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Loader2 } from 'lucide-react';
+import { Loader2, CalendarCheck } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
 interface Props {
@@ -49,24 +49,27 @@ export function JornadaTab({ leadId }: Props) {
   if (loading) {
     return (
       <div className="flex items-center justify-center p-12">
-        <Loader2 className="w-5 h-5 animate-spin text-[var(--color-text-muted)]" />
+        <Loader2 className="w-5 h-5 animate-spin text-[var(--muted)]" />
       </div>
     );
   }
 
   if (agendamentos.length === 0) {
     return (
-      <div className="flex items-center justify-center p-12">
-        <p className="text-sm text-[var(--color-text-muted)]">Nenhum agendamento registrado</p>
+      <div className="flex flex-col items-center justify-center p-12 gap-3">
+        <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ background: 'var(--sage-xlight)' }}>
+          <CalendarCheck className="w-5 h-5" style={{ color: 'var(--sage)' }} />
+        </div>
+        <p className="text-sm text-[var(--muted)]">Nenhum agendamento registrado</p>
       </div>
     );
   }
 
   return (
-    <div className="p-6">
+    <div className="p-5">
       <div className="relative">
         {/* Vertical line */}
-        <div className="absolute left-[19px] top-4 bottom-4 w-px bg-[var(--color-border-card)]" />
+        <div className="absolute left-[19px] top-4 bottom-4 w-px" style={{ background: 'var(--border)' }} />
 
         <div className="space-y-6">
           {agendamentos.map((ag, index) => {
@@ -85,19 +88,19 @@ export function JornadaTab({ leadId }: Props) {
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 bg-[var(--color-bg-card)] border border-[var(--color-border-card)] rounded-[10px] p-4">
+                <div className="flex-1 bg-[var(--white)] border border-[var(--border)] rounded-[12px] p-4 shadow-[0_1px_4px_rgba(4,52,44,0.05)]">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="text-sm font-semibold text-[var(--color-text-main)]">
+                      <p className="text-sm font-semibold text-[var(--ink)]">
                         {consultaNum}{suffix} Consulta
                         {ag.procedimento_nome && (
-                          <span className="font-normal text-[var(--color-text-muted)]">
+                          <span className="font-normal text-[var(--muted)]">
                             {' '}— {ag.procedimento_nome}
                           </span>
                         )}
                       </p>
                       {ag.data_hora_inicio && (
-                        <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
+                        <p className="text-xs text-[var(--muted)] mt-0.5">
                           {format(parseISO(ag.data_hora_inicio), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR })}
                         </p>
                       )}
@@ -109,11 +112,11 @@ export function JornadaTab({ leadId }: Props) {
                               style={{ backgroundColor: ag.agendas.cor }}
                             />
                           )}
-                          <p className="text-xs text-[var(--color-text-muted)]">{ag.agendas.nome}</p>
+                          <p className="text-xs text-[var(--muted)]">{ag.agendas.nome}</p>
                         </div>
                       )}
                       {ag.modalidade && (
-                        <p className="text-xs text-[var(--color-text-muted)] mt-0.5 capitalize">
+                        <p className="text-xs text-[var(--muted)] mt-0.5 capitalize">
                           {ag.modalidade}
                         </p>
                       )}

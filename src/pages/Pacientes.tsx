@@ -1,260 +1,308 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { User, Search, MessageSquare, Calendar, ClipboardList } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import { Search, Users, MessageSquare, CalendarPlus, ClipboardList, ExternalLink } from 'lucide-react';
 import { DadosTab } from '../components/pacientes/DadosTab';
-import { JornadaTab } from '../components/pacientes/JornadaTab';
 import { ConsultasTab } from '../components/pacientes/ConsultasTab';
-import { DocumentosTab } from '../components/pacientes/DocumentosTab';
+import { ProcedimentosTab } from '../components/pacientes/ProcedimentosTab';
+import { ComportamentoTab } from '../components/pacientes/ComportamentoTab';
+import { AnotacoesProfissionalTab } from '../components/pacientes/AnotacoesProfissionalTab';
 
-type Tab = 'dados' | 'jornada' | 'consultas' | 'documentos';
+type Tab = 'dados' | 'consultas' | 'procedimentos' | 'comportamento' | 'profissional';
 
-const TABS: { id: Tab; label: string }[] = [
-  { id: 'dados', label: 'Dados' },
-  { id: 'jornada', label: 'Jornada' },
-  { id: 'consultas', label: 'Consultas' },
-  { id: 'documentos', label: 'Documentos' },
-];
+function getIniciais(nome: string | null | undefined): string {
+  if (!nome) return '?';
+  return nome.split(' ').filter(Boolean).map(p => p[0]).slice(0, 2).join('').toUpperCase();
+}
 
 export function Pacientes() {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin' || user?.role === 'profissional';
+
   const [leads, setLeads] = useState<any[]>([]);
   const [leadSelecionado, setLeadSelecionado] = useState<any | null>(null);
   const [pacienteId, setPacienteId] = useState<string | null>(null);
-  const [totalConsultas, setTotalConsultas] = useState(0);
+  const [proximaConsulta, setProximaConsulta] = useState<any | null>(null);
+  const [calcomLink, setCalcomLink] = useState<string | null>(null);
+  const [tipoConvenio, setTipoConvenio] = useState<'particular' | 'convenio'>('particular');
   const [loading, setLoading] = useState(true);
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState<Tab>('dados');
 
-  // Load all leads that have had at least one agendamento
+  const TABS: { id: Tab; label: string }[] = [
+    { id: 'dados',          label: 'Dados' },
+    { id: 'consultas',      label: 'Consultas' },
+    { id: 'procedimentos',  label: 'Procedimentos' },
+    { id: 'comportamento',  label: 'Comportamento' },
+    ...(isAdmin ? [{ id: 'profissional' as Tab, label: 'Anotações do Profissional' }] : []),
+  ];
+
+  // Carrega lista de pacientes (leads convertidos)
   useEffect(() => {
     async function load() {
       setLoading(true);
-
-      const { data: ags } = await supabase
-        .from('agendamentos')
-        .select('lead_id')
-        .not('lead_id', 'is', null);
-
-      if (!ags?.length) {
-        setLeads([]);
-        setLoading(false);
-        return;
-      }
-
-      const leadIds = [...new Set(ags.map((a: any) => a.lead_id))];
-
-      const { data: leadsData } = await supabase
+      const { data } = await supabase
         .from('leads')
-        .select('id, nome_lead, whatsapp_lead, procedimento_interesse, status')
-        .in('id', leadIds)
+        .select('id, nome_lead, whatsapp_lead, procedimento_interesse, status, email')
+        .eq('status', 'converteu')
         .order('nome_lead', { ascending: true });
-
-      if (leadsData) setLeads(leadsData);
+      if (data) setLeads(data);
       setLoading(false);
     }
     load();
   }, []);
 
-  // When a lead is selected, load/create the paciente record
-  async function selecionarLead(lead: any) {
+  // Carrega link Cal.com (primeiro agenda ativo com link)
+  useEffect(() => {
+    supabase.from('agendas').select('calcom_link').eq('ativo', true).not('calcom_link', 'is', null).limit(1).maybeSingle()
+      .then(({ data }) => setCalcomLink(data?.calcom_link || null));
+  }, []);
+
+  const selecionarLead = async (lead: any) => {
     setLeadSelecionado(lead);
     setActiveTab('dados');
     setLoadingProfile(true);
     setPacienteId(null);
+    setProximaConsulta(null);
 
-    // Find or create paciente record
+    // Buscar/criar paciente
     let { data: paciente } = await supabase
-      .from('pacientes')
-      .select('id')
-      .eq('lead_id', lead.id)
-      .single();
+      .from('pacientes').select('id, tipo').eq('lead_id', lead.id).single();
 
     if (!paciente) {
       const { data: novo } = await supabase
-        .from('pacientes')
-        .insert({ lead_id: lead.id })
-        .select('id')
-        .single();
+        .from('pacientes').insert({ lead_id: lead.id }).select('id, tipo').single();
       paciente = novo;
     }
+    if (paciente) {
+      setPacienteId(paciente.id);
+      setTipoConvenio(paciente.tipo || 'particular');
+    }
 
-    if (paciente) setPacienteId(paciente.id);
-
-    // Count consultations
-    const { count } = await supabase
+    // Próxima consulta para o badge do header
+    const { data: ag } = await supabase
       .from('agendamentos')
-      .select('id', { count: 'exact', head: true })
-      .eq('lead_id', lead.id);
+      .select('status, data_hora_inicio')
+      .eq('lead_id', lead.id)
+      .gte('data_hora_inicio', new Date().toISOString())
+      .not('status', 'in', '("cancelado","faltou")')
+      .order('data_hora_inicio', { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    setProximaConsulta(ag || null);
 
-    setTotalConsultas(count || 0);
     setLoadingProfile(false);
-  }
+  };
+
+  const abrirAgendamento = () => {
+    if (!calcomLink || !leadSelecionado) return;
+    const nome = encodeURIComponent(leadSelecionado.nome_lead || '');
+    const phone = encodeURIComponent(leadSelecionado.whatsapp_lead || '');
+    const email = encodeURIComponent(leadSelecionado.email || '');
+    const url = `${calcomLink}?name=${nome}&phone=${phone}${email ? `&email=${email}` : ''}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
 
   const leadsFiltrados = leads.filter(l => {
     if (!search) return true;
     const q = search.toLowerCase();
-    return (
-      l.nome_lead?.toLowerCase().includes(q) ||
-      l.whatsapp_lead?.includes(q) ||
-      l.procedimento_interesse?.toLowerCase().includes(q)
-    );
+    return l.nome_lead?.toLowerCase().includes(q) || l.whatsapp_lead?.includes(q) || l.procedimento_interesse?.toLowerCase().includes(q);
   });
 
+  // Badge da próxima consulta
+  const BADGE_STATUS: Record<string, { label: string; color: string; bg: string }> = {
+    confirmado: { label: 'Confirmou',  color: '#065F46', bg: 'rgba(16,185,129,0.15)' },
+    reagendado: { label: 'Reagendou',  color: '#92400E', bg: 'rgba(245,158,11,0.15)' },
+    cancelado:  { label: 'Cancelou',   color: '#991B1B', bg: 'rgba(220,38,38,0.15)'  },
+    agendado:   { label: 'Agendado',   color: 'var(--sage-dark)', bg: 'var(--sage-xlight)'        },
+  };
+  const nextBadge = proximaConsulta ? BADGE_STATUS[proximaConsulta.status] || BADGE_STATUS.agendado : null;
+
   return (
-    <div className="flex h-[calc(100vh-110px)] -m-6 overflow-hidden bg-[var(--color-bg-base)]">
-      {/* ── Lista de pacientes ─────────────────────────────────── */}
-      <div className="w-[300px] flex-shrink-0 flex flex-col border-r border-[var(--color-border-card)]">
-        {/* Header */}
-        <div className="px-4 pt-4 pb-3 border-b border-[var(--color-border-card)]">
-          <h2 className="font-cormorant font-bold text-lg text-[var(--color-text-main)] mb-3">
-            Pacientes
-          </h2>
+    <div className="flex h-[calc(100vh-60px)] -m-6 overflow-hidden" style={{ background: 'var(--bg)' }}>
+
+      {/* ── Lista lateral ── */}
+      <div className="w-[300px] flex-shrink-0 flex flex-col border-r" style={{ borderColor: 'var(--border)', background: '#fff' }}>
+        <div className="px-4 pt-5 pb-4 border-b flex-shrink-0" style={{ borderColor: 'var(--border)' }}>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-display text-[18px]" style={{ color: 'var(--ink)', letterSpacing: '-0.2px' }}>
+              Pacientes
+            </h2>
+            <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: 'var(--sage-xlight)', color: 'var(--sage-dark)' }}>
+              {leads.length}
+            </span>
+          </div>
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--color-text-muted)]" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: 'var(--muted)' }} />
             <input
-              type="text"
-              placeholder="Buscar paciente..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="w-full border border-[var(--color-border-card)] rounded-[8px] pl-9 pr-3 py-2 text-sm bg-[var(--color-bg-base)] text-[var(--color-text-main)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+              type="text" placeholder="Buscar paciente..."
+              value={search} onChange={e => setSearch(e.target.value)}
+              className="w-full rounded-[9px] pl-9 pr-3 py-2 text-[13px] focus:outline-none focus:ring-2"
+              style={{ border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', '--tw-ring-color': 'var(--sage)' } as React.CSSProperties}
             />
           </div>
         </div>
 
-        {/* List */}
         <div className="flex-1 overflow-y-auto">
           {loading ? (
-            <div className="p-6 text-center text-sm text-[var(--color-text-muted)]">Carregando...</div>
+            <div className="p-6 text-center text-sm" style={{ color: 'var(--muted)' }}>Carregando...</div>
           ) : leadsFiltrados.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full p-6 text-center gap-3">
-              <ClipboardList className="w-8 h-8 text-[var(--color-text-muted)] opacity-30" />
-              <p className="text-sm text-[var(--color-text-muted)]">
-                {search ? 'Nenhum paciente encontrado' : 'Nenhum paciente com consultas registradas'}
+            <div className="flex flex-col items-center justify-center h-full p-6 gap-3">
+              <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ background: 'var(--sage-xlight)' }}>
+                <Users className="w-5 h-5" style={{ color: 'var(--sage)' }} />
+              </div>
+              <p className="text-sm text-center" style={{ color: 'var(--muted)' }}>
+                {search ? 'Nenhum paciente encontrado' : 'Nenhum paciente ainda'}
               </p>
             </div>
           ) : (
-            leadsFiltrados.map(lead => (
-              <button
-                key={lead.id}
-                onClick={() => selecionarLead(lead)}
-                className={`w-full text-left px-4 py-3 flex gap-3 hover:bg-[var(--color-primary-light)] transition-colors border-b border-[var(--color-border-card)]/40 ${
-                  leadSelecionado?.id === lead.id ? 'bg-[var(--color-primary-light)]' : ''
-                }`}
-              >
-                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-[var(--color-primary)] flex items-center justify-center text-white font-semibold text-sm uppercase">
-                  {lead.nome_lead ? lead.nome_lead.charAt(0) : <User className="w-4 h-4" />}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-[var(--color-text-main)] truncate">
-                    {lead.nome_lead || 'Sem nome'}
-                  </p>
-                  <p className="text-xs text-[var(--color-text-muted)] truncate">
-                    {lead.procedimento_interesse || lead.whatsapp_lead || '—'}
-                  </p>
-                </div>
-              </button>
-            ))
+            <div className="py-1">
+              {leadsFiltrados.map(lead => {
+                const isSelected = leadSelecionado?.id === lead.id;
+                return (
+                  <button key={lead.id} onClick={() => selecionarLead(lead)}
+                    className="w-full text-left px-3 py-3 flex gap-3 items-center transition-colors relative"
+                    style={{
+                      background: isSelected ? 'var(--sage-xlight)' : 'transparent',
+                      borderLeft: isSelected ? '3px solid var(--sage-dark)' : '3px solid transparent',
+                    }}
+                    onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = 'var(--sage-xlight)'; }}
+                    onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = 'transparent'; }}>
+                    <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-[13px] font-bold flex-shrink-0"
+                      style={{ background: 'linear-gradient(135deg, var(--sage-dark), var(--sage))' }}>
+                      {getIniciais(lead.nome_lead)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[13px] font-semibold truncate" style={{ color: 'var(--ink)' }}>
+                        {lead.nome_lead || 'Sem nome'}
+                      </p>
+                      <p className="text-[11px] truncate" style={{ color: 'var(--muted)' }}>
+                        {lead.procedimento_interesse || lead.whatsapp_lead || '—'}
+                      </p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
           )}
         </div>
       </div>
 
-      {/* ── Perfil do paciente ─────────────────────────────────── */}
+      {/* ── Área do perfil ── */}
       {!leadSelecionado ? (
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <div className="w-16 h-16 rounded-full bg-[var(--color-primary)]/10 flex items-center justify-center mx-auto mb-4">
-              <ClipboardList className="w-8 h-8 text-[var(--color-primary)] opacity-50" />
+            <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: 'var(--sage-xlight)' }}>
+              <ClipboardList className="w-7 h-7" style={{ color: 'var(--sage)' }} />
             </div>
-            <p className="text-[var(--color-text-muted)] text-sm">
-              Selecione um paciente para ver o perfil
-            </p>
+            <p className="text-sm" style={{ color: 'var(--muted)' }}>Selecione uma paciente para ver o perfil</p>
           </div>
         </div>
       ) : (
         <div className="flex-1 flex flex-col min-h-0 min-w-0">
-          {/* Patient header */}
-          <div className="flex items-center gap-4 px-6 py-4 border-b border-[var(--color-border-card)] bg-[var(--color-bg-base)] flex-shrink-0">
-            <div className="w-12 h-12 rounded-full bg-[var(--color-primary)] flex items-center justify-center text-white font-bold text-lg uppercase flex-shrink-0">
-              {leadSelecionado.nome_lead ? leadSelecionado.nome_lead.charAt(0) : <User className="w-5 h-5" />}
+
+          {/* ── Header do perfil ── */}
+          <div className="flex items-center gap-4 px-6 py-4 border-b flex-shrink-0" style={{ borderColor: 'var(--border)', background: '#fff' }}>
+            {/* Avatar */}
+            <div className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg flex-shrink-0"
+              style={{ background: 'linear-gradient(135deg, var(--sage-dark), var(--sage))' }}>
+              {getIniciais(leadSelecionado.nome_lead)}
             </div>
+
+            {/* Info */}
             <div className="flex-1 min-w-0">
-              <h2 className="font-cormorant font-bold text-xl text-[var(--color-text-main)] truncate">
-                {leadSelecionado.nome_lead || 'Sem nome'}
-              </h2>
               <div className="flex items-center gap-2 flex-wrap">
-                {leadSelecionado.procedimento_interesse && (
-                  <span className="text-sm text-[var(--color-text-muted)]">
-                    {leadSelecionado.procedimento_interesse}
-                  </span>
-                )}
-                {leadSelecionado.procedimento_interesse && totalConsultas > 0 && (
-                  <span className="text-[var(--color-text-muted)]">·</span>
-                )}
-                {totalConsultas > 0 && (
-                  <span className="text-sm text-[var(--color-text-muted)]">
-                    {totalConsultas} {totalConsultas === 1 ? 'consulta' : 'consultas'}
+                <h2 className="font-display text-[20px] leading-tight" style={{ color: 'var(--ink)', letterSpacing: '-0.3px' }}>
+                  {leadSelecionado.nome_lead || 'Sem nome'}
+                </h2>
+                {/* Badge convênio/particular */}
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0"
+                  style={{
+                    background: tipoConvenio === 'convenio' ? 'rgba(59,130,246,0.1)' : 'var(--sage-xlight)',
+                    color: tipoConvenio === 'convenio' ? '#2563eb' : 'var(--sage-dark)',
+                  }}>
+                  {tipoConvenio === 'convenio' ? 'Convênio' : 'Particular'}
+                </span>
+                {/* Badge próxima consulta */}
+                {nextBadge && !loadingProfile && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0"
+                    style={{ background: nextBadge.bg, color: nextBadge.color }}>
+                    {nextBadge.label}
                   </span>
                 )}
               </div>
+              {leadSelecionado.whatsapp_lead && (
+                <p className="text-[12px] font-mono mt-0.5" style={{ color: 'var(--muted)' }}>
+                  {leadSelecionado.whatsapp_lead}
+                </p>
+              )}
             </div>
+
+            {/* Botões de ação */}
             <div className="flex gap-2 flex-shrink-0">
               {leadSelecionado.whatsapp_lead && (
-                <a
-                  href={`https://wa.me/${leadSelecionado.whatsapp_lead.replace(/\D/g, '')}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-sm font-medium px-3 py-2 rounded-[8px] bg-green-500 text-white hover:bg-green-600 transition-colors"
-                >
-                  <MessageSquare className="w-4 h-4" />
+                <button
+                  onClick={() => navigate('/inbox', { state: { lead_id: leadSelecionado.id } })}
+                  className="flex items-center gap-1.5 text-[12px] font-semibold px-3 py-2 rounded-[8px] text-white transition-opacity hover:opacity-90"
+                  style={{ background: 'var(--sage-dark)' }}>
+                  <MessageSquare className="w-3.5 h-3.5" />
                   WhatsApp
-                </a>
+                </button>
               )}
-              <button
-                onClick={() => {/* future: open scheduling modal */}}
-                className="flex items-center gap-2 text-sm font-medium px-3 py-2 rounded-[8px] border border-[var(--color-border-card)] text-[var(--color-text-main)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] transition-colors"
-              >
-                <Calendar className="w-4 h-4" />
-                Agendar
-              </button>
+              {calcomLink && (
+                <button
+                  onClick={abrirAgendamento}
+                  className="flex items-center gap-1.5 text-[12px] font-semibold px-3 py-2 rounded-[8px] border transition-colors"
+                  style={{ borderColor: 'var(--border)', color: 'var(--ink)', background: 'transparent' }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--sage-dark)'; e.currentTarget.style.color = 'var(--sage-dark)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--ink)'; }}>
+                  <CalendarPlus className="w-3.5 h-3.5" />
+                  Agendar
+                  <ExternalLink className="w-3 h-3 opacity-50" />
+                </button>
+              )}
             </div>
           </div>
 
-          {/* Tabs */}
-          <div className="flex border-b border-[var(--color-border-card)] px-6 bg-[var(--color-bg-base)] flex-shrink-0">
+          {/* ── Tabs ── */}
+          <div className="flex border-b px-6 flex-shrink-0 overflow-x-auto" style={{ borderColor: 'var(--border)', background: '#fff' }}>
             {TABS.map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors -mb-px ${
-                  activeTab === tab.id
-                    ? 'border-[var(--color-primary)] text-[var(--color-primary)]'
-                    : 'border-transparent text-[var(--color-text-muted)] hover:text-[var(--color-text-main)]'
-                }`}
-              >
+              <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+                className="px-4 py-3 text-[13px] font-medium border-b-2 transition-colors -mb-px whitespace-nowrap"
+                style={{
+                  borderBottomColor: activeTab === tab.id ? 'var(--sage-dark)' : 'transparent',
+                  color: activeTab === tab.id ? 'var(--sage-dark)' : 'var(--muted)',
+                }}>
                 {tab.label}
               </button>
             ))}
           </div>
 
-          {/* Tab content */}
-          <div className="flex-1 overflow-y-auto">
+          {/* ── Conteúdo da tab ── */}
+          <div className="flex-1 overflow-y-auto" style={{ background: 'var(--bg)' }}>
             {loadingProfile ? (
               <div className="flex items-center justify-center p-12">
-                <div className="text-sm text-[var(--color-text-muted)]">Carregando perfil...</div>
+                <p className="text-sm" style={{ color: 'var(--muted)' }}>Carregando perfil...</p>
               </div>
             ) : (
               <>
                 {activeTab === 'dados' && (
                   <DadosTab lead={leadSelecionado} pacienteId={pacienteId} />
                 )}
-                {activeTab === 'jornada' && (
-                  <JornadaTab leadId={leadSelecionado.id} />
-                )}
                 {activeTab === 'consultas' && (
                   <ConsultasTab leadId={leadSelecionado.id} />
                 )}
-                {activeTab === 'documentos' && (
-                  <DocumentosTab leadId={leadSelecionado.id} />
+                {activeTab === 'procedimentos' && pacienteId && (
+                  <ProcedimentosTab pacienteId={pacienteId} />
+                )}
+                {activeTab === 'comportamento' && pacienteId && (
+                  <ComportamentoTab leadId={leadSelecionado.id} pacienteId={pacienteId} />
+                )}
+                {activeTab === 'profissional' && pacienteId && isAdmin && (
+                  <AnotacoesProfissionalTab pacienteId={pacienteId} />
                 )}
               </>
             )}

@@ -23,12 +23,12 @@ export function Configuracoes() {
 
   return (
     <div className="space-y-6">
-      <div className="flex border-b border-[var(--color-border-card)] space-x-6">
+      <div className="flex border-b border-[var(--border)] space-x-6">
         {tabs.map(t => (
           <button
             key={t.id}
             onClick={() => setActiveTab(t.id)}
-            className={`pb-3 text-sm font-medium transition-colors border-b-2 ${activeTab === t.id ? 'border-[var(--color-primary)] text-[var(--color-primary)]' : 'border-transparent text-[var(--color-text-muted)] hover:text-[var(--color-text-main)]'}`}
+            className={`pb-3 text-sm font-medium transition-colors border-b-2 ${activeTab === t.id ? 'border-[var(--sage-dark)] text-[var(--sage-dark)]' : 'border-transparent text-[var(--muted)] hover:text-[var(--ink)]'}`}
           >
             {t.label}
           </button>
@@ -49,6 +49,7 @@ export function Configuracoes() {
 function AbaGeral() {
   const { config, refreshConfig } = useClinic();
   const [nome, setNome] = useState(config?.nome || 'Heroic Leap');
+  const [subtitulo, setSubtitulo] = useState(config?.subtitulo || '');
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
@@ -57,6 +58,7 @@ function AbaGeral() {
 
   useEffect(() => {
     setNome(config?.nome || 'Heroic Leap');
+    setSubtitulo(config?.subtitulo || '');
   }, [config]);
 
   useEffect(() => {
@@ -98,7 +100,7 @@ function AbaGeral() {
           logo_url = urlReq.data.publicUrl;
         }
       }
-      await supabase.from('clinic_config').update({ nome, logo_url }).eq('id', 1);
+      await supabase.from('clinic_config').update({ nome, subtitulo: subtitulo || null, logo_url }).eq('id', 1);
       await refreshConfig();
       setLogoFile(null); // limpa preview local para forçar carregar do servidor
       alert('Configurações salvas com sucesso!');
@@ -129,6 +131,12 @@ function AbaGeral() {
         <CardHeader><CardTitle>Identidade da Empresa</CardTitle></CardHeader>
         <CardContent className="space-y-4">
           <Input label="Nome da empresa" value={nome} onChange={e => setNome(e.target.value)} />
+          <Input
+            label="Subtítulo (aparece abaixo do nome na sidebar)"
+            placeholder="Ex: Dra. Ana · Estética Avançada"
+            value={subtitulo}
+            onChange={e => setSubtitulo(e.target.value)}
+          />
 
           {/* Logo upload estilizado */}
           <div>
@@ -137,7 +145,7 @@ function AbaGeral() {
               {(logoFile ? URL.createObjectURL(logoFile) : config?.logo_url) && (
                 <img
                   src={logoFile ? URL.createObjectURL(logoFile) : config?.logo_url || ''}
-                  className="h-14 w-auto object-contain border border-[var(--color-border-card)] rounded-lg p-1"
+                  className="h-14 w-auto object-contain border border-[var(--border)] rounded-lg p-1"
                   alt="Logo atual"
                 />
               )}
@@ -166,7 +174,7 @@ function AbaGeral() {
               {logoFile && (
                 <button
                   onClick={() => setLogoFile(null)}
-                  className="text-xs text-[var(--color-text-muted)] hover:text-[var(--color-error)] transition-colors"
+                  className="text-xs text-[var(--muted)] hover:text-[var(--color-error)] transition-colors"
                 >
                   Remover
                 </button>
@@ -182,14 +190,14 @@ function AbaGeral() {
         <CardHeader><CardTitle>Horário de Funcionamento</CardTitle></CardHeader>
         <CardContent>
           {hours.length === 0 ? (
-            <p className="text-sm text-[var(--color-text-muted)] py-4">Carregando horários...</p>
+            <p className="text-sm text-[var(--muted)] py-4">Carregando horários...</p>
           ) : (
-            <div className="divide-y divide-[var(--color-border-card)]">
+            <div className="divide-y divide-[var(--border)]">
               {hours.map((h, i) => (
                 <div key={h.id} className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 py-4 sm:py-3">
                   <div className="flex items-center justify-between w-full sm:w-auto">
                     {/* Dia */}
-                    <div className="w-32 sm:w-36 text-sm font-medium text-[var(--color-text-main)]">
+                    <div className="w-32 sm:w-36 text-sm font-medium text-[var(--ink)]">
                       {diasPT[h.dia] || h.dia}
                     </div>
 
@@ -199,11 +207,11 @@ function AbaGeral() {
                         onClick={() => {
                           const newH = [...hours]; newH[i].aberto = !newH[i].aberto; setHours(newH);
                         }}
-                        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 focus:outline-none flex-shrink-0 ${h.aberto ? 'bg-[var(--color-primary)]' : 'bg-gray-300'}`}
+                        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 focus:outline-none flex-shrink-0 ${h.aberto ? 'bg-[var(--sage-dark)]' : 'bg-gray-300'}`}
                       >
                         <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform duration-200 ${h.aberto ? 'translate-x-4' : 'translate-x-1'}`} />
                       </button>
-                      <span className={`text-xs w-14 ${h.aberto ? 'text-[var(--color-primary)] font-medium' : 'text-[var(--color-text-muted)]'}`}>
+                      <span className={`text-xs w-14 ${h.aberto ? 'text-[var(--sage-dark)] font-medium' : 'text-[var(--muted)]'}`}>
                         {h.aberto ? 'Aberto' : 'Fechado'}
                       </span>
                     </div>
@@ -216,24 +224,24 @@ function AbaGeral() {
                         type="time"
                         value={h.hora_inicio || '08:00'}
                         onChange={e => { const newH = [...hours]; newH[i].hora_inicio = e.target.value; setHours(newH); }}
-                        className="border border-[var(--color-border-card)] flex-1 sm:flex-none w-full sm:w-auto rounded-lg px-2 sm:px-3 py-1.5 text-sm text-[var(--color-text-main)] bg-white focus:outline-none focus:border-[var(--color-primary)] transition-colors"
+                        className="border border-[var(--border)] flex-1 sm:flex-none w-full sm:w-auto rounded-lg px-2 sm:px-3 py-1.5 text-sm text-[var(--ink)] bg-white focus:outline-none focus:border-[var(--sage-dark)] transition-colors"
                       />
-                      <span className="text-sm text-[var(--color-text-muted)]">até</span>
+                      <span className="text-sm text-[var(--muted)]">até</span>
                       <input
                         type="time"
                         value={h.hora_fim || '18:00'}
                         onChange={e => { const newH = [...hours]; newH[i].hora_fim = e.target.value; setHours(newH); }}
-                        className="border border-[var(--color-border-card)] flex-1 sm:flex-none w-full sm:w-auto rounded-lg px-2 sm:px-3 py-1.5 text-sm text-[var(--color-text-main)] bg-white focus:outline-none focus:border-[var(--color-primary)] transition-colors"
+                        className="border border-[var(--border)] flex-1 sm:flex-none w-full sm:w-auto rounded-lg px-2 sm:px-3 py-1.5 text-sm text-[var(--ink)] bg-white focus:outline-none focus:border-[var(--sage-dark)] transition-colors"
                       />
                     </div>
                   ) : (
-                    <span className="text-sm text-[var(--color-text-muted)] italic mt-1 sm:mt-0">Não atende neste dia</span>
+                    <span className="text-sm text-[var(--muted)] italic mt-1 sm:mt-0">Não atende neste dia</span>
                   )}
                 </div>
               ))}
             </div>
           )}
-          <div className="pt-4 border-t border-[var(--color-border-card)] mt-2">
+          <div className="pt-4 border-t border-[var(--border)] mt-2">
             <Button onClick={saveHours} loading={loadingHours}>Salvar horários</Button>
           </div>
         </CardContent>
@@ -267,7 +275,7 @@ function AbaUsuarios() {
         </div>
       </CardHeader>
       <CardContent>
-        <p className="text-sm text-[var(--color-text-muted)]">Nesta versão MVP a gestão de usuários por interface administrativa depende do Auth Admin e será expandida posteriormente.</p>
+        <p className="text-sm text-[var(--muted)]">Nesta versão MVP a gestão de usuários por interface administrativa depende do Auth Admin e será expandida posteriormente.</p>
         <Modal isOpen={open} onClose={() => setOpen(false)} title="Adicionar usuário">
           <div className="space-y-4">
             <Input label="E-mail" value={email} onChange={e=>setEmail(e.target.value)}/>
@@ -297,10 +305,10 @@ function AbaKanban() {
     <Card>
       <CardHeader>
         <CardTitle>Referência do CRM</CardTitle>
-        <p className="text-sm text-[var(--color-text-muted)] mt-1">Use os valores abaixo para atualizar o status dos leads via N8N ou agente de IA.</p>
+        <p className="text-sm text-[var(--muted)] mt-1">Use os valores abaixo para atualizar o status dos leads via N8N ou agente de IA.</p>
       </CardHeader>
       <CardContent>
-        <table className="w-full text-left text-sm border border-[var(--color-border-card)] rounded-lg overflow-hidden">
+        <table className="w-full text-left text-sm border border-[var(--border)] rounded-lg overflow-hidden">
           <thead className="bg-[#FAF0EE] dark:bg-black/20">
             <tr>
               <th className="p-3">Coluna do Kanban</th>
@@ -309,13 +317,13 @@ function AbaKanban() {
           </thead>
           <tbody>
             {status.map((item, i) => (
-              <tr key={i} className="border-t border-[var(--color-border-card)]">
+              <tr key={i} className="border-t border-[var(--border)]">
                 <td className="p-3"><Badge variant={item.db as any}>{item.kanban}</Badge></td>
                 <td className="p-3 font-mono text-xs flex items-center justify-between group">
                   <span>{item.db}</span>
                   <button 
                     onClick={() => navigator.clipboard.writeText(item.db)}
-                    className="p-1 rounded text-[var(--color-text-muted)] hover:bg-[var(--color-border-card)] hover:text-[var(--color-primary)] transition-colors opacity-0 group-hover:opacity-100"
+                    className="p-1 rounded text-[var(--muted)] hover:bg-[var(--border)] hover:text-[var(--sage-dark)] transition-colors opacity-0 group-hover:opacity-100"
                     title="Copiar"
                   >
                     <Copy className="w-4 h-4" />
@@ -397,7 +405,7 @@ function AbaAgendas() {
         <div className="flex justify-between items-center">
           <div>
             <CardTitle>Agendas (Cal.com)</CardTitle>
-            <p className="text-sm text-[var(--color-text-muted)] mt-1">Conecte seus profissionais ou salas aos Event Types do Cal.com.</p>
+            <p className="text-sm text-[var(--muted)] mt-1">Conecte seus profissionais ou salas aos Event Types do Cal.com.</p>
           </div>
           <Button onClick={() => setOpenNew(true)} size="sm"><Plus className="w-4 h-4 mr-2"/> Nova Agenda</Button>
         </div>
@@ -405,11 +413,11 @@ function AbaAgendas() {
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {agendas.map(ag => (
-            <div key={ag.id} className="border border-[var(--color-border-card)] rounded-[12px] p-4 flex flex-col gap-3 relative overflow-hidden bg-white">
+            <div key={ag.id} className="border border-[var(--border)] rounded-[12px] p-4 flex flex-col gap-3 relative overflow-hidden bg-white">
               <div className="absolute top-0 left-0 w-2 h-full" style={{ backgroundColor: ag.cor }}></div>
               <div className="flex justify-between items-start pl-3">
                 <div>
-                  <h3 className="font-bold text-lg text-[var(--color-text-main)] flex items-center gap-2">
+                  <h3 className="font-bold text-lg text-[var(--ink)] flex items-center gap-2">
                     {ag.nome}
                     {!ag.ativo && <Badge variant="default" className="text-[10px]">Inativo</Badge>}
                   </h3>
@@ -430,7 +438,7 @@ function AbaAgendas() {
             </div>
           ))}
           {agendas.length === 0 && (
-             <div className="col-span-1 md:col-span-2 text-center py-8 text-[var(--color-text-muted)] border border-dashed border-[var(--color-border-card)] rounded-lg">
+             <div className="col-span-1 md:col-span-2 text-center py-8 text-[var(--muted)] border border-dashed border-[var(--border)] rounded-lg">
                Nenhuma agenda cadastrada.
              </div>
           )}
@@ -444,18 +452,18 @@ function AbaAgendas() {
           <div className="space-y-4">
             <Input label="Nome da Cadeira / Profissional" placeholder="Ex: Dra. Juliana" value={form.nome} onChange={e=>setForm({...form, nome: e.target.value})}/>
             <div>
-               <label className="block text-sm font-medium text-[var(--color-text-main)] mb-1">Link da Agenda no Cal.com</label>
+               <label className="block text-sm font-medium text-[var(--ink)] mb-1">Link da Agenda no Cal.com</label>
                <input
                  type="text"
-                 className="w-full border border-[var(--color-border-card)] rounded-[8px] px-3 py-2 text-sm bg-[var(--color-bg-base)] text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                 className="w-full border border-[var(--border)] rounded-[8px] px-3 py-2 text-sm bg-[var(--bg)] text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--sage-dark)]"
                  placeholder="Ex: cal.com/suaclinica/dr-bruno"
                  value={form.calcom_link}
                  onChange={e=>setForm({...form, calcom_link: e.target.value})}
                />
-               <p className="text-xs text-[var(--color-text-muted)] mt-1">Copie e cole o link público oficial do "Event Type" criado no Cal.com.</p>
+               <p className="text-xs text-[var(--muted)] mt-1">Copie e cole o link público oficial do "Event Type" criado no Cal.com.</p>
             </div>
             <div>
-               <label className="block text-sm font-medium text-[var(--color-text-main)] mb-1">Cor de identificação</label>
+               <label className="block text-sm font-medium text-[var(--ink)] mb-1">Cor de identificação</label>
                <div className="flex gap-2">
                   <input
                     type="color"
@@ -463,7 +471,7 @@ function AbaAgendas() {
                     value={form.cor}
                     onChange={e=>setForm({...form, cor: e.target.value})}
                   />
-                  <div className="text-xs text-[var(--color-text-muted)] self-center">Aparece na barra lateral desta agenda</div>
+                  <div className="text-xs text-[var(--muted)] self-center">Aparece na barra lateral desta agenda</div>
                </div>
             </div>
 
@@ -519,7 +527,7 @@ function AbaServicos() {
         <div className="flex justify-between items-center">
           <div>
             <CardTitle>Serviços Prestados</CardTitle>
-            <p className="text-sm text-[var(--color-text-muted)] mt-1">Cadastre os serviços que serão selecionados quando uma venda for fechada.</p>
+            <p className="text-sm text-[var(--muted)] mt-1">Cadastre os serviços que serão selecionados quando uma venda for fechada.</p>
           </div>
           <Button onClick={() => setOpenNew(true)} size="sm"><Plus className="w-4 h-4 mr-2"/> Novo Serviço</Button>
         </div>
@@ -527,8 +535,8 @@ function AbaServicos() {
       <CardContent>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           {servicos.map(srv => (
-            <div key={srv.id} className="border border-[var(--color-border-card)] rounded-[12px] p-4 flex justify-between items-center bg-[var(--color-bg-base)] group">
-              <span className="font-medium text-[var(--color-text-main)] truncate pr-2">{srv.nome}</span>
+            <div key={srv.id} className="border border-[var(--border)] rounded-[12px] p-4 flex justify-between items-center bg-[var(--bg)] group">
+              <span className="font-medium text-[var(--ink)] truncate pr-2">{srv.nome}</span>
               <button 
                 onClick={() => deleteServico(srv.id)} 
                 className="p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors rounded opacity-0 group-hover:opacity-100" 
@@ -539,7 +547,7 @@ function AbaServicos() {
             </div>
           ))}
           {servicos.length === 0 && (
-             <div className="col-span-1 sm:col-span-2 md:col-span-3 text-center py-8 text-[var(--color-text-muted)] border border-dashed border-[var(--color-border-card)] rounded-lg">
+             <div className="col-span-1 sm:col-span-2 md:col-span-3 text-center py-8 text-[var(--muted)] border border-dashed border-[var(--border)] rounded-lg">
                Nenhum serviço cadastrado.
              </div>
           )}
@@ -702,16 +710,16 @@ function AbaWhatsApp() {
               <button
                 key={p}
                 onClick={() => setProvider(p)}
-                className={`flex flex-col items-start gap-1 p-4 rounded-[12px] border-2 text-left transition-colors ${provider === p ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/5' : 'border-[var(--color-border-card)] hover:border-[var(--color-primary)]/40'}`}
+                className={`flex flex-col items-start gap-1 p-4 rounded-[12px] border-2 text-left transition-colors ${provider === p ? 'border-[var(--sage-dark)] bg-[var(--sage-dark)]/5' : 'border-[var(--border)] hover:border-[var(--sage-dark)]/40'}`}
               >
-                <span className="font-semibold text-sm text-[var(--color-text-main)]">
+                <span className="font-semibold text-sm text-[var(--ink)]">
                   {p === 'meta' ? 'Meta Cloud API' : 'Evolution API'}
                 </span>
-                <span className="text-xs text-[var(--color-text-muted)]">
+                <span className="text-xs text-[var(--muted)]">
                   {p === 'meta' ? 'API oficial do WhatsApp Business (Meta)' : 'API self-hosted (Evolution)'}
                 </span>
                 {provider === p && (
-                  <span className="mt-1 text-[10px] font-bold uppercase tracking-wide text-[var(--color-primary)]">Ativo</span>
+                  <span className="mt-1 text-[10px] font-bold uppercase tracking-wide text-[var(--sage-dark)]">Ativo</span>
                 )}
               </button>
             ))}
@@ -724,7 +732,7 @@ function AbaWhatsApp() {
         <Card>
           <CardHeader>
             <CardTitle>Meta Cloud API — Credenciais</CardTitle>
-            <p className="text-sm text-[var(--color-text-muted)] mt-1">
+            <p className="text-sm text-[var(--muted)] mt-1">
               Encontre esses dados em <span className="font-mono text-xs">developers.facebook.com → Seu App → WhatsApp</span>
             </p>
           </CardHeader>
@@ -767,7 +775,7 @@ function AbaWhatsApp() {
         <Card>
           <CardHeader>
             <CardTitle>Evolution API — Credenciais</CardTitle>
-            <p className="text-sm text-[var(--color-text-muted)] mt-1">
+            <p className="text-sm text-[var(--muted)] mt-1">
               Servidor self-hosted da Evolution API
             </p>
           </CardHeader>
@@ -803,7 +811,7 @@ function AbaWhatsApp() {
               <button
                 onClick={verificarStatus}
                 disabled={checkingStatus}
-                className="text-xs text-[var(--color-primary)] hover:underline disabled:opacity-50"
+                className="text-xs text-[var(--sage-dark)] hover:underline disabled:opacity-50"
               >
                 {checkingStatus ? 'Verificando...' : 'Verificar status'}
               </button>
@@ -832,16 +840,16 @@ function AbaWhatsApp() {
                 <button
                   onClick={gerarQrCode}
                   disabled={generatingQr}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-[8px] bg-[var(--color-primary)] text-white text-sm font-medium hover:opacity-90 disabled:opacity-50 transition-opacity"
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-[8px] bg-[var(--sage-dark)] text-white text-sm font-medium hover:opacity-90 disabled:opacity-50 transition-opacity"
                 >
                   {generatingQr ? 'Gerando QR Code...' : 'Gerar QR Code para conectar'}
                 </button>
 
                 {qrCode && (
-                  <div className="flex flex-col items-center gap-3 p-4 bg-white border border-[var(--color-border-card)] rounded-[12px]">
-                    <p className="text-sm font-medium text-[var(--color-text-main)]">Escaneie com o WhatsApp do celular</p>
+                  <div className="flex flex-col items-center gap-3 p-4 bg-white border border-[var(--border)] rounded-[12px]">
+                    <p className="text-sm font-medium text-[var(--ink)]">Escaneie com o WhatsApp do celular</p>
                     <img src={qrCode} alt="QR Code WhatsApp" className="w-48 h-48 rounded-[8px]" />
-                    <ol className="text-xs text-[var(--color-text-muted)] space-y-1 self-start">
+                    <ol className="text-xs text-[var(--muted)] space-y-1 self-start">
                       <li>1. Abra o WhatsApp no celular</li>
                       <li>2. Toque em <strong>⋮ → Aparelhos conectados</strong></li>
                       <li>3. Toque em <strong>Conectar um aparelho</strong></li>
@@ -850,7 +858,7 @@ function AbaWhatsApp() {
                     <button
                       onClick={verificarStatus}
                       disabled={checkingStatus}
-                      className="text-xs text-[var(--color-primary)] hover:underline disabled:opacity-50"
+                      className="text-xs text-[var(--sage-dark)] hover:underline disabled:opacity-50"
                     >
                       {checkingStatus ? 'Verificando...' : 'Já escaneei — verificar conexão'}
                     </button>
@@ -864,7 +872,7 @@ function AbaWhatsApp() {
               <button
                 onClick={verificarStatus}
                 disabled={checkingStatus}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-[8px] border border-[var(--color-border-card)] text-sm font-medium hover:bg-[var(--color-bg-card)] disabled:opacity-50 transition-colors"
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-[8px] border border-[var(--border)] text-sm font-medium hover:bg-[var(--white)] disabled:opacity-50 transition-colors"
               >
                 {checkingStatus ? 'Verificando...' : 'Verificar status da conexão'}
               </button>
@@ -877,7 +885,7 @@ function AbaWhatsApp() {
       <Card>
         <CardHeader>
           <CardTitle>Webhook — Nota da Médica (IA)</CardTitle>
-          <p className="text-sm text-[var(--color-text-muted)] mt-1">
+          <p className="text-sm text-[var(--muted)] mt-1">
             Quando a médica salvar uma nota no perfil do paciente, este webhook será disparado para o n8n. A IA lerá a nota e enviará a mensagem ao paciente via WhatsApp.
           </p>
         </CardHeader>

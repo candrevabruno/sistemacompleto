@@ -1,0 +1,59 @@
+/* Cards */
+.card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  box-shadow: var(--shadow-sm);
+  padding: 20px;
+}
+
+.card-sm {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 14px 16px;
+}
+
+/* Botões */
+.btn-primary {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: var(--sage-dark); color: #fff;
+  border: none; border-radius: var(--r-xs);
+  padding: 9px 16px; font-size: 13px; font-weight: 500;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  cursor: pointer; transition: background 0.12s;
+}
+.btn-primary:hover { background: #455c4d; }
+
+.btn-ghost {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: transparent; color: var(--muted);
+  border: 1px solid var(--border-md); border-radius: var(--r-xs);
+  padding: 8px 14px; font-size: 12.5px; font-weight: 500;
+  cursor: pointer;
+}
+
+/* Badges de status */
+.badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 500; }
+.badge-sage   { background: var(--sage-xlight); color: var(--sage-dark); }
+.badge-champ  { background: var(--champ-light);  color: var(--champ-text); }
+.badge-rose   { background: var(--rose-light);   color: var(--rose-text); }
+
+/* Nav item da sidebar */
+.nav-item {
+  display: flex; align-items: center; gap: 9px;
+  padding: 9px 12px; border-radius: var(--r-xs);
+  color: var(--muted); font-size: 13px; font-weight: 400;
+  cursor: pointer; position: relative; transition: all 0.12s;
+}
+.nav-item:hover { background: var(--sage-xlight); color: var(--sage-dark); }
+.nav-item.active { background: var(--sage-xlight); color: var(--sage-dark); font-weight: 500; }
+.nav-item.active::before {
+  content: ''; position: absolute; left: 0; top: 20%; height: 60%;
+  width: 3px; background: var(--sage-dark); border-radius: 0 3px 3px 0;
+}
+
+/* Linha de urgência nos cards de lead */
+.urgency-urgent { border-left: 3px solid #E57373; }
+.urgency-medium { border-left: 3px solid var(--champ); }
+.urgency-normal { border-left: 3px solid var(--sage); }

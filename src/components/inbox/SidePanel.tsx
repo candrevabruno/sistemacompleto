@@ -45,6 +45,8 @@ export function SidePanel({ conversa, onAssumirAtendimento, onRetornarParaIA }: 
   const [conversaTagIds, setConversaTagIds] = useState<string[]>([]);
   const [tarefas, setTarefas] = useState<Tarefa[]>([]);
   const [leadStatus, setLeadStatus] = useState<string | null>(null);
+  const [isPaciente, setIsPaciente] = useState(false);
+  const [resumoProfissional, setResumoProfissional] = useState<string | null>(null);
   const [novaTarefa, setNovaTarefa] = useState('');
   const [novaTag, setNovaTag] = useState('');
   const [addingTag, setAddingTag] = useState(false);
@@ -66,6 +68,8 @@ export function SidePanel({ conversa, onAssumirAtendimento, onRetornarParaIA }: 
       setLeadStatus(null);
       setLead(null);
       setAgendamento(null);
+      setIsPaciente(false);
+      setResumoProfissional(null);
       return;
     }
     loadConversaTags(conversa.id);
@@ -77,6 +81,8 @@ export function SidePanel({ conversa, onAssumirAtendimento, onRetornarParaIA }: 
       setTarefas([]);
       setLeadStatus(null);
       setAgendamento(null);
+      setIsPaciente(false);
+      setResumoProfissional(null);
     }
   }, [conversa?.id]);
 
@@ -138,6 +144,15 @@ export function SidePanel({ conversa, onAssumirAtendimento, onRetornarParaIA }: 
         .limit(1)
         .maybeSingle();
       setAgendamento(apt);
+
+      // Verificar se é paciente e carregar resumo do profissional
+      const { data: pac } = await supabase
+        .from('pacientes')
+        .select('id, resumo')
+        .eq('lead_id', leadId)
+        .maybeSingle();
+      setIsPaciente(!!pac);
+      setResumoProfissional(pac?.resumo ?? null);
     }
   }
 
@@ -209,8 +224,8 @@ export function SidePanel({ conversa, onAssumirAtendimento, onRetornarParaIA }: 
 
   if (!conversa) {
     return (
-      <div className="w-[280px] flex-shrink-0 border-l border-[var(--color-border-card)] flex items-center justify-center p-6 bg-[var(--color-bg-base)]">
-        <p className="text-xs text-[var(--color-text-muted)] text-center">
+      <div className="w-[288px] flex-shrink-0 border-l border-[var(--border)] flex items-center justify-center p-6 bg-[var(--bg)]">
+        <p className="text-xs text-[var(--muted)] text-center">
           Selecione uma conversa para ver detalhes
         </p>
       </div>
@@ -226,33 +241,47 @@ export function SidePanel({ conversa, onAssumirAtendimento, onRetornarParaIA }: 
   const tagsAtivas = allTags.filter(t => ativosTagIds.includes(t.id));
   const tagsInativas = allTags.filter(t => !ativosTagIds.includes(t.id));
 
+  const cardCls = 'rounded-[12px] border border-[var(--border)] bg-[var(--white)] shadow-[0_1px_4px_rgba(4,52,44,0.06)]';
+  const sectionLabel = 'text-[11px] font-semibold text-[var(--ink)] mb-3 opacity-60';
+
   return (
-    <div className="w-[280px] flex-shrink-0 border-l border-[var(--color-border-card)] flex flex-col overflow-y-auto bg-[var(--color-bg-base)]">
+    <div className="w-[288px] flex-shrink-0 border-l border-[var(--border)] flex flex-col overflow-y-auto bg-[var(--bg)] gap-2.5 p-3">
 
       {/* ── 1. PACIENTE ─────────────────────────────────────── */}
-      <div className="p-4 border-b border-[var(--color-border-card)]">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-3">Paciente</p>
-        <div className="flex gap-3 items-start mb-3">
-          <div className="w-9 h-9 rounded-full bg-[var(--color-primary)] flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
+      <div className={cardCls + ' p-4'}>
+        <p className={sectionLabel}>Contato</p>
+        <div className="flex gap-3 items-center mb-4">
+          <div
+            className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0"
+            style={{ background: 'linear-gradient(135deg, var(--sage-dark), var(--sage))' }}
+          >
             {iniciais}
           </div>
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-[var(--color-text-main)] leading-tight">
-              {conversa.nome_contato || '—'}
-            </p>
-            <p className="text-xs text-[var(--color-text-muted)] mt-0.5">{conversa.whatsapp_number}</p>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <p className="text-sm font-semibold text-[var(--ink)] leading-tight">
+                {conversa.nome_contato || '—'}
+              </p>
+              {isPaciente && (
+                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full leading-none"
+                  style={{ background: 'rgba(124,58,237,0.1)', color: '#7c3aed', border: '1px solid rgba(124,58,237,0.2)' }}>
+                  Paciente
+                </span>
+              )}
+            </div>
+            <p className="text-[11px] text-[var(--muted)] mt-0.5">{conversa.whatsapp_number}</p>
           </div>
         </div>
         <div className="grid grid-cols-2 gap-2">
-          <div>
-            <p className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wide">Origem</p>
-            <p className="text-xs font-medium text-[var(--color-text-main)] mt-0.5">{lead?.origem || '—'}</p>
+          <div className="rounded-[8px] p-2.5" style={{ background: 'var(--sage-xlight)' }}>
+            <p className="text-[10px] text-[var(--muted)] mb-0.5">Origem</p>
+            <p className="text-xs font-semibold text-[var(--ink)]">{lead?.origem || '—'}</p>
           </div>
-          <div>
-            <p className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wide">Primeiro contato</p>
-            <p className="text-xs font-medium text-[var(--color-text-main)] mt-0.5">
+          <div className="rounded-[8px] p-2.5" style={{ background: 'var(--sage-xlight)' }}>
+            <p className="text-[10px] text-[var(--muted)] mb-0.5">1º contato</p>
+            <p className="text-xs font-semibold text-[var(--ink)]">
               {conversa.created_at
-                ? format(new Date(conversa.created_at), 'dd/MM/yyyy', { locale: ptBR })
+                ? format(new Date(conversa.created_at), 'dd/MM/yy', { locale: ptBR })
                 : '—'}
             </p>
           </div>
@@ -260,46 +289,47 @@ export function SidePanel({ conversa, onAssumirAtendimento, onRetornarParaIA }: 
       </div>
 
       {/* ── 2. ATENDIMENTO ──────────────────────────────────── */}
-      <div className="p-4 border-b border-[var(--color-border-card)]">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-3">Atendimento</p>
+      <div className={cardCls + ' p-4'}>
+        <p className={sectionLabel}>Atendimento</p>
 
         {conversa.is_human ? (
           <>
-            {/* Estado: Humano ativo */}
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-orange-500 flex-shrink-0" />
                 <span className="text-xs font-semibold text-orange-600">Humano ativo</span>
               </div>
-              <span className="text-[10px] text-[var(--color-text-muted)] bg-orange-50 border border-orange-200/60 px-2 py-0.5 rounded-full">
+              <span className="text-[10px] px-2 py-0.5 rounded-full font-medium"
+                style={{ background: 'rgba(234,88,12,0.08)', color: '#c2410c', border: '1px solid rgba(234,88,12,0.15)' }}>
                 IA pausada
               </span>
             </div>
 
-            <div className="flex gap-2 items-center mb-3">
-              <div className="w-7 h-7 rounded-full bg-[var(--color-primary)]/20 flex items-center justify-center text-[var(--color-primary)] text-xs font-bold flex-shrink-0">
+            <div className="flex gap-2.5 items-center mb-3 p-2.5 rounded-[8px]" style={{ background: 'var(--sage-xlight)' }}>
+              <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+                style={{ background: 'var(--sage-dark)' }}>
                 {conversa.handoff_by_name?.split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase() || 'AT'}
               </div>
               <div>
-                <p className="text-xs font-semibold text-[var(--color-text-main)] leading-tight">
+                <p className="text-xs font-semibold text-[var(--ink)] leading-tight">
                   {conversa.handoff_by_name || 'Atendente'}
                 </p>
-                <p className="text-[10px] text-[var(--color-text-muted)]">Atendente</p>
+                <p className="text-[10px] text-[var(--muted)]">Atendente responsável</p>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-x-3 mb-3">
-              <div>
-                <p className="text-[10px] text-[var(--color-text-muted)]">Assumiu às</p>
-                <p className="text-xs font-medium text-[var(--color-text-main)] mt-0.5">
+            <div className="grid grid-cols-2 gap-2 mb-3">
+              <div className="rounded-[8px] p-2.5" style={{ background: 'var(--sage-xlight)' }}>
+                <p className="text-[10px] text-[var(--muted)] mb-0.5">Assumiu às</p>
+                <p className="text-xs font-semibold text-[var(--ink)]">
                   {conversa.handoff_at
                     ? format(new Date(conversa.handoff_at), 'HH:mm', { locale: ptBR })
                     : '—'}
                 </p>
               </div>
-              <div>
-                <p className="text-[10px] text-[var(--color-text-muted)]">Tempo em atendimento</p>
-                <p className="text-xs font-medium text-[var(--color-text-main)] font-mono mt-0.5">
+              <div className="rounded-[8px] p-2.5" style={{ background: 'var(--sage-xlight)' }}>
+                <p className="text-[10px] text-[var(--muted)] mb-0.5">Tempo</p>
+                <p className="text-xs font-semibold text-[var(--ink)] font-mono">
                   {tempoAtendimento || '—'}
                 </p>
               </div>
@@ -308,7 +338,7 @@ export function SidePanel({ conversa, onAssumirAtendimento, onRetornarParaIA }: 
             <button
               onClick={handleRetornar}
               disabled={retornando}
-              className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium rounded-[8px] border border-[var(--color-border-card)] text-[var(--color-text-main)] hover:bg-[var(--color-bg-card)] disabled:opacity-50 transition-colors"
+              className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium rounded-[8px] border border-[var(--border)] text-[var(--ink)] hover:bg-[var(--bg)] disabled:opacity-50 transition-colors"
             >
               <Bot className="w-3.5 h-3.5" />
               {retornando ? 'Retornando...' : 'Retornar para IA'}
@@ -316,31 +346,31 @@ export function SidePanel({ conversa, onAssumirAtendimento, onRetornarParaIA }: 
           </>
         ) : (
           <>
-            {/* Estado: IA ativa */}
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0" />
-                <span className="text-xs font-semibold text-green-600">IA ativa</span>
+                <span className="w-2 h-2 rounded-full bg-[var(--sage)] flex-shrink-0" />
+                <span className="text-xs font-semibold" style={{ color: 'var(--sage-dark)' }}>IA ativa</span>
               </div>
-              <span className="text-[10px] text-[var(--color-text-muted)] bg-green-50 border border-green-200/60 px-2 py-0.5 rounded-full flex items-center gap-1">
+              <span className="text-[10px] px-2 py-0.5 rounded-full font-medium flex items-center gap-1"
+                style={{ background: 'var(--sage-xlight)', color: 'var(--sage-dark)', border: '1px solid rgba(15,110,86,0.15)' }}>
                 <Bot className="w-2.5 h-2.5" /> automático
               </span>
             </div>
 
             {(conversa.ia_ultima_acao || conversa.ia_ultima_interacao_at) && (
-              <div className="space-y-1.5 mb-3">
+              <div className="rounded-[8px] p-2.5 mb-3 space-y-1.5" style={{ background: 'var(--sage-xlight)' }}>
                 {conversa.ia_ultima_acao && (
-                  <div className="flex justify-between text-xs">
-                    <span className="text-[var(--color-text-muted)]">Última ação</span>
-                    <span className="font-medium text-[var(--color-text-main)] text-right max-w-[140px] truncate">
+                  <div className="flex justify-between text-xs gap-2">
+                    <span className="text-[var(--muted)] flex-shrink-0">Última ação</span>
+                    <span className="font-medium text-[var(--ink)] text-right truncate max-w-[130px]">
                       {conversa.ia_ultima_acao}
                     </span>
                   </div>
                 )}
                 {conversa.ia_ultima_interacao_at && (
-                  <div className="flex justify-between text-xs">
-                    <span className="text-[var(--color-text-muted)]">Última interação</span>
-                    <span className="font-medium text-[var(--color-text-main)]">
+                  <div className="flex justify-between text-xs gap-2">
+                    <span className="text-[var(--muted)] flex-shrink-0">Interação</span>
+                    <span className="font-medium text-[var(--ink)]">
                       {formatDistanceToNow(new Date(conversa.ia_ultima_interacao_at), { locale: ptBR, addSuffix: true })}
                     </span>
                   </div>
@@ -351,7 +381,8 @@ export function SidePanel({ conversa, onAssumirAtendimento, onRetornarParaIA }: 
             <button
               onClick={handleAssumir}
               disabled={assumindo}
-              className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium rounded-[8px] bg-[var(--color-primary)] text-white hover:opacity-90 disabled:opacity-50 transition-opacity"
+              className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium rounded-[8px] text-white hover:opacity-90 disabled:opacity-50 transition-opacity"
+              style={{ background: 'var(--sage-dark)' }}
             >
               <UserCheck className="w-3.5 h-3.5" />
               {assumindo ? 'Assumindo...' : 'Assumir atendimento'}
@@ -361,102 +392,120 @@ export function SidePanel({ conversa, onAssumirAtendimento, onRetornarParaIA }: 
       </div>
 
       {/* ── 3. RESUMO DA IA ─────────────────────────────────── */}
-      {lead?.resumo_conversa && (
-        <div className="p-4 border-b border-[var(--color-border-card)]">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-muted)]">Resumo da IA</p>
-            <span className="text-[10px] text-[var(--color-text-muted)]">
+      <div className={cardCls + ' p-4'}>
+        <div className="flex items-center justify-between mb-2">
+          <p className={sectionLabel} style={{ marginBottom: 0 }}>Resumo da IA</p>
+          {lead?.resumo_conversa && (
+            <span className="text-[10px] text-[var(--muted)]">
               {conversa.is_human && conversa.handoff_at
-                ? 'gerado antes da transferência'
-                : `atualizado ${formatDistanceToNow(new Date(lead.inicio_atendimento), { locale: ptBR, addSuffix: false })} atrás`}
+                ? 'antes da transferência'
+                : `${formatDistanceToNow(new Date(lead.inicio_atendimento), { locale: ptBR, addSuffix: false })} atrás`}
             </span>
-          </div>
-          {conversa.is_human && conversa.handoff_at && (
-            <div className="flex items-center gap-1.5 mb-2 text-[10px] text-amber-600 bg-amber-50 border border-amber-200/60 rounded-[6px] px-2 py-1">
-              <span>⚠</span>
-              <span>Resumo gerado antes da transferência</span>
-            </div>
           )}
-          <p className="text-xs text-[var(--color-text-main)] leading-relaxed">{lead.resumo_conversa}</p>
+        </div>
+        {conversa.is_human && conversa.handoff_at && lead?.resumo_conversa && (
+          <div className="flex items-center gap-1.5 my-2 text-[10px] rounded-[6px] px-2.5 py-1.5"
+            style={{ background: 'rgba(234,179,8,0.08)', color: '#a16207', border: '1px solid rgba(234,179,8,0.2)' }}>
+            <span>⚠</span>
+            <span>Gerado antes da transferência</span>
+          </div>
+        )}
+        {lead?.resumo_conversa ? (
+          <p className="text-xs text-[var(--ink)] leading-relaxed mt-2">{lead.resumo_conversa}</p>
+        ) : (
+          <div className="rounded-[8px] p-3 text-center mt-2" style={{ background: 'var(--sage-xlight)' }}>
+            <p className="text-xs text-[var(--muted)]">Nenhum resumo gerado ainda</p>
+          </div>
+        )}
+      </div>
+
+      {/* ── 3b. NOTAS DO PROFISSIONAL ───────────────────────── */}
+      {resumoProfissional && (
+        <div className={cardCls + ' p-4'}>
+          <p className={sectionLabel}>Notas do Profissional</p>
+          <p className="text-xs text-[var(--ink)] leading-relaxed">{resumoProfissional}</p>
         </div>
       )}
 
       {/* ── 4. PRÓXIMA CONSULTA ─────────────────────────────── */}
-      <div className="p-4 border-b border-[var(--color-border-card)]">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-3">Próxima Consulta</p>
+      <div className={cardCls + ' p-4'}>
+        <p className={sectionLabel}>Próxima Consulta</p>
         {agendamento ? (
-          <div className="space-y-2 text-xs">
+          <div className="space-y-2">
             {agendamento.agenda?.nome && (
-              <div className="flex justify-between">
-                <span className="text-[var(--color-text-muted)]">Profissional</span>
-                <span className="font-medium text-[var(--color-text-main)]">{agendamento.agenda.nome}</span>
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-[var(--muted)]">Profissional</span>
+                <span className="font-semibold text-[var(--ink)]">{agendamento.agenda.nome}</span>
               </div>
             )}
             {agendamento.procedimento_nome && (
-              <div className="flex justify-between">
-                <span className="text-[var(--color-text-muted)]">Especialidade</span>
-                <span className="font-medium text-[var(--color-text-main)]">{agendamento.procedimento_nome}</span>
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-[var(--muted)]">Procedimento</span>
+                <span className="font-semibold text-[var(--ink)] text-right max-w-[140px] truncate">{agendamento.procedimento_nome}</span>
               </div>
             )}
-            <div className="flex justify-between">
-              <span className="text-[var(--color-text-muted)]">Data</span>
-              <span className="font-medium text-[var(--color-text-main)]">
-                {format(new Date(agendamento.data_hora_inicio), "dd/MM/yyyy '·' HH:mm", { locale: ptBR })}
+            <div className="flex justify-between items-center text-xs">
+              <span className="text-[var(--muted)]">Data</span>
+              <span className="font-semibold text-[var(--ink)]">
+                {format(new Date(agendamento.data_hora_inicio), "dd/MM/yy '·' HH:mm", { locale: ptBR })}
               </span>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-[var(--color-text-muted)]">Status</span>
+            <div className="flex justify-between items-center pt-1 border-t border-[var(--border)]">
+              <span className="text-xs text-[var(--muted)]">Status</span>
               {APTO_STATUS[agendamento.status] ? (
                 <span
                   className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
                   style={{
-                    backgroundColor: APTO_STATUS[agendamento.status].color + '22',
+                    backgroundColor: APTO_STATUS[agendamento.status].color + '18',
                     color: APTO_STATUS[agendamento.status].color,
+                    border: `1px solid ${APTO_STATUS[agendamento.status].color}33`,
                   }}
                 >
                   {APTO_STATUS[agendamento.status].label}
                 </span>
               ) : (
-                <span className="font-medium text-[var(--color-text-main)]">{agendamento.status}</span>
+                <span className="text-xs font-semibold text-[var(--ink)]">{agendamento.status}</span>
               )}
             </div>
           </div>
         ) : (
-          <p className="text-xs text-[var(--color-text-muted)]">Nenhuma consulta agendada</p>
+          <div className="rounded-[8px] p-3 text-center" style={{ background: 'var(--sage-xlight)' }}>
+            <p className="text-xs text-[var(--muted)]">Nenhuma consulta agendada</p>
+          </div>
         )}
       </div>
 
       {/* ── 5. PIPELINE ─────────────────────────────────────── */}
       {conversa.lead_id && (
-        <div className="p-4 border-b border-[var(--color-border-card)]">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-2">Pipeline</p>
+        <div className={cardCls + ' p-4'}>
+          <p className={sectionLabel}>Pipeline CRM</p>
           <div ref={pipelineRef} className="relative">
             <button
               onClick={() => setPipelineOpen(o => !o)}
-              className="w-full flex items-center justify-between px-3 py-2 rounded-[8px] border border-[var(--color-border-card)] text-xs hover:bg-[var(--color-bg-card)] transition-colors"
+              className="w-full flex items-center justify-between px-3 py-2.5 rounded-[8px] border border-[var(--border)] text-xs hover:border-[var(--sage)] transition-colors bg-[var(--bg)]"
             >
               <span className="flex items-center gap-2">
                 {leadStatus && CRM_STAGES[leadStatus] ? (
                   <>
                     <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: CRM_STAGES[leadStatus].color }} />
-                    <span className="font-medium" style={{ color: CRM_STAGES[leadStatus].color }}>
+                    <span className="font-semibold" style={{ color: CRM_STAGES[leadStatus].color }}>
                       {CRM_STAGES[leadStatus].label}
                     </span>
                   </>
                 ) : (
-                  <span className="text-[var(--color-text-muted)]">Selecionar etapa</span>
+                  <span className="text-[var(--muted)]">Selecionar etapa</span>
                 )}
               </span>
-              <ChevronDown className={`w-3.5 h-3.5 text-[var(--color-text-muted)] transition-transform ${pipelineOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown className={`w-3.5 h-3.5 text-[var(--muted)] transition-transform ${pipelineOpen ? 'rotate-180' : ''}`} />
             </button>
 
             {pipelineOpen && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-[var(--color-bg-base)] border border-[var(--color-border-card)] rounded-[8px] shadow-lg z-50 overflow-hidden max-h-64 overflow-y-auto">
+              <div className="absolute top-full left-0 right-0 mt-1 bg-[var(--white)] border border-[var(--border)] rounded-[10px] shadow-lg z-50 overflow-hidden max-h-64 overflow-y-auto">
                 {Object.entries(CRM_STAGES).map(([key, stage]) => (
                   <button
                     key={key}
                     onClick={() => mudarStatus(key)}
-                    className={`w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-[var(--color-bg-card)] transition-colors ${leadStatus === key ? 'bg-[var(--color-bg-card)]' : ''}`}
+                    className={`w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-[var(--bg)] transition-colors ${leadStatus === key ? 'bg-[var(--sage-xlight)]' : ''}`}
                   >
                     <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: stage.color }} />
                     <span className="font-medium" style={{ color: stage.color }}>{stage.label}</span>
@@ -470,12 +519,13 @@ export function SidePanel({ conversa, onAssumirAtendimento, onRetornarParaIA }: 
       )}
 
       {/* ── 6. TAGS ─────────────────────────────────────────── */}
-      <div className="p-4 border-b border-[var(--color-border-card)]">
-        <div className="flex items-center justify-between mb-2">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-muted)]">Tags</p>
+      <div className={cardCls + ' p-4'}>
+        <div className="flex items-center justify-between mb-3">
+          <p className={sectionLabel} style={{ marginBottom: 0 }}>Tags</p>
           <button
             onClick={() => setAddingTag(true)}
-            className="flex items-center gap-0.5 text-[10px] text-[var(--color-text-muted)] hover:text-[var(--color-primary)] transition-colors"
+            className="flex items-center gap-1 text-[10px] font-medium rounded-[6px] px-2 py-1 transition-colors"
+            style={{ color: 'var(--sage-dark)', background: 'var(--sage-xlight)' }}
           >
             <Plus className="w-3 h-3" /> Adicionar
           </button>
@@ -503,6 +553,9 @@ export function SidePanel({ conversa, onAssumirAtendimento, onRetornarParaIA }: 
               {tag.nome}
             </button>
           ))}
+          {tagsAtivas.length === 0 && tagsInativas.length === 0 && !addingTag && (
+            <p className="text-xs text-[var(--muted)]">Nenhuma tag. Clique em Adicionar.</p>
+          )}
         </div>
 
         {addingTag && (
@@ -517,27 +570,25 @@ export function SidePanel({ conversa, onAssumirAtendimento, onRetornarParaIA }: 
                 if (e.key === 'Escape') { setAddingTag(false); setNovaTag(''); }
               }}
               placeholder="Nome da tag..."
-              className="flex-1 min-w-0 border border-[var(--color-border-card)] rounded-[6px] px-2 py-1 text-xs bg-[var(--color-bg-base)] text-[var(--color-text-main)] focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]"
+              className="flex-1 min-w-0 border border-[var(--border)] rounded-[6px] px-2 py-1 text-xs bg-[var(--bg)] text-[var(--ink)] focus:outline-none focus:ring-1 focus:ring-[var(--sage-dark)]"
             />
-            <button onClick={criarTag} className="text-[var(--color-primary)]"><Check className="w-3.5 h-3.5" /></button>
-            <button onClick={() => { setAddingTag(false); setNovaTag(''); }} className="text-[var(--color-text-muted)]"><X className="w-3.5 h-3.5" /></button>
+            <button onClick={criarTag} style={{ color: 'var(--sage-dark)' }}><Check className="w-3.5 h-3.5" /></button>
+            <button onClick={() => { setAddingTag(false); setNovaTag(''); }} className="text-[var(--muted)]"><X className="w-3.5 h-3.5" /></button>
           </div>
-        )}
-        {allTags.length === 0 && !addingTag && (
-          <p className="text-xs text-[var(--color-text-muted)]">Nenhuma tag. Clique em Adicionar.</p>
         )}
       </div>
 
       {/* ── 7. PRÓXIMA AÇÃO ─────────────────────────────────── */}
-      <div className="p-4 border-b border-[var(--color-border-card)]">
-        <div className="flex items-center justify-between mb-2">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-muted)]">Próxima Ação</p>
+      <div className={cardCls + ' p-4'}>
+        <div className="flex items-center justify-between mb-3">
+          <p className={sectionLabel} style={{ marginBottom: 0 }}>Próxima Ação</p>
           {conversa.lead_id && (
             <button
               onClick={() => setAddingTarefa(true)}
-              className="text-[var(--color-text-muted)] hover:text-[var(--color-primary)] transition-colors"
+              className="p-1 rounded-[6px] transition-colors hover:bg-[var(--sage-xlight)]"
+              style={{ color: 'var(--sage-dark)' }}
             >
-              <Plus className="w-3 h-3" />
+              <Plus className="w-3.5 h-3.5" />
             </button>
           )}
         </div>
@@ -554,36 +605,45 @@ export function SidePanel({ conversa, onAssumirAtendimento, onRetornarParaIA }: 
                 if (e.key === 'Escape') { setAddingTarefa(false); setNovaTarefa(''); }
               }}
               placeholder="Descreva a ação..."
-              className="flex-1 min-w-0 border border-[var(--color-border-card)] rounded-[6px] px-2 py-1 text-xs bg-[var(--color-bg-base)] text-[var(--color-text-main)] focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]"
+              className="flex-1 min-w-0 border border-[var(--border)] rounded-[6px] px-2 py-1 text-xs bg-[var(--bg)] text-[var(--ink)] focus:outline-none focus:ring-1 focus:ring-[var(--sage-dark)]"
             />
-            <button onClick={criarTarefa} className="text-[var(--color-primary)]"><Check className="w-3.5 h-3.5" /></button>
-            <button onClick={() => { setAddingTarefa(false); setNovaTarefa(''); }} className="text-[var(--color-text-muted)]"><X className="w-3.5 h-3.5" /></button>
+            <button onClick={criarTarefa} style={{ color: 'var(--sage-dark)' }}><Check className="w-3.5 h-3.5" /></button>
+            <button onClick={() => { setAddingTarefa(false); setNovaTarefa(''); }} className="text-[var(--muted)]"><X className="w-3.5 h-3.5" /></button>
           </div>
         )}
 
         {proxAcao ? (
           <div
             onClick={() => toggleTarefa(proxAcao)}
-            className="flex items-start gap-2 p-2 rounded-[8px] bg-[var(--color-bg-card)] border border-[var(--color-border-card)] cursor-pointer hover:border-[var(--color-primary)]/40 transition-colors"
+            className="flex items-start gap-2.5 p-3 rounded-[8px] cursor-pointer transition-colors"
+            style={{ background: 'rgba(234,179,8,0.07)', border: '1px solid rgba(234,179,8,0.2)' }}
           >
             <Bell className="w-3.5 h-3.5 text-amber-500 mt-0.5 flex-shrink-0" />
-            <p className="text-xs text-[var(--color-text-main)] leading-relaxed">{proxAcao.titulo}</p>
+            <p className="text-xs text-[var(--ink)] leading-relaxed">{proxAcao.titulo}</p>
           </div>
         ) : (
-          <p className="text-xs text-[var(--color-text-muted)]">Nenhuma ação programada</p>
+          <div className="rounded-[8px] p-3 text-center" style={{ background: 'var(--sage-xlight)' }}>
+            <p className="text-xs text-[var(--muted)]">Nenhuma ação programada</p>
+          </div>
         )}
       </div>
 
       {/* ── 8. FICHA COMPLETA ───────────────────────────────── */}
-      <div className="p-4">
+      <div className="pb-1">
         <button
           onClick={() => conversa.lead_id && window.open(`/pacientes?lead=${conversa.lead_id}`, '_blank')}
           disabled={!conversa.lead_id}
-          className="w-full flex items-center justify-center gap-2 px-3 py-2.5 text-sm font-medium rounded-[8px] border border-[var(--color-border-card)] text-[var(--color-text-main)] hover:bg-[var(--color-bg-card)] disabled:opacity-40 transition-colors"
+          className="w-full flex items-center justify-center gap-2 px-3 py-2.5 text-xs font-semibold rounded-[10px] border transition-colors disabled:opacity-40"
+          style={{
+            background: 'var(--sage-dark)',
+            color: '#fff',
+            border: 'none',
+          }}
+          onMouseEnter={e => (e.currentTarget.style.background = 'var(--sage-dark)')}
+          onMouseLeave={e => (e.currentTarget.style.background = 'var(--sage-dark)')}
         >
-          <FileText className="w-4 h-4" />
+          <FileText className="w-3.5 h-3.5" />
           Abrir ficha completa
-          <span className="ml-auto text-[var(--color-text-muted)]">›</span>
         </button>
       </div>
 

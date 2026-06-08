@@ -39,7 +39,7 @@ export function DocumentosTab({ leadId }: Props) {
   if (loading) {
     return (
       <div className="flex items-center justify-center p-12">
-        <Loader2 className="w-5 h-5 animate-spin text-[var(--color-text-muted)]" />
+        <Loader2 className="w-5 h-5 animate-spin text-[var(--muted)]" />
       </div>
     );
   }
@@ -47,10 +47,10 @@ export function DocumentosTab({ leadId }: Props) {
   if (submissions.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center p-12 gap-3">
-        <FileText className="w-8 h-8 text-[var(--color-text-muted)] opacity-30" />
+        <FileText className="w-8 h-8 text-[var(--muted)] opacity-30" />
         <div className="text-center">
-          <p className="text-sm text-[var(--color-text-muted)]">Nenhum formulário recebido</p>
-          <p className="text-xs text-[var(--color-text-muted)] mt-1 opacity-70">
+          <p className="text-sm text-[var(--muted)]">Nenhum formulário recebido</p>
+          <p className="text-xs text-[var(--muted)] mt-1 opacity-70">
             Os formulários Tally aparecerão aqui quando recebidos via webhook
           </p>
         </div>
@@ -67,10 +67,10 @@ export function DocumentosTab({ leadId }: Props) {
   }, {});
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-5 space-y-5">
       {Object.entries(grouped).map(([groupName, forms]) => (
         <div key={groupName}>
-          <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-3">
+          <h3 className="text-[10px] font-semibold uppercase tracking-[1.1px] text-[var(--muted)] mb-3">
             {groupName}
           </h3>
           <div className="space-y-2">
@@ -83,40 +83,46 @@ export function DocumentosTab({ leadId }: Props) {
               return (
                 <div
                   key={form.id}
-                  className="border border-[var(--color-border-card)] rounded-[10px] bg-[var(--color-bg-card)] overflow-hidden"
+                  className="border border-[var(--border)] rounded-[12px] bg-[var(--white)] overflow-hidden shadow-[0_1px_4px_rgba(4,52,44,0.05)]"
                 >
                   <button
                     onClick={() => setExpandedId(isExpanded ? null : form.id)}
-                    className="w-full flex items-center gap-3 p-4 text-left hover:bg-[var(--color-primary-light)] transition-colors"
+                    className="w-full flex items-center gap-3 p-4 text-left transition-colors"
+                    style={{ background: 'transparent' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--sage-xlight)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                   >
-                    <div className="w-9 h-9 rounded-lg bg-[var(--color-primary)]/10 flex items-center justify-center flex-shrink-0">
-                      <FileText className="w-4 h-4 text-[var(--color-primary)]" />
+                    <div
+                      className="w-9 h-9 rounded-[9px] flex items-center justify-center flex-shrink-0"
+                      style={{ background: 'var(--sage-xlight)' }}
+                    >
+                      <FileText className="w-4 h-4" style={{ color: 'var(--sage-dark)' }} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-[var(--color-text-main)] truncate">
+                      <p className="text-sm font-semibold text-[var(--ink)] truncate">
                         {form.form_name || form.form_type || 'Formulário'}
                       </p>
-                      <p className="text-xs text-[var(--color-text-muted)]">
+                      <p className="text-xs text-[var(--muted)]">
                         {format(new Date(form.created_at), "dd 'de' MMM 'de' yyyy 'às' HH:mm", {
                           locale: ptBR,
                         })}
                       </p>
                     </div>
                     {isExpanded ? (
-                      <ChevronUp className="w-4 h-4 text-[var(--color-text-muted)] flex-shrink-0" />
+                      <ChevronUp className="w-4 h-4 text-[var(--muted)] flex-shrink-0" />
                     ) : (
-                      <ChevronDown className="w-4 h-4 text-[var(--color-text-muted)] flex-shrink-0" />
+                      <ChevronDown className="w-4 h-4 text-[var(--muted)] flex-shrink-0" />
                     )}
                   </button>
 
                   {isExpanded && dadosEntries.length > 0 && (
-                    <div className="border-t border-[var(--color-border-card)] px-4 py-3 space-y-2">
+                    <div className="border-t border-[var(--border)] px-4 py-3 space-y-2">
                       {dadosEntries.map(([key, value]) => (
                         <div key={key} className="flex gap-2">
-                          <span className="text-xs font-medium text-[var(--color-text-muted)] min-w-[120px] flex-shrink-0 capitalize">
+                          <span className="text-xs font-medium text-[var(--muted)] min-w-[120px] flex-shrink-0 capitalize">
                             {key.replace(/_/g, ' ')}
                           </span>
-                          <span className="text-xs text-[var(--color-text-main)] break-words">
+                          <span className="text-xs text-[var(--ink)] break-words">
                             {typeof value === 'boolean'
                               ? value ? 'Sim' : 'Não'
                               : typeof value === 'object'
@@ -129,8 +135,8 @@ export function DocumentosTab({ leadId }: Props) {
                   )}
 
                   {isExpanded && dadosEntries.length === 0 && (
-                    <div className="border-t border-[var(--color-border-card)] px-4 py-3">
-                      <p className="text-xs text-[var(--color-text-muted)]">Sem dados adicionais</p>
+                    <div className="border-t border-[var(--border)] px-4 py-3">
+                      <p className="text-xs text-[var(--muted)]">Sem dados adicionais</p>
                     </div>
                   )}
                 </div>

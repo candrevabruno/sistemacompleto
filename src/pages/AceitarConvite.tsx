@@ -101,8 +101,8 @@ export function AceitarConvite() {
   // ── Loading ──────────────────────────────────────────────────
   if (loadingInvite) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[var(--color-bg-base)]">
-        <Loader2 className="w-6 h-6 animate-spin text-[var(--color-text-muted)]" />
+      <div className="min-h-screen flex items-center justify-center bg-[var(--bg)]">
+        <Loader2 className="w-6 h-6 animate-spin text-[var(--muted)]" />
       </div>
     );
   }
@@ -110,20 +110,20 @@ export function AceitarConvite() {
   // ── Invalid token ────────────────────────────────────────────
   if (invalidToken) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[var(--color-bg-base)] p-4">
+      <div className="min-h-screen flex items-center justify-center bg-[var(--bg)] p-4">
         <div className="max-w-sm w-full text-center space-y-4">
           <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center mx-auto">
             <AlertCircle className="w-7 h-7 text-red-500" />
           </div>
-          <h2 className="font-cormorant font-bold text-xl text-[var(--color-text-main)]">
+          <h2 className="font-cormorant font-bold text-xl text-[var(--ink)]">
             Convite inválido ou expirado
           </h2>
-          <p className="text-sm text-[var(--color-text-muted)]">
+          <p className="text-sm text-[var(--muted)]">
             Este link de convite não existe ou já foi utilizado. Solicite um novo convite ao administrador.
           </p>
           <button
             onClick={() => navigate('/login')}
-            className="text-sm text-[var(--color-primary)] hover:underline"
+            className="text-sm text-[var(--sage-dark)] hover:underline"
           >
             Ir para o login
           </button>
@@ -135,21 +135,21 @@ export function AceitarConvite() {
   // ── Success ──────────────────────────────────────────────────
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[var(--color-bg-base)] p-4">
+      <div className="min-h-screen flex items-center justify-center bg-[var(--bg)] p-4">
         <div className="max-w-sm w-full text-center space-y-4">
           <div className="w-14 h-14 rounded-full bg-green-50 flex items-center justify-center mx-auto">
             <CheckCircle className="w-7 h-7 text-green-500" />
           </div>
-          <h2 className="font-cormorant font-bold text-xl text-[var(--color-text-main)]">
+          <h2 className="font-cormorant font-bold text-xl text-[var(--ink)]">
             Conta criada com sucesso!
           </h2>
-          <p className="text-sm text-[var(--color-text-muted)]">
+          <p className="text-sm text-[var(--muted)]">
             Sua conta foi criada como <strong>{ROLE_LABEL[invite?.role || ''] || invite?.role}</strong>.
             {' '}Verifique seu e-mail se solicitado e faça login para acessar o sistema.
           </p>
           <button
             onClick={() => navigate('/login')}
-            className="inline-flex items-center justify-center text-sm font-medium px-6 py-2.5 rounded-[8px] bg-[var(--color-primary)] text-white hover:opacity-90 transition-opacity"
+            className="inline-flex items-center justify-center text-sm font-medium px-6 py-2.5 rounded-[8px] bg-[var(--sage-dark)] text-white hover:opacity-90 transition-opacity"
           >
             Fazer login
           </button>
@@ -160,31 +160,31 @@ export function AceitarConvite() {
 
   // ── Form ─────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[var(--color-bg-base)] p-4">
+    <div className="min-h-screen flex items-center justify-center bg-[var(--bg)] p-4">
       <div className="w-full max-w-md">
         {/* Logo / header */}
         <div className="text-center mb-8">
-          <div className="w-14 h-14 rounded-full bg-[var(--color-primary)] flex items-center justify-center mx-auto mb-4">
+          <div className="w-14 h-14 rounded-full bg-[var(--sage-dark)] flex items-center justify-center mx-auto mb-4">
             <span className="text-white font-cormorant font-bold text-xl">HL</span>
           </div>
-          <h1 className="font-cormorant font-bold text-2xl text-[var(--color-text-main)]">
+          <h1 className="font-cormorant font-bold text-2xl text-[var(--ink)]">
             Criar sua conta
           </h1>
-          <p className="text-sm text-[var(--color-text-muted)] mt-1">
+          <p className="text-sm text-[var(--muted)] mt-1">
             Você foi convidado para o sistema
           </p>
         </div>
 
-        <div className="bg-white dark:bg-[var(--color-bg-card)] border border-[var(--color-border-card)] rounded-[16px] p-6 space-y-5">
+        <div className="bg-white dark:bg-[var(--white)] border border-[var(--border)] rounded-[16px] p-6 space-y-5">
           {/* Pre-filled info */}
           <div className="grid grid-cols-2 gap-3">
-            <div className="p-3 rounded-[8px] bg-[var(--color-bg-base)] border border-[var(--color-border-card)]">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-0.5">E-mail</p>
-              <p className="text-sm text-[var(--color-text-main)] truncate font-medium">{invite?.email}</p>
+            <div className="p-3 rounded-[8px] bg-[var(--bg)] border border-[var(--border)]">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)] mb-0.5">E-mail</p>
+              <p className="text-sm text-[var(--ink)] truncate font-medium">{invite?.email}</p>
             </div>
-            <div className="p-3 rounded-[8px] bg-[var(--color-bg-base)] border border-[var(--color-border-card)]">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-0.5">Cargo</p>
-              <p className="text-sm text-[var(--color-text-main)] font-medium">
+            <div className="p-3 rounded-[8px] bg-[var(--bg)] border border-[var(--border)]">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)] mb-0.5">Cargo</p>
+              <p className="text-sm text-[var(--ink)] font-medium">
                 {ROLE_LABEL[invite?.role || ''] || invite?.role}
               </p>
             </div>
@@ -192,7 +192,7 @@ export function AceitarConvite() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-[var(--color-text-muted)] uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-semibold text-[var(--muted)] uppercase tracking-wider mb-1.5">
                 Seu nome
               </label>
               <input
@@ -201,11 +201,11 @@ export function AceitarConvite() {
                 value={nome}
                 onChange={e => setNome(e.target.value)}
                 placeholder="Como você quer ser chamado"
-                className="w-full border border-[var(--color-border-card)] rounded-[8px] px-3 py-2.5 text-sm bg-[var(--color-bg-base)] text-[var(--color-text-main)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                className="w-full border border-[var(--border)] rounded-[8px] px-3 py-2.5 text-sm bg-[var(--bg)] text-[var(--ink)] placeholder:text-[var(--muted)] focus:outline-none focus:ring-2 focus:ring-[var(--sage-dark)]"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-[var(--color-text-muted)] uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-semibold text-[var(--muted)] uppercase tracking-wider mb-1.5">
                 Senha
               </label>
               <input
@@ -213,11 +213,11 @@ export function AceitarConvite() {
                 value={senha}
                 onChange={e => setSenha(e.target.value)}
                 placeholder="Mínimo 6 caracteres"
-                className="w-full border border-[var(--color-border-card)] rounded-[8px] px-3 py-2.5 text-sm bg-[var(--color-bg-base)] text-[var(--color-text-main)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                className="w-full border border-[var(--border)] rounded-[8px] px-3 py-2.5 text-sm bg-[var(--bg)] text-[var(--ink)] placeholder:text-[var(--muted)] focus:outline-none focus:ring-2 focus:ring-[var(--sage-dark)]"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-[var(--color-text-muted)] uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-semibold text-[var(--muted)] uppercase tracking-wider mb-1.5">
                 Confirmar senha
               </label>
               <input
@@ -225,7 +225,7 @@ export function AceitarConvite() {
                 value={confirmSenha}
                 onChange={e => setConfirmSenha(e.target.value)}
                 placeholder="Repita a senha"
-                className="w-full border border-[var(--color-border-card)] rounded-[8px] px-3 py-2.5 text-sm bg-[var(--color-bg-base)] text-[var(--color-text-main)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                className="w-full border border-[var(--border)] rounded-[8px] px-3 py-2.5 text-sm bg-[var(--bg)] text-[var(--ink)] placeholder:text-[var(--muted)] focus:outline-none focus:ring-2 focus:ring-[var(--sage-dark)]"
               />
             </div>
 
@@ -239,15 +239,15 @@ export function AceitarConvite() {
             <button
               type="submit"
               disabled={submitting}
-              className="w-full text-sm font-medium py-3 rounded-[8px] bg-[var(--color-primary)] text-white hover:opacity-90 disabled:opacity-40 transition-opacity"
+              className="w-full text-sm font-medium py-3 rounded-[8px] bg-[var(--sage-dark)] text-white hover:opacity-90 disabled:opacity-40 transition-opacity"
             >
               {submitting ? 'Criando conta...' : 'Criar minha conta'}
             </button>
           </form>
 
-          <p className="text-center text-xs text-[var(--color-text-muted)]">
+          <p className="text-center text-xs text-[var(--muted)]">
             Já tem uma conta?{' '}
-            <button onClick={() => navigate('/login')} className="text-[var(--color-primary)] hover:underline">
+            <button onClick={() => navigate('/login')} className="text-[var(--sage-dark)] hover:underline">
               Fazer login
             </button>
           </p>

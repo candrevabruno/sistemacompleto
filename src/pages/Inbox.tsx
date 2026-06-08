@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useClinic } from '../contexts/ClinicContext';
 import { useAuth } from '../contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
 import { Settings, MessageSquare } from 'lucide-react';
 import type { Conversa, Mensagem } from '../types';
@@ -64,6 +64,7 @@ export function Inbox() {
   const { config, loading: configLoading } = useClinic();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [conversas, setConversas] = useState<Conversa[]>([]);
   const [conversaSelecionada, setConversaSelecionada] = useState<Conversa | null>(null);
@@ -96,6 +97,17 @@ export function Inbox() {
   useEffect(() => {
     loadConversas();
   }, []);
+
+  // Auto-select conversation when navigating from lead modal (WhatsApp button)
+  const autoSelectDone = useRef(false);
+  useEffect(() => {
+    if (loadingConversas || !conversas.length || autoSelectDone.current) return;
+    const leadId = (location.state as { lead_id?: string } | null)?.lead_id;
+    if (!leadId) return;
+    autoSelectDone.current = true;
+    const conversa = conversas.find(c => c.lead_id === leadId);
+    if (conversa) setConversaSelecionada(conversa);
+  }, [loadingConversas, conversas]);
 
   async function loadConversas() {
     setLoadingConversas(true);
@@ -450,16 +462,16 @@ export function Inbox() {
   // ── Not configured state ────────────────────────────────────────
   if (!configLoading && !isConfigured) {
     return (
-      <div className="flex h-[calc(100vh-110px)] items-center justify-center -m-6 bg-[var(--color-bg-base)]">
+      <div className="flex h-[calc(100vh-110px)] items-center justify-center -m-6 bg-[var(--bg)]">
         <div className="flex flex-col items-center text-center p-10 max-w-sm gap-6">
           <div className="p-4 rounded-full bg-amber-100 text-amber-600">
             <MessageSquare className="w-10 h-10" />
           </div>
           <div className="space-y-2">
-            <h3 className="text-xl font-cormorant font-bold text-[var(--color-text-main)]">
+            <h3 className="text-xl font-cormorant font-bold text-[var(--ink)]">
               Configure o WhatsApp
             </h3>
-            <p className="text-sm text-[var(--color-text-muted)] leading-relaxed">
+            <p className="text-sm text-[var(--muted)] leading-relaxed">
               Para usar o Inbox, configure as credenciais do WhatsApp em Configurações.
             </p>
           </div>
@@ -477,7 +489,7 @@ export function Inbox() {
 
   // ── Main inbox layout ───────────────────────────────────────────
   return (
-    <div className="flex h-[calc(100vh-110px)] -m-6 overflow-hidden bg-[var(--color-bg-base)]">
+    <div className="flex h-[calc(100vh-110px)] -m-6 overflow-hidden bg-[var(--bg)]">
       {/* Lista de conversas */}
       <div className="w-[300px] flex-shrink-0 flex flex-col">
         <ConversaList

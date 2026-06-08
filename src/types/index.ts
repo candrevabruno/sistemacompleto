@@ -11,6 +11,7 @@ export interface AppUser {
 
 export interface ClinicConfig {
   nome: string;
+  subtitulo: string | null;
   logo_url: string | null;
   chatwoot_url?: string | null;
   whatsapp_provider?: 'meta' | 'evolution' | null;
@@ -54,6 +55,33 @@ export interface Lead {
   inicio_atendimento: string;
 }
 
+export interface JornadaEvento {
+  status: string;
+  timestamp: string;
+  valor_pago?: number | null;
+}
+
+export interface LeadDetalhes extends Lead {
+  whatsapp_lead: string | null;
+  genero: string | null;
+  data_nascimento: string | null;
+  procedimento_interesse: string | null;
+  jornada: JornadaEvento[] | null;
+  data_agendamento: string | null;
+  ultima_mensagem: string | null;
+  email: string | null;
+  cpf: string | null;
+  observacoes: string | null;
+  valor_pago: number | null;
+  id_agendamento: string | null;
+  agenda_id: string | null;
+  modalidade: string | null;
+  objecao: string | null;
+  motivo_perda: string | null;
+  servicos_contratados: string[] | null;
+  agendamento_criado_em: string | null;
+}
+
 export interface Agendamento {
   id: string;
   procedimento_nome: string | null;
@@ -92,4 +120,65 @@ export interface Tarefa {
   created_by: string | null;
   created_at: string;
   updated_at: string;
+}
+
+// ─── Pacientes ────────────────────────────────────────────────────────────────
+
+export type StatusPaciente = 'ativo' | 'retorno_pendente' | 'risco_abandono' | 'inativo';
+
+export type CorEngajamento = 'verde' | 'amarelo' | 'vermelho';
+
+export interface AgendamentoSimples {
+  id: string;
+  data_hora_inicio: string;
+  status: string;
+  procedimento_nome: string | null;
+  valor_pago: number | null;
+}
+
+export interface Paciente {
+  id: string;
+  lead_id: string | null;
+  nota: string | null;
+  resumo: string | null;
+  nota_updated_at: string | null;
+  created_at: string;
+}
+
+export interface PacienteComLead extends Paciente {
+  lead: {
+    id: string;
+    nome_lead: string | null;
+    whatsapp_lead: string | null;
+    procedimento_interesse: string | null;
+    genero: string | null;
+    data_nascimento: string | null;
+    email: string | null;
+    status: string;
+    origem: string | null;
+    inicio_atendimento: string;
+    observacoes: string | null;
+    jornada: JornadaEvento[] | null;
+  };
+  agendamentos: AgendamentoSimples[];
+}
+
+export interface EngajamentoInfo {
+  score: number;
+  cor: CorEngajamento;
+  label: string;
+}
+
+export interface ProximaAcaoPaciente {
+  texto: string;
+  cor: 'vermelho' | 'amarelo' | 'verde' | 'azul' | 'cinza';
+}
+
+export interface MetricasPacientes {
+  total: number;
+  ativos: number;
+  retornoPendente: number;
+  riscoAbandono: number;
+  inativos: number;
+  taxaRetencao: number;
 }

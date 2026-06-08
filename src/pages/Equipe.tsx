@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { Plus, Copy, Check, Link2, Users, X } from 'lucide-react';
+import { Plus, Copy, Check, Link2, Users, X, Shield, UserCog, User } from 'lucide-react';
 
 interface Membro {
   id: string;
@@ -22,22 +22,25 @@ interface Convite {
 const ROLE_LABEL: Record<string, string> = {
   admin: 'Administrador',
   atendente: 'Atendente',
-  profissional: 'Profissional',
+  profissional: 'Profissional da Saúde',
   user: 'Atendente',
-};
-
-const ROLE_BADGE: Record<string, string> = {
-  admin: 'bg-blue-50 text-blue-700 border-blue-200',
-  atendente: 'bg-green-50 text-green-700 border-green-200',
-  profissional: 'bg-purple-50 text-purple-700 border-purple-200',
-  user: 'bg-green-50 text-green-700 border-green-200',
 };
 
 const ROLES = [
   { value: 'admin', label: 'Administrador' },
   { value: 'atendente', label: 'Atendente' },
-  { value: 'profissional', label: 'Profissional' },
+  { value: 'profissional', label: 'Profissional da Saúde' },
 ];
+
+function getIniciais(str: string) {
+  return str.split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase();
+}
+
+function getAvatarStyle(role: string) {
+  if (role === 'admin') return { bg: 'var(--rose-light)', color: 'var(--rose-text)' };
+  if (role === 'profissional') return { bg: 'var(--sage-xlight)', color: 'var(--sage-dark)' };
+  return { bg: 'var(--champ-light)', color: 'var(--champ-text)' };
+}
 
 export function Equipe() {
   const { user } = useAuth();
@@ -120,73 +123,153 @@ export function Equipe() {
     setCopiado(false);
   }
 
+  const profCount = membros.filter(m => m.role === 'profissional').length;
+  const atendenteCount = membros.filter(m => m.role === 'atendente' || m.role === 'user').length;
+  const adminCount = membros.filter(m => m.role === 'admin').length;
+
+  const cardBase = 'rounded-[12px] border border-[var(--border)] bg-[var(--white)] shadow-[0_1px_4px_rgba(4,52,44,0.04)]';
+  const dividerRow = (
+    <div className="flex items-center gap-3">
+      <div className="flex-1 h-px" style={{ background: 'var(--border)' }} />
+    </div>
+  );
+
   return (
-    <div className="max-w-2xl mx-auto py-8 px-4 space-y-8">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <div className="max-w-2xl mx-auto py-8 px-4 space-y-7">
+
+      {/* ── Page header ──────────────────────────────────── */}
+      <div className="flex items-end justify-between">
         <div>
-          <h1 className="font-cormorant font-bold text-2xl text-[var(--color-text-main)]">Equipe</h1>
-          <p className="text-sm text-[var(--color-text-muted)] mt-0.5">
-            {loading ? '...' : `${membros.length} ${membros.length === 1 ? 'membro' : 'membros'}`}
+          <p className="text-[10px] font-semibold uppercase tracking-[1.3px] mb-1" style={{ color: 'var(--muted)' }}>
+            Sistema
           </p>
+          <h1
+            className="font-display leading-none"
+            style={{ fontSize: '28px', fontStyle: 'italic', fontWeight: 300, color: 'var(--ink)', letterSpacing: '-0.3px' }}
+          >
+            Gestão de equipe
+          </h1>
         </div>
         <button
           onClick={() => setShowModal(true)}
-          className="flex items-center gap-2 text-sm font-medium px-4 py-2 rounded-[8px] bg-[var(--color-primary)] text-white hover:opacity-90 transition-opacity"
+          className="flex items-center gap-2 text-sm font-medium px-4 py-2.5 rounded-[8px] hover:opacity-90 transition-opacity"
+          style={{ background: 'var(--sage-dark)', color: '#fff' }}
         >
           <Plus className="w-4 h-4" />
-          Convidar
+          Convidar membro
         </button>
       </div>
 
-      {/* Members list */}
+      {/* ── 3 role summary cards ─────────────────────────── */}
+      {!loading && (
+        <div className="grid grid-cols-3 gap-3">
+          <div className={cardBase + ' p-4'}>
+            <div className="w-8 h-8 rounded-[8px] flex items-center justify-center mb-3"
+              style={{ background: 'var(--sage-xlight)' }}>
+              <User className="w-4 h-4" style={{ color: 'var(--sage-dark)' }} />
+            </div>
+            <p className="text-2xl font-semibold leading-none mb-1" style={{ color: 'var(--ink)' }}>
+              {profCount}
+            </p>
+            <p className="text-xs" style={{ color: 'var(--muted)' }}>Profissionais</p>
+          </div>
+          <div className={cardBase + ' p-4'}>
+            <div className="w-8 h-8 rounded-[8px] flex items-center justify-center mb-3"
+              style={{ background: 'var(--champ-light)' }}>
+              <UserCog className="w-4 h-4" style={{ color: 'var(--champ-text)' }} />
+            </div>
+            <p className="text-2xl font-semibold leading-none mb-1" style={{ color: 'var(--ink)' }}>
+              {atendenteCount}
+            </p>
+            <p className="text-xs" style={{ color: 'var(--muted)' }}>Recepcionistas</p>
+          </div>
+          <div className={cardBase + ' p-4'}>
+            <div className="w-8 h-8 rounded-[8px] flex items-center justify-center mb-3"
+              style={{ background: 'var(--rose-light)' }}>
+              <Shield className="w-4 h-4" style={{ color: 'var(--rose-text)' }} />
+            </div>
+            <p className="text-2xl font-semibold leading-none mb-1" style={{ color: 'var(--ink)' }}>
+              {adminCount}
+            </p>
+            <p className="text-xs" style={{ color: 'var(--muted)' }}>Administradores</p>
+          </div>
+        </div>
+      )}
+
+      {/* ── Members list ─────────────────────────────────── */}
       <div>
-        <h2 className="text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-3">
-          Membros ativos
-        </h2>
+        <div className="flex items-center gap-3 mb-4">
+          <span className="text-[10px] font-semibold uppercase tracking-[1.3px] flex-shrink-0" style={{ color: 'var(--muted)' }}>
+            Membros ativos
+          </span>
+          {dividerRow}
+        </div>
+
         {loading ? (
-          <div className="text-sm text-[var(--color-text-muted)] py-4">Carregando...</div>
+          <div className="text-sm py-4" style={{ color: 'var(--muted)' }}>Carregando...</div>
         ) : membros.length === 0 ? (
-          <div className="flex flex-col items-center py-10 gap-3">
-            <Users className="w-8 h-8 text-[var(--color-text-muted)] opacity-30" />
-            <p className="text-sm text-[var(--color-text-muted)]">Nenhum membro encontrado</p>
+          <div className="flex flex-col items-center py-14 gap-4">
+            <div className="w-14 h-14 rounded-full flex items-center justify-center"
+              style={{ background: 'var(--sage-xlight)' }}>
+              <Users className="w-7 h-7 opacity-50" style={{ color: 'var(--sage-dark)' }} />
+            </div>
+            <div className="text-center">
+              <p className="font-display mb-1.5"
+                style={{ fontSize: '18px', fontStyle: 'italic', fontWeight: 300, color: 'var(--ink)' }}>
+                Equipe vazia
+              </p>
+              <p className="text-sm" style={{ color: 'var(--muted)' }}>
+                Convide membros para começar a colaborar
+              </p>
+            </div>
+            <button
+              onClick={() => setShowModal(true)}
+              className="flex items-center gap-2 text-sm font-medium px-4 py-2 rounded-[8px] hover:opacity-90 transition-opacity mt-1"
+              style={{ background: 'var(--sage-dark)', color: '#fff' }}
+            >
+              <Plus className="w-4 h-4" />
+              Convidar primeiro membro
+            </button>
           </div>
         ) : (
           <div className="space-y-2">
             {membros.map(m => {
               const isMe = m.id === user?.id;
-              const badgeClass = ROLE_BADGE[m.role] || ROLE_BADGE.atendente;
+              const iniciais = getIniciais(m.nome || m.email || '?');
+              const av = getAvatarStyle(m.role);
 
               return (
                 <div
                   key={m.id}
-                  className="flex items-center gap-3 p-4 border border-[var(--color-border-card)] rounded-[10px] bg-[var(--color-bg-card)]"
+                  className={cardBase + ' flex items-center gap-3 p-4'}
                 >
-                  {/* Avatar */}
-                  <div className="w-9 h-9 rounded-full bg-[var(--color-primary)] flex items-center justify-center text-white font-semibold text-sm uppercase flex-shrink-0">
-                    {(m.nome || m.email || '?').charAt(0)}
+                  <div
+                    className="w-9 h-9 rounded-full flex items-center justify-center font-semibold text-sm uppercase flex-shrink-0"
+                    style={{ background: av.bg, color: av.color }}
+                  >
+                    {iniciais}
                   </div>
 
-                  {/* Info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className="text-sm font-medium text-[var(--color-text-main)] truncate">
+                      <p className="text-sm font-medium truncate" style={{ color: 'var(--ink)' }}>
                         {m.nome || m.email}
                       </p>
                       {isMe && (
-                        <span className="text-[10px] text-[var(--color-text-muted)] bg-[var(--color-bg-base)] border border-[var(--color-border-card)] px-1.5 py-0.5 rounded-full">
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full border flex-shrink-0"
+                          style={{ color: 'var(--muted)', background: 'var(--bg)', borderColor: 'var(--border)' }}>
                           você
                         </span>
                       )}
                     </div>
                     {m.nome && (
-                      <p className="text-xs text-[var(--color-text-muted)] truncate">{m.email}</p>
+                      <p className="text-xs truncate" style={{ color: 'var(--muted)' }}>{m.email}</p>
                     )}
                   </div>
 
-                  {/* Role */}
                   {isMe ? (
-                    <span className={`text-xs font-medium px-2.5 py-1 rounded-full border ${badgeClass}`}>
+                    <span className="text-xs font-medium px-2.5 py-1 rounded-full flex-shrink-0"
+                      style={{ background: av.bg, color: av.color }}>
                       {ROLE_LABEL[m.role] || m.role}
                     </span>
                   ) : (
@@ -194,7 +277,14 @@ export function Equipe() {
                       value={m.role === 'user' ? 'atendente' : m.role}
                       onChange={e => alterarRole(m.id, e.target.value)}
                       disabled={updatingRole === m.id}
-                      className="text-xs border border-[var(--color-border-card)] rounded-[6px] px-2 py-1.5 bg-[var(--color-bg-base)] text-[var(--color-text-main)] focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)] disabled:opacity-50"
+                      className="text-xs rounded-[6px] px-2 py-1.5 focus:outline-none focus:ring-1 disabled:opacity-50"
+                      style={{
+                        border: '1px solid var(--border)',
+                        background: 'var(--bg)',
+                        color: 'var(--ink)',
+                        // @ts-ignore
+                        '--tw-ring-color': 'var(--sage-dark)',
+                      }}
                     >
                       {ROLES.map(r => (
                         <option key={r.value} value={r.value}>{r.label}</option>
@@ -208,37 +298,48 @@ export function Equipe() {
         )}
       </div>
 
-      {/* Pending invites */}
+      {/* ── Pending invites ───────────────────────────────── */}
       {convites.length > 0 && (
         <div>
-          <h2 className="text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-3">
-            Convites pendentes
-          </h2>
+          <div className="flex items-center gap-3 mb-4">
+            <span className="text-[10px] font-semibold uppercase tracking-[1.3px] flex-shrink-0" style={{ color: 'var(--muted)' }}>
+              Convites pendentes
+            </span>
+            {dividerRow}
+          </div>
           <div className="space-y-2">
             {convites.map(c => (
               <div
                 key={c.id}
-                className="flex items-center gap-3 p-4 border border-[var(--color-border-card)] border-dashed rounded-[10px] bg-[var(--color-bg-base)]"
+                className="flex items-center gap-3 p-4 border border-dashed rounded-[12px]"
+                style={{ borderColor: 'var(--border)', background: 'var(--bg)' }}
               >
-                <div className="w-9 h-9 rounded-full bg-[var(--color-text-muted)]/20 flex items-center justify-center flex-shrink-0">
-                  <Link2 className="w-4 h-4 text-[var(--color-text-muted)]" />
+                <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+                  style={{ background: 'rgba(100,116,139,0.1)' }}>
+                  <Link2 className="w-4 h-4" style={{ color: 'var(--muted)' }} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm text-[var(--color-text-main)] truncate">{c.email}</p>
-                  <p className="text-xs text-[var(--color-text-muted)]">
+                  <p className="text-sm truncate" style={{ color: 'var(--ink)' }}>{c.email}</p>
+                  <p className="text-xs" style={{ color: 'var(--muted)' }}>
                     {ROLE_LABEL[c.role] || c.role} · aguardando aceite
                   </p>
                 </div>
                 <button
                   onClick={() => copiarLink(`${window.location.origin}/convite?t=${c.token}`)}
-                  className="flex-shrink-0 text-[var(--color-text-muted)] hover:text-[var(--color-primary)] transition-colors p-1"
+                  className="flex-shrink-0 p-1 transition-colors"
+                  style={{ color: 'var(--muted)' }}
+                  onMouseEnter={e => (e.currentTarget.style.color = 'var(--sage-dark)')}
+                  onMouseLeave={e => (e.currentTarget.style.color = 'var(--muted)')}
                   title="Copiar link"
                 >
                   <Copy className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => cancelarConvite(c.id)}
-                  className="flex-shrink-0 text-[var(--color-text-muted)] hover:text-red-500 transition-colors p-1"
+                  className="flex-shrink-0 p-1 transition-colors"
+                  style={{ color: 'var(--muted)' }}
+                  onMouseEnter={e => (e.currentTarget.style.color = '#ef4444')}
+                  onMouseLeave={e => (e.currentTarget.style.color = 'var(--muted)')}
                   title="Cancelar convite"
                 >
                   <X className="w-4 h-4" />
@@ -249,15 +350,66 @@ export function Equipe() {
         </div>
       )}
 
-      {/* Invite modal */}
+      {/* ── Permissions grid ─────────────────────────────── */}
+      <div>
+        <div className="flex items-center gap-3 mb-4">
+          <span className="text-[10px] font-semibold uppercase tracking-[1.3px] flex-shrink-0" style={{ color: 'var(--muted)' }}>
+            Permissões por cargo
+          </span>
+          {dividerRow}
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div className={cardBase + ' p-4'}>
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-7 h-7 rounded-[6px] flex items-center justify-center flex-shrink-0"
+                style={{ background: 'var(--sage-xlight)' }}>
+                <User className="w-3.5 h-3.5" style={{ color: 'var(--sage-dark)' }} />
+              </div>
+              <p className="text-sm font-semibold" style={{ color: 'var(--ink)' }}>Profissional da Saúde</p>
+            </div>
+            <ul className="space-y-1.5">
+              {['Dashboard completo', 'Agenda e pacientes', 'Inbox e CRM', 'Relatórios'].map(item => (
+                <li key={item} className="flex items-center gap-2 text-xs" style={{ color: 'var(--muted)' }}>
+                  <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: 'var(--sage-dark)' }} />
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className={cardBase + ' p-4'}>
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-7 h-7 rounded-[6px] flex items-center justify-center flex-shrink-0"
+                style={{ background: 'var(--champ-light)' }}>
+                <UserCog className="w-3.5 h-3.5" style={{ color: 'var(--champ-text)' }} />
+              </div>
+              <p className="text-sm font-semibold" style={{ color: 'var(--ink)' }}>Atendente</p>
+            </div>
+            <ul className="space-y-1.5">
+              {['Inbox e mensagens', 'Cadastro de leads', 'Agenda básica', 'Sem acesso financeiro'].map(item => (
+                <li key={item} className="flex items-center gap-2 text-xs" style={{ color: 'var(--muted)' }}>
+                  <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: 'var(--champ-text)' }} />
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Invite modal ─────────────────────────────────── */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="w-full max-w-md mx-4 bg-white dark:bg-[var(--color-bg-card)] rounded-[16px] border border-[var(--color-border-card)] shadow-2xl">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--color-border-card)]">
-              <h3 className="font-cormorant font-bold text-lg text-[var(--color-text-main)]">
-                Convidar membro
-              </h3>
-              <button onClick={fecharModal} className="text-[var(--color-text-muted)] hover:text-[var(--color-text-main)]">
+          <div className="w-full max-w-md mx-4 rounded-[16px] border"
+            style={{ background: 'var(--white)', borderColor: 'var(--border)', boxShadow: '0 20px 60px rgba(30,41,59,0.18)' }}>
+
+            <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: 'var(--border)' }}>
+              <div>
+                <h3 className="font-display" style={{ fontSize: '20px', fontStyle: 'italic', fontWeight: 300, color: 'var(--ink)' }}>
+                  Convidar membro
+                </h3>
+              </div>
+              <button onClick={fecharModal} style={{ color: 'var(--muted)' }}
+                className="hover:opacity-70 transition-opacity">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -265,7 +417,7 @@ export function Equipe() {
             {!linkGerado ? (
               <div className="p-6 space-y-4">
                 <div>
-                  <label className="block text-xs font-semibold text-[var(--color-text-muted)] uppercase tracking-wider mb-1.5">
+                  <label className="block text-[10px] font-semibold uppercase tracking-[1.1px] mb-1.5" style={{ color: 'var(--muted)' }}>
                     E-mail
                   </label>
                   <input
@@ -275,17 +427,27 @@ export function Equipe() {
                     onChange={e => setInviteEmail(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && criarConvite()}
                     placeholder="nome@email.com"
-                    className="w-full border border-[var(--color-border-card)] rounded-[8px] px-3 py-2 text-sm bg-[var(--color-bg-base)] text-[var(--color-text-main)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                    className="w-full rounded-[8px] px-3 py-2 text-sm focus:outline-none focus:ring-2"
+                    style={{
+                      border: '1px solid var(--border)',
+                      background: 'var(--bg)',
+                      color: 'var(--ink)',
+                    }}
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-[var(--color-text-muted)] uppercase tracking-wider mb-1.5">
+                  <label className="block text-[10px] font-semibold uppercase tracking-[1.1px] mb-1.5" style={{ color: 'var(--muted)' }}>
                     Cargo
                   </label>
                   <select
                     value={inviteRole}
                     onChange={e => setInviteRole(e.target.value)}
-                    className="w-full border border-[var(--color-border-card)] rounded-[8px] px-3 py-2 text-sm bg-[var(--color-bg-base)] text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                    className="w-full rounded-[8px] px-3 py-2 text-sm focus:outline-none focus:ring-2"
+                    style={{
+                      border: '1px solid var(--border)',
+                      background: 'var(--bg)',
+                      color: 'var(--ink)',
+                    }}
                   >
                     {ROLES.map(r => (
                       <option key={r.value} value={r.value}>{r.label}</option>
@@ -295,14 +457,16 @@ export function Equipe() {
                 <div className="flex gap-3 pt-2">
                   <button
                     onClick={fecharModal}
-                    className="flex-1 text-sm font-medium px-4 py-2.5 rounded-[8px] border border-[var(--color-border-card)] text-[var(--color-text-main)] hover:border-[var(--color-primary)] transition-colors"
+                    className="flex-1 text-sm font-medium px-4 py-2.5 rounded-[8px] transition-colors"
+                    style={{ border: '1px solid var(--border)', color: 'var(--ink)' }}
                   >
                     Cancelar
                   </button>
                   <button
                     onClick={criarConvite}
                     disabled={!inviteEmail.trim() || criandoConvite}
-                    className="flex-1 text-sm font-medium px-4 py-2.5 rounded-[8px] bg-[var(--color-primary)] text-white hover:opacity-90 disabled:opacity-40 transition-opacity"
+                    className="flex-1 text-sm font-medium px-4 py-2.5 rounded-[8px] hover:opacity-90 disabled:opacity-40 transition-opacity"
+                    style={{ background: 'var(--sage-dark)', color: '#fff' }}
                   >
                     {criandoConvite ? 'Criando...' : 'Criar convite'}
                   </button>
@@ -310,28 +474,34 @@ export function Equipe() {
               </div>
             ) : (
               <div className="p-6 space-y-4">
-                <div className="flex items-center gap-3 p-3 rounded-lg bg-green-50 border border-green-100">
-                  <Check className="w-5 h-5 text-green-600 flex-shrink-0" />
-                  <p className="text-sm font-semibold text-green-800">Convite criado!</p>
+                <div className="flex items-center gap-3 p-3 rounded-[10px]"
+                  style={{ background: 'rgba(16,185,129,0.07)', border: '1px solid rgba(16,185,129,0.2)' }}>
+                  <Check className="w-5 h-5 flex-shrink-0" style={{ color: '#059669' }} />
+                  <p className="text-sm font-semibold" style={{ color: '#065f46' }}>Convite criado com sucesso!</p>
                 </div>
                 <div>
-                  <p className="text-sm text-[var(--color-text-muted)] mb-2">
-                    Compartilhe este link com <strong className="text-[var(--color-text-main)]">{inviteEmail}</strong>:
+                  <p className="text-sm mb-2" style={{ color: 'var(--muted)' }}>
+                    Compartilhe este link com <strong style={{ color: 'var(--ink)' }}>{inviteEmail}</strong>:
                   </p>
                   <div className="flex gap-2">
                     <input
                       readOnly
                       value={linkGerado}
-                      className="flex-1 min-w-0 border border-[var(--color-border-card)] rounded-[8px] px-3 py-2 text-xs bg-[var(--color-bg-base)] text-[var(--color-text-muted)] focus:outline-none select-all"
+                      className="flex-1 min-w-0 rounded-[8px] px-3 py-2 text-xs focus:outline-none select-all"
+                      style={{
+                        border: '1px solid var(--border)',
+                        background: 'var(--bg)',
+                        color: 'var(--muted)',
+                      }}
                       onFocus={e => e.target.select()}
                     />
                     <button
                       onClick={() => copiarLink(linkGerado)}
-                      className={`flex-shrink-0 flex items-center gap-1.5 text-sm font-medium px-3 py-2 rounded-[8px] transition-all ${
-                        copiado
-                          ? 'bg-green-100 text-green-700'
-                          : 'bg-[var(--color-primary)] text-white hover:opacity-90'
-                      }`}
+                      className="flex-shrink-0 flex items-center gap-1.5 text-sm font-medium px-3 py-2 rounded-[8px] transition-all"
+                      style={copiado
+                        ? { background: 'rgba(16,185,129,0.1)', color: '#059669' }
+                        : { background: 'var(--sage-dark)', color: '#fff' }
+                      }
                     >
                       {copiado ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                       {copiado ? 'Copiado' : 'Copiar'}
@@ -340,7 +510,8 @@ export function Equipe() {
                 </div>
                 <button
                   onClick={fecharModal}
-                  className="w-full text-sm font-medium px-4 py-2.5 rounded-[8px] border border-[var(--color-border-card)] text-[var(--color-text-main)] hover:border-[var(--color-primary)] transition-colors"
+                  className="w-full text-sm font-medium px-4 py-2.5 rounded-[8px] transition-colors"
+                  style={{ border: '1px solid var(--border)', color: 'var(--ink)' }}
                 >
                   Fechar
                 </button>

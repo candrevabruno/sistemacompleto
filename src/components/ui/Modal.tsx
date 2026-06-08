@@ -32,17 +32,17 @@ export function Modal({ isOpen, onClose, title, children, className }: ModalProp
       
       <div 
         className={cn(
-          "relative z-50 w-full max-w-lg rounded-[16px] border border-[var(--color-border-card)] bg-[var(--color-bg-card)] p-6 shadow-[var(--shadow-modal)] animate-in fade-in zoom-in-95 duration-200",
+          "relative z-50 w-full max-w-lg rounded-[16px] border border-[var(--border)] bg-[var(--white)] p-6 shadow-[var(--shadow-modal)] animate-in fade-in zoom-in-95 duration-200",
           className
         )}
       >
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-xl font-cormorant font-semibold text-[var(--color-text-main)]">
+          <h2 className="text-xl font-cormorant font-semibold text-[var(--ink)]">
             {title}
           </h2>
           <button
             onClick={onClose}
-            className="rounded-full py-1 px-1 text-[var(--color-text-muted)] hover:bg-[var(--color-primary-light)] hover:text-[var(--color-text-main)] transition-colors"
+            className="rounded-full py-1 px-1 text-[var(--muted)] hover:bg-[var(--sage-xlight)] hover:text-[var(--ink)] transition-colors"
           >
             <X size={20} />
           </button>

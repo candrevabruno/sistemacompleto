@@ -196,6 +196,21 @@ Deno.serve(async (req: Request) => {
         .limit(1)
         .single();
 
+      // ── Verificar se é um paciente retornando ─────────────────
+      let tipoContato = 'novo';
+      if (lead) {
+        const { data: leadStatus } = await db
+          .from('leads')
+          .select('status')
+          .eq('id', lead.id)
+          .single();
+
+        if (leadStatus?.status === 'converteu') {
+          tipoContato = 'retorno';
+          console.log(`Paciente retornando — lead_id: ${lead.id}, phone: ${phone}`);
+        }
+      }
+
       // Se não existe lead, criar automaticamente para entrar no CRM
       if (!lead && !fromMe) {
         const { data: novoLead } = await db
@@ -220,6 +235,7 @@ Deno.serve(async (req: Request) => {
           is_human: false,
           nao_lidas: 0,
           lead_id: lead?.id ?? null,
+          tipo_contato: tipoContato,
         })
         .select('id')
         .single();
