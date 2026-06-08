@@ -15,7 +15,7 @@ import { toPng } from 'html-to-image';
 import { jsPDF } from 'jspdf';
 import { Clock, FileDown, Loader2 } from 'lucide-react';
 
-type DateFilter = 'hoje' | 'ontem' | '7dias' | '14dias' | 'mes' | 'ano' | 'custom';
+type DateFilter = 'ontem' | 'hoje' | '7dias' | '14dias' | 'mes' | 'ano' | 'custom';
 
 // ── Icons ─────────────────────────────────────────────────────────────────────
 
@@ -105,18 +105,13 @@ export function Dashboard() {
   const [leadsData, setLeadsData] = useState<any[]>([]);
   const [agendamentosData, setAgendamentosData] = useState<any[]>([]);
 
-  // ── Health Score data ──────────────────────────────────────────────────────
-  const [scoreAgenda, setScoreAgenda] = useState(0);
-  const [scoreComparecimento, setScoreComparecimento] = useState(0);
-  const [scoreConversao, setScoreConversao] = useState(0);
-
   // ── Metrics cards data ─────────────────────────────────────────────────────
   const [metricsLeads, setMetricsLeads] = useState(0);
   const [metricsAgendamentos, setMetricsAgendamentos] = useState(0);
   const [metricsConversao, setMetricsConversao] = useState(0);
   const [metricsFaturamento, setMetricsFaturamento] = useState(0);
 
-  useEffect(() => { fetchClinicHours(); loadTopMetrics(); }, []);
+  useEffect(() => { fetchClinicHours(); }, []);
   useEffect(() => { applyFilter(filter); }, [filter]);
   useEffect(() => { fetchChartData(); }, [dateRange]);
 
@@ -125,66 +120,11 @@ export function Dashboard() {
     if (data) setClinicHours(data);
   };
 
-  const loadTopMetrics = async () => {
-    const now = new Date();
-    const monthStart = startOfMonth(now).toISOString();
-    const monthEnd   = endOfMonth(now).toISOString();
-    const ago30      = subDays(now, 30).toISOString();
-
-    // Health score (last 30 days)
-    const { data: ags30 } = await supabase
-      .from('agendamentos')
-      .select('status')
-      .gte('data_hora_inicio', ago30)
-      .lte('data_hora_inicio', now.toISOString());
-
-    if (ags30 && ags30.length > 0) {
-      const total  = ags30.length;
-      const ativos = ags30.filter(a => ['confirmado', 'compareceu', 'agendado'].includes(a.status)).length;
-      const comp   = ags30.filter(a => a.status === 'compareceu').length;
-      const falt   = ags30.filter(a => a.status === 'faltou').length;
-      setScoreAgenda(Math.round((ativos / total) * 100));
-      setScoreComparecimento(comp + falt > 0 ? Math.round((comp / (comp + falt)) * 100) : 0);
-    }
-
-    const { data: leadsAll } = await supabase.from('leads').select('status').neq('status', 'arquivado');
-    if (leadsAll && leadsAll.length > 0) {
-      const conv = leadsAll.filter(l => l.status === 'converteu').length;
-      setScoreConversao(Math.round((conv / leadsAll.length) * 100));
-    }
-
-    // Metrics (this month)
-    const [
-      { count: lCount },
-      { count: aCount },
-      { data: procs },
-      { data: leadsMonth },
-    ] = await Promise.all([
-      supabase.from('leads').select('id', { count: 'exact', head: true })
-        .gte('inicio_atendimento', monthStart).lte('inicio_atendimento', monthEnd),
-      supabase.from('agendamentos').select('id', { count: 'exact', head: true })
-        .gte('data_hora_inicio', monthStart).lte('data_hora_inicio', monthEnd),
-      supabase.from('procedimentos_paciente').select('valor')
-        .gte('created_at', monthStart).lte('created_at', monthEnd),
-      supabase.from('leads').select('status')
-        .gte('inicio_atendimento', monthStart).lte('inicio_atendimento', monthEnd),
-    ]);
-
-    const tLeads = lCount || 0;
-    const cLeads = leadsMonth?.filter(l => l.status === 'converteu').length || 0;
-    const fat    = procs?.reduce((s, p) => s + (parseFloat(p.valor) || 0), 0) || 0;
-
-    setMetricsLeads(tLeads);
-    setMetricsAgendamentos(aCount || 0);
-    setMetricsConversao(tLeads > 0 ? Math.round((cLeads / tLeads) * 100) : 0);
-    setMetricsFaturamento(fat);
-  };
-
   const applyFilter = (f: DateFilter) => {
     const today = new Date();
     switch (f) {
-      case 'hoje':   setDateRange({ start: startOfToday(),     end: endOfToday() });     break;
       case 'ontem':  setDateRange({ start: startOfYesterday(), end: endOfYesterday() }); break;
+      case 'hoje':   setDateRange({ start: startOfToday(),     end: endOfToday() });     break;
       case '7dias':  setDateRange({ start: subDays(today, 7),  end: endOfToday() });     break;
       case '14dias': setDateRange({ start: subDays(today, 14), end: endOfToday() });     break;
       case 'mes':    setDateRange({ start: startOfMonth(today), end: endOfMonth(today) }); break;
@@ -202,12 +142,28 @@ export function Dashboard() {
     setLoading(true);
     const startIso = dateRange.start.toISOString();
     const endIso   = dateRange.end.toISOString();
-    const [aReq, lReq] = await Promise.all([
+
+    const [aReq, lReq, procsReq] = await Promise.all([
       supabase.from('agendamentos').select('*').gte('created_at', startIso).lte('created_at', endIso),
       supabase.from('leads').select('*').gte('inicio_atendimento', startIso).lte('inicio_atendimento', endIso),
+      supabase.from('procedimentos_paciente').select('valor').gte('created_at', startIso).lte('created_at', endIso),
     ]);
-    setAgendamentosData(aReq.data || []);
-    setLeadsData(lReq.data || []);
+
+    const leadsArr = lReq.data || [];
+    const agendamentosArr = aReq.data || [];
+    const procsArr = procsReq.data || [];
+
+    setAgendamentosData(agendamentosArr);
+    setLeadsData(leadsArr);
+
+    // Metrics for selected period
+    setMetricsLeads(leadsArr.length);
+    setMetricsAgendamentos(agendamentosArr.length);
+    const convertidos = leadsArr.filter(l => l.status === 'converteu').length;
+    setMetricsConversao(leadsArr.length > 0 ? Math.round((convertidos / leadsArr.length) * 100) : 0);
+    const fat = procsArr.reduce((s, p) => s + (parseFloat(p.valor) || 0), 0);
+    setMetricsFaturamento(fat);
+
     setLoading(false);
   };
 
@@ -273,26 +229,23 @@ export function Dashboard() {
 
   // ── Computed ───────────────────────────────────────────────────────────────
 
-  const healthScore = scoreAgenda > 0 || scoreComparecimento > 0 || scoreConversao > 0
-    ? Math.round((scoreAgenda + scoreComparecimento + scoreConversao) / 3)
-    : 0;
-  const healthLabel = healthScore >= 80 ? 'Clínica em ótima saúde' : healthScore >= 60 ? 'Clínica saudável' : 'Atenção necessária';
-
   const fmtBRL = (v: number) => {
     if (v >= 1000) return `${(v / 1000).toFixed(0)}k`;
     return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   };
 
-  const metricCards = [
-    { label: 'Leads',         value: String(metricsLeads),        sub: 'este mês',                  iconBg: 'var(--sage-xlight)', iconColor: 'var(--sage-dark)', icon: <IconUsers /> },
-    { label: 'Agendamentos',  value: String(metricsAgendamentos), sub: 'este mês',                  iconBg: 'var(--champ-light)', iconColor: '#7A6040',          icon: <IconCalCheck /> },
-    { label: 'Conversão',     value: `${metricsConversao}%`,      sub: 'leads → paciente',          iconBg: 'var(--sage-xlight)', iconColor: 'var(--sage-dark)', icon: <IconRepeat /> },
-    { label: 'Faturamento',   value: fmtBRL(metricsFaturamento),  sub: 'procedimentos do mês',      iconBg: '#EFF6FF',            iconColor: '#2563EB',          icon: <IconReceipt /> },
-  ];
-
   const FILTER_LABELS: Record<string, string> = {
-    hoje: 'Hoje', ontem: 'Ontem', '7dias': '7 dias', '14dias': '14 dias', mes: 'Mês', ano: 'Ano',
+    ontem: 'Ontem', hoje: 'Hoje', '7dias': '7 dias', '14dias': '14 dias', mes: 'Mês', ano: 'Ano',
   };
+
+  const periodSub = filter === 'custom' ? 'período selecionado' : (FILTER_LABELS[filter] || '').toLowerCase();
+
+  const metricCards = [
+    { label: 'Leads',        value: String(metricsLeads),        sub: periodSub,          iconBg: 'var(--sage-xlight)', iconColor: 'var(--sage-dark)', icon: <IconUsers /> },
+    { label: 'Agendamentos', value: String(metricsAgendamentos), sub: periodSub,          iconBg: 'var(--champ-light)', iconColor: '#7A6040',          icon: <IconCalCheck /> },
+    { label: 'Conversão',    value: `${metricsConversao}%`,      sub: 'leads → paciente', iconBg: 'var(--sage-xlight)', iconColor: 'var(--sage-dark)', icon: <IconRepeat /> },
+    { label: 'Faturamento',  value: fmtBRL(metricsFaturamento),  sub: periodSub,          iconBg: '#EFF6FF',            iconColor: '#2563EB',          icon: <IconReceipt /> },
+  ];
 
   const tooltipStyle = {
     borderRadius: '8px',
@@ -342,55 +295,18 @@ export function Dashboard() {
   return (
     <div id="dashboard-report" className="space-y-5 pb-8">
 
-      {/* ── Health Score + Métricas ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-
-        {/* Health Score */}
-        <div
-          className="rounded-[var(--r)] p-[22px] flex flex-col justify-between relative overflow-hidden"
-          style={{ background: 'var(--sage-dark)', minHeight: '160px' }}
-        >
-          <div className="pointer-events-none absolute bottom-[-30px] right-[-30px] w-[120px] h-[120px] rounded-full" style={{ background: 'rgba(255,255,255,0.06)' }} />
-          <div className="pointer-events-none absolute bottom-[-60px] right-[10px] w-[80px] h-[80px] rounded-full" style={{ background: 'rgba(255,255,255,0.04)' }} />
-          <div>
-            <div className="text-[10px] font-semibold uppercase tracking-[1.4px]" style={{ color: 'rgba(255,255,255,0.55)' }}>
-              Health Score
+      {/* ── Métricas 4 cards ── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {metricCards.map(m => (
+          <div key={m.label} className="rounded-[var(--r-sm)] p-4" style={{ background: 'var(--white)', border: '1px solid var(--border)' }}>
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[11px] font-medium uppercase tracking-[0.7px]" style={{ color: 'var(--muted)' }}>{m.label}</span>
+              <div className="w-8 h-8 rounded-[8px] flex items-center justify-center" style={{ background: m.iconBg, color: m.iconColor }}>{m.icon}</div>
             </div>
-            <div className="font-display leading-none mt-[6px]" style={{ fontSize: '60px', fontWeight: 300, color: '#fff', letterSpacing: '-2px' }}>
-              {healthScore}
-            </div>
-            <div className="text-[11.5px] mt-1" style={{ color: 'rgba(255,255,255,0.65)' }}>{healthLabel}</div>
+            <div className="font-display leading-none" style={{ fontSize: '28px', fontWeight: 400, color: 'var(--ink)', letterSpacing: '-0.5px' }}>{m.value}</div>
+            <div className="text-[11px] mt-1" style={{ color: 'var(--muted)' }}>{m.sub}</div>
           </div>
-          <div className="flex flex-col gap-2 mt-[14px]">
-            {[
-              { label: 'Agenda',         value: scoreAgenda },
-              { label: 'Comparecimento', value: scoreComparecimento },
-              { label: 'Conversão',      value: scoreConversao },
-            ].map(bar => (
-              <div key={bar.label} className="flex items-center gap-2">
-                <span className="text-[11px] w-[100px] flex-shrink-0" style={{ color: 'rgba(255,255,255,0.6)' }}>{bar.label}</span>
-                <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.12)' }}>
-                  <div className="h-full rounded-full transition-all duration-700" style={{ width: `${bar.value}%`, background: 'rgba(255,255,255,0.55)' }} />
-                </div>
-                <span className="text-[11px] w-7 text-right" style={{ color: 'rgba(255,255,255,0.7)' }}>{bar.value}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Métricas 2×2 */}
-        <div className="lg:col-span-2 grid grid-cols-2 gap-3 content-start">
-          {metricCards.map(m => (
-            <div key={m.label} className="rounded-[var(--r-sm)] p-4" style={{ background: 'var(--white)', border: '1px solid var(--border)' }}>
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-[11px] font-medium uppercase tracking-[0.7px]" style={{ color: 'var(--muted)' }}>{m.label}</span>
-                <div className="w-8 h-8 rounded-[8px] flex items-center justify-center" style={{ background: m.iconBg, color: m.iconColor }}>{m.icon}</div>
-              </div>
-              <div className="font-display leading-none" style={{ fontSize: '28px', fontWeight: 400, color: 'var(--ink)', letterSpacing: '-0.5px' }}>{m.value}</div>
-              <div className="text-[11px] mt-1" style={{ color: 'var(--muted)' }}>{m.sub}</div>
-            </div>
-          ))}
-        </div>
+        ))}
       </div>
 
       {/* ── Filtro de período ── */}
@@ -398,7 +314,7 @@ export function Dashboard() {
         <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
           {/* Pills */}
           <div className="flex flex-wrap gap-2">
-            {(['hoje', 'ontem', '7dias', '14dias', 'mes', 'ano'] as DateFilter[]).map(f => (
+            {(['ontem', 'hoje', '7dias', '14dias', 'mes', 'ano'] as DateFilter[]).map(f => (
               <button
                 key={f}
                 onClick={() => setFilter(f)}
