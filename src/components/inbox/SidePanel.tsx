@@ -143,7 +143,7 @@ export function SidePanel({ conversa, onAssumirAtendimento, onRetornarParaIA }: 
         .order('data_hora_inicio', { ascending: true })
         .limit(1)
         .maybeSingle();
-      setAgendamento(apt);
+      setAgendamento(apt as unknown as Agendamento | null);
 
       // Verificar se é paciente e carregar resumo do profissional
       const { data: pac } = await supabase
