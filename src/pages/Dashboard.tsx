@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useVisibilityRefresh } from '../hooks/useVisibilityRefresh';
 import { supabase } from '../lib/supabase';
 import {
   startOfToday, endOfToday, startOfYesterday, endOfYesterday, subDays,
@@ -114,6 +115,20 @@ export function Dashboard() {
   useEffect(() => { fetchClinicHours(); }, []);
   useEffect(() => { applyFilter(filter); }, [filter]);
   useEffect(() => { fetchChartData(); }, [dateRange]);
+
+  // Refresh quando o utilizador volta ao tab ou reconecta a rede
+  useVisibilityRefresh(() => fetchChartData());
+
+  // Realtime: atualiza automaticamente quando chegam novos leads/agendamentos/procedimentos
+  useEffect(() => {
+    const ch = supabase
+      .channel('dashboard-rt')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, () => fetchChartData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'agendamentos' }, () => fetchChartData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'procedimentos_paciente' }, () => fetchChartData())
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [dateRange]);
 
   const fetchClinicHours = async () => {
     const { data } = await supabase.from('clinic_hours').select('*');

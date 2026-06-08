@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useVisibilityRefresh } from '../hooks/useVisibilityRefresh';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -304,6 +305,29 @@ export function LeadsClientes({ mode }: { mode?: 'leads' | 'clientes' }) {
       fetchClientes();
     }
   }, [dateRange, activeTab]);
+
+  // Refresh ao voltar ao tab ou reconectar rede
+  useVisibilityRefresh(() => {
+    if (mode === 'leads' || !mode) {
+      fetchLeads(); fetchArquivados(); fetchMetricas();
+    } else {
+      fetchClientes();
+    }
+  });
+
+  // Realtime: atualiza automaticamente quando leads mudam
+  useEffect(() => {
+    const ch = supabase.channel('leads-clientes-rt')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, () => {
+        if (mode === 'leads' || !mode) {
+          fetchLeads(); fetchArquivados(); fetchMetricas();
+        } else {
+          fetchClientes();
+        }
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [dateRange]);
 
   const applyFilter = (f: DateFilter) => {
     const today = new Date();

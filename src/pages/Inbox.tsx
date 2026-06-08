@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useVisibilityRefresh } from '../hooks/useVisibilityRefresh';
 import { supabase } from '../lib/supabase';
 import { useClinic } from '../contexts/ClinicContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -206,6 +207,9 @@ export function Inbox() {
 
     return () => { supabase.removeChannel(channel); };
   }, []);
+
+  // Recarrega conversas ao voltar ao tab ou reconectar rede
+  useVisibilityRefresh(loadConversas);
 
   // ── Select conversation ─────────────────────────────────────────
   async function selecionarConversa(conversa: Conversa) {

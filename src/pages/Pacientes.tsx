@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useVisibilityRefresh } from '../hooks/useVisibilityRefresh';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -41,19 +42,21 @@ export function Pacientes() {
   ];
 
   // Carrega lista de pacientes (leads convertidos)
-  useEffect(() => {
-    async function load() {
-      setLoading(true);
-      const { data } = await supabase
-        .from('leads')
-        .select('id, nome_lead, whatsapp_lead, procedimento_interesse, status, email')
-        .eq('status', 'converteu')
-        .order('nome_lead', { ascending: true });
-      if (data) setLeads(data);
-      setLoading(false);
-    }
-    load();
-  }, []);
+  const loadPacientes = async () => {
+    setLoading(true);
+    const { data } = await supabase
+      .from('leads')
+      .select('id, nome_lead, whatsapp_lead, procedimento_interesse, status, email')
+      .eq('status', 'converteu')
+      .order('nome_lead', { ascending: true });
+    if (data) setLeads(data);
+    setLoading(false);
+  };
+
+  useEffect(() => { loadPacientes(); }, []);
+
+  // Refresh ao voltar ao tab ou reconectar rede
+  useVisibilityRefresh(loadPacientes);
 
   // Carrega link Cal.com (primeiro agenda ativo com link)
   useEffect(() => {
