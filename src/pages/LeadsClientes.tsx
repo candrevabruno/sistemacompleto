@@ -3,11 +3,7 @@ import { useVisibilityRefresh } from '../hooks/useVisibilityRefresh';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { Card, CardContent } from '../components/ui/Card';
-import { Badge } from '../components/ui/Badge';
 import { Modal } from '../components/ui/Modal';
-import { Input } from '../components/ui/Input';
-import { Button } from '../components/ui/Button';
 import {
   Search, Download, FileText, CheckCircle, Archive,
   RotateCcw, AlertCircle, Users, Clock, CalendarCheck,
@@ -89,23 +85,19 @@ function ModalConverteu({ lead, onConfirm, onClose }: {
   if (!lead) return null;
   return (
     <Modal isOpen={!!lead} onClose={onClose} title="Confirmar Conversão">
-      <p className="text-sm text-[var(--ink)] leading-relaxed mb-6">
-        Confirmar que <strong>{lead.nome_lead}</strong> compareceu à consulta e será movida para a aba Pacientes?
-      </p>
-      <div className="flex gap-2 justify-end">
-        <button
-          onClick={onClose}
-          className="px-4 py-2 text-sm rounded-[8px] border border-[var(--border)] text-[var(--ink)] hover:bg-[var(--bg)] transition-colors"
-        >
-          Cancelar
-        </button>
-        <button
-          onClick={onConfirm}
-          className="px-4 py-2 text-sm font-semibold rounded-[8px] text-white transition-opacity hover:opacity-90"
-          style={{ background: 'var(--sage-dark)' }}
-        >
-          Confirmar
-        </button>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        <div style={{ padding: '10px 12px', background: 'var(--sage-xlight)', border: '1px solid var(--border-md)', borderRadius: 'var(--r-xs)', fontSize: '12px', fontWeight: 500, color: 'var(--sage-dark)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          ✓ Confirmar conversão de <strong>{lead.nome_lead}</strong>?
+        </div>
+        <p style={{ fontSize: '13px', color: 'var(--muted)', lineHeight: 1.5 }}>
+          O lead será movido para Pacientes.
+        </p>
+        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+          <button onClick={onClose} style={{ background: 'transparent', color: 'var(--muted)', border: '1px solid var(--border-md)', borderRadius: 'var(--r-xs)', padding: '8px 16px', fontSize: '12.5px', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}>Cancelar</button>
+          <button onClick={onConfirm} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--sage-dark)', color: 'white', border: 'none', borderRadius: 'var(--r-xs)', padding: '8px 16px', fontSize: '12.5px', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}>
+            <Check className="w-3.5 h-3.5" /> Confirmar
+          </button>
+        </div>
       </div>
     </Modal>
   );
@@ -128,61 +120,48 @@ function ModalArquivar({ lead, onConfirm, onClose }: {
 
   if (!lead) return null;
 
-  const inputCls = 'w-full rounded-[8px] px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--sage-dark)]';
-  const inputStyle = { border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)' };
-
   return (
     <Modal isOpen={!!lead} onClose={onClose} title="Arquivar Lead">
-      <div className="space-y-4 mb-6">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+
         <div>
-          <label className="text-[10px] font-semibold uppercase tracking-[1px] text-[var(--muted)] block mb-1.5">
-            Motivo do arquivamento *
+          <label style={{ fontSize: '9.5px', fontWeight: 600, letterSpacing: '0.8px', textTransform: 'uppercase', color: 'var(--muted)', display: 'block', marginBottom: '5px' }}>
+            Motivo do arquivamento <span style={{ color: 'var(--rose-text)' }}>*</span>
           </label>
-          <select value={motivo} onChange={e => setMotivo(e.target.value)} className={inputCls} style={inputStyle}>
+          <select value={motivo} onChange={e => setMotivo(e.target.value)}
+            style={{ width: '100%', padding: '9px 12px', border: '1px solid var(--border-md)', borderRadius: 'var(--r-xs)', fontSize: '13px', color: 'var(--ink)', fontFamily: 'inherit', background: 'var(--white)', outline: 'none' }}>
             <option value="">Selecionar motivo...</option>
             {MOTIVOS_ARQUIVAMENTO.map(m => <option key={m} value={m}>{m}</option>)}
           </select>
         </div>
+
         <div>
-          <label className="text-[10px] font-semibold uppercase tracking-[1px] text-[var(--muted)] block mb-1.5">
+          <label style={{ fontSize: '9.5px', fontWeight: 600, letterSpacing: '0.8px', textTransform: 'uppercase', color: 'var(--muted)', display: 'block', marginBottom: '5px' }}>
             Observação (opcional)
           </label>
-          <textarea
-            value={obs}
-            onChange={e => setObs(e.target.value)}
+          <textarea value={obs} onChange={e => setObs(e.target.value)}
             placeholder="Nota interna sobre este arquivamento..."
             rows={3}
-            className={inputCls + ' resize-none'}
-            style={inputStyle}
-          />
+            style={{ width: '100%', padding: '9px 12px', border: '1px solid var(--border-md)', borderRadius: 'var(--r-xs)', fontSize: '13px', color: 'var(--ink)', fontFamily: 'inherit', background: 'var(--white)', outline: 'none', resize: 'none', lineHeight: 1.5 }} />
         </div>
-        <label className="flex items-start gap-3 cursor-pointer p-3 rounded-[8px] border border-[var(--border)] hover:bg-[var(--sage-xlight)] transition-colors">
-          <input
-            type="checkbox"
-            checked={lgpd}
-            onChange={e => setLgpd(e.target.checked)}
-            className="mt-0.5 accent-[var(--sage-dark)]"
-          />
-          <span className="text-sm text-[var(--ink)]">
-            <strong>Paciente solicitou exclusão dos dados (LGPD)</strong>
-            <span className="block text-[11px] text-[var(--muted)] mt-0.5">
-              Nome, telefone e e-mail serão anonimizados. O registro é mantido para auditoria.
-            </span>
-          </span>
+
+        {/* LGPD */}
+        <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', background: 'var(--rose-light)', border: '1px solid rgba(139,68,68,0.15)', borderRadius: 'var(--r-xs)', padding: '12px 14px', cursor: 'pointer' }}>
+          <input type="checkbox" checked={lgpd} onChange={e => setLgpd(e.target.checked)}
+            style={{ width: '16px', height: '16px', borderRadius: '4px', marginTop: '1px', accentColor: 'var(--rose-text)', flexShrink: 0 } as React.CSSProperties} />
+          <div>
+            <div style={{ fontSize: '12.5px', fontWeight: 500, color: 'var(--rose-text)' }}>Paciente solicitou exclusão dos dados (LGPD)</div>
+            <div style={{ fontSize: '11px', color: 'var(--rose-text)', opacity: 0.75, marginTop: '3px', lineHeight: 1.5 }}>Nome, telefone e e-mail serão anonimizados. O registro é mantido para auditoria.</div>
+          </div>
         </label>
-      </div>
-      <div className="flex gap-2 justify-end">
-        <button onClick={onClose} className="px-4 py-2 text-sm rounded-[8px] border border-[var(--border)] text-[var(--ink)] hover:bg-[var(--bg)] transition-colors">
-          Cancelar
-        </button>
-        <button
-          onClick={() => motivo && onConfirm(motivo, obs, lgpd)}
-          disabled={!motivo}
-          className="px-4 py-2 text-sm font-semibold rounded-[8px] text-white disabled:opacity-40 transition-opacity hover:opacity-90"
-          style={{ background: '#dc2626' }}
-        >
-          Arquivar
-        </button>
+
+        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+          <button onClick={onClose} style={{ background: 'transparent', color: 'var(--muted)', border: '1px solid var(--border-md)', borderRadius: 'var(--r-xs)', padding: '8px 16px', fontSize: '12.5px', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}>Cancelar</button>
+          <button onClick={() => motivo && onConfirm(motivo, obs, lgpd)} disabled={!motivo}
+            style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--rose-text)', color: 'white', border: 'none', borderRadius: 'var(--r-xs)', padding: '8px 16px', fontSize: '12.5px', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit', opacity: motivo ? 1 : 0.4 }}>
+            <Archive className="w-3.5 h-3.5" /> Arquivar
+          </button>
+        </div>
       </div>
     </Modal>
   );
@@ -209,22 +188,39 @@ function ModalHistorico({ lead, onClose }: { lead: any | null; onClose: () => vo
   return (
     <Modal isOpen={!!lead} onClose={onClose} title={`Histórico — ${lead.nome_lead}`} className="max-w-xl">
       {loading ? (
-        <p className="text-sm text-center py-6 text-[var(--muted)]">Carregando...</p>
+        <p style={{ fontSize: '13px', textAlign: 'center', padding: '24px 0', color: 'var(--muted)' }}>Carregando...</p>
       ) : logs.length === 0 ? (
-        <p className="text-sm text-center py-6 text-[var(--muted)]">Nenhuma ação registrada.</p>
+        <p style={{ fontSize: '13px', textAlign: 'center', padding: '24px 0', color: 'var(--muted)' }}>Nenhuma ação registrada.</p>
       ) : (
-        <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
-          {logs.map(log => (
-            <div key={log.id} className="flex gap-3 p-3 rounded-[8px] border border-[var(--border)]">
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-[var(--ink)]">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0', maxHeight: '320px', overflowY: 'auto', paddingRight: '4px' }}>
+          {logs.map((log, idx) => (
+            <div key={log.id} style={{
+              display: 'flex', gap: '12px', padding: '10px 0',
+              borderBottom: idx < logs.length - 1 ? '1px solid var(--border)' : 'none',
+            }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--ink)', margin: 0 }}>
                   {ACTION_LABEL[log.action] || log.action}
                 </p>
-                {log.detalhes?.motivo && <p className="text-xs text-[var(--muted)] mt-0.5">Motivo: {log.detalhes.motivo}</p>}
-                {log.detalhes?.observacao && <p className="text-xs text-[var(--muted)]">Obs: {log.detalhes.observacao}</p>}
-                {log.detalhes?.tentativa && <p className="text-xs text-[var(--muted)]">Tentativa #{log.detalhes.tentativa}</p>}
+                {log.detalhes?.motivo && (
+                  <p style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '2px' }}>
+                    <span style={{ fontSize: '9px', fontWeight: 600, letterSpacing: '0.6px', textTransform: 'uppercase' }}>Motivo</span>
+                    {' '}{log.detalhes.motivo}
+                  </p>
+                )}
+                {log.detalhes?.observacao && (
+                  <p style={{ fontSize: '11px', color: 'var(--muted)', margin: '1px 0 0' }}>
+                    <span style={{ fontSize: '9px', fontWeight: 600, letterSpacing: '0.6px', textTransform: 'uppercase' }}>Obs</span>
+                    {' '}{log.detalhes.observacao}
+                  </p>
+                )}
+                {log.detalhes?.tentativa && (
+                  <p style={{ fontSize: '11px', color: 'var(--muted)', margin: '1px 0 0' }}>
+                    Tentativa #{log.detalhes.tentativa}
+                  </p>
+                )}
               </div>
-              <p className="text-xs text-[var(--muted)] flex-shrink-0 mt-0.5">
+              <p style={{ fontSize: '11px', color: 'var(--muted)', flexShrink: 0, marginTop: '1px' }}>
                 {format(new Date(log.created_at), 'dd/MM/yy HH:mm', { locale: ptBR })}
               </p>
             </div>
@@ -245,16 +241,19 @@ function ModalReativar({ lead, onConfirm, onClose }: {
   if (!lead) return null;
   return (
     <Modal isOpen={!!lead} onClose={onClose} title="Reativar Lead">
-      <p className="text-sm text-[var(--ink)] leading-relaxed mb-6">
-        Reativar <strong>{lead.nome_lead}</strong>? O registro voltará para a aba de Leads com status <em>Iniciou atendimento</em>.
-      </p>
-      <div className="flex gap-2 justify-end">
-        <button onClick={onClose} className="px-4 py-2 text-sm rounded-[8px] border border-[var(--border)] text-[var(--ink)] hover:bg-[var(--bg)] transition-colors">
-          Cancelar
-        </button>
-        <button onClick={onConfirm} className="px-4 py-2 text-sm font-semibold rounded-[8px] text-white transition-opacity hover:opacity-90" style={{ background: 'var(--sage-dark)' }}>
-          Reativar
-        </button>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        <div style={{ padding: '10px 12px', background: 'var(--sage-xlight)', border: '1px solid var(--border-md)', borderRadius: 'var(--r-xs)', fontSize: '12px', fontWeight: 500, color: 'var(--sage-dark)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          Reativar <strong>{lead.nome_lead}</strong>?
+        </div>
+        <p style={{ fontSize: '13px', color: 'var(--muted)', lineHeight: 1.5 }}>
+          O registro voltará para a aba de Leads com status <em>Iniciou atendimento</em>.
+        </p>
+        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+          <button onClick={onClose} style={{ background: 'transparent', color: 'var(--muted)', border: '1px solid var(--border-md)', borderRadius: 'var(--r-xs)', padding: '8px 16px', fontSize: '12.5px', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}>Cancelar</button>
+          <button onClick={onConfirm} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--sage-dark)', color: 'white', border: 'none', borderRadius: 'var(--r-xs)', padding: '8px 16px', fontSize: '12.5px', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}>
+            <RotateCcw className="w-3.5 h-3.5" /> Reativar
+          </button>
+        </div>
       </div>
     </Modal>
   );
@@ -566,56 +565,65 @@ export function LeadsClientes({ mode }: { mode?: 'leads' | 'clientes' }) {
     return p.leads?.nome_lead?.toLowerCase().includes(term) || p.leads?.whatsapp_lead?.includes(term);
   });
 
-  // ── Estilos comuns ─────────────────────────────────────────────────────────
-  const cardCls = 'rounded-[12px] border border-[var(--border)] bg-[var(--white)] shadow-[0_1px_4px_rgba(4,52,44,0.06)]';
-  const thCls = 'px-3 py-3 text-[10px] font-semibold uppercase tracking-[1px] text-[var(--muted)] text-left whitespace-nowrap';
-  const btnIconCls = 'p-1.5 rounded-[6px] transition-colors flex-shrink-0';
-
   // ── Render: modo clientes (legado) ─────────────────────────────────────────
   if (mode === 'clientes') {
     return (
-      <div className="space-y-4 flex flex-col min-h-[calc(100vh-100px)] bg-[var(--bg)] pb-10">
-        <Card><CardContent className="p-4">
-          <div className="flex flex-col 2xl:flex-row gap-4 justify-between">
-            <div className="flex flex-wrap gap-2">
-              {(['ontem','hoje','7dias','14dias','mes','ano'] as DateFilter[]).map(f => (
-                <button key={f} onClick={() => setDateFilter(f)}
-                  className={`px-3 py-1.5 text-sm font-medium rounded-[8px] transition-colors ${dateFilter === f ? 'text-white' : 'bg-[var(--bg)] text-[var(--ink)]'}`}
-                  style={dateFilter === f ? { background: 'var(--sage-dark)' } : {}}>
-                  {f === 'ontem' ? 'Ontem' : f === 'hoje' ? 'Hoje' : f === '7dias' ? '7 dias' : f === '14dias' ? '14 dias' : f === 'mes' ? 'Mês' : 'Ano'}
-                </button>
-              ))}
-            </div>
-            <Input placeholder="Buscar..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} icon={<Search className="w-4 h-4" />} className="h-9 w-64" />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', minHeight: 'calc(100vh - 100px)', background: 'var(--bg)', paddingBottom: '40px' }}>
+        {/* Filtro */}
+        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: '12px', padding: '14px 16px', display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+            {(['ontem','hoje','7dias','14dias','mes','ano'] as DateFilter[]).map(f => (
+              <button key={f} onClick={() => setDateFilter(f)}
+                style={{
+                  padding: '5px 12px', borderRadius: '20px', fontSize: '11.5px', fontWeight: 500,
+                  cursor: 'pointer', fontFamily: 'inherit',
+                  background: dateFilter === f ? 'var(--sage-dark)' : 'var(--sage-xlight)',
+                  color: dateFilter === f ? 'white' : 'var(--ink)',
+                  border: dateFilter === f ? '1px solid var(--sage-dark)' : '1px solid transparent',
+                }}>
+                {f === 'ontem' ? 'Ontem' : f === 'hoje' ? 'Hoje' : f === '7dias' ? '7 dias' : f === '14dias' ? '14 dias' : f === 'mes' ? 'Mês' : 'Ano'}
+              </button>
+            ))}
           </div>
-        </CardContent></Card>
-        <div className={cardCls + ' overflow-x-auto'}>
-          <table className="w-full text-sm">
-            <thead className="border-b border-[var(--border)]" style={{ background: 'var(--sage-xlight)' }}>
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+            <Search style={{ position: 'absolute', left: '10px', width: '14px', height: '14px', color: 'var(--muted)', pointerEvents: 'none' }} />
+            <input
+              placeholder="Buscar..."
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              style={{ paddingLeft: '32px', paddingRight: '10px', paddingTop: '6px', paddingBottom: '6px', border: '1px solid var(--border)', borderRadius: 'var(--r-xs)', fontSize: '12.5px', color: 'var(--ink)', background: 'var(--white)', outline: 'none', width: '200px', fontFamily: 'inherit' }}
+            />
+          </div>
+        </div>
+        {/* Tabela clientes */}
+        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: '10px', overflow: 'hidden' }}>
+          <table style={{ width: '100%', fontSize: '13px', borderCollapse: 'collapse' }}>
+            <thead>
               <tr>
-                <th className={thCls}>Nome</th>
-                <th className={thCls}>WhatsApp</th>
-                <th className={thCls + ' text-center'}>Consultas</th>
-                <th className={thCls}>Próximo Agendamento</th>
-                <th className={thCls}>Cliente Desde</th>
+                {['Nome', 'WhatsApp', 'Consultas', 'Próximo Agendamento', 'Cliente Desde'].map(h => (
+                  <th key={h} style={{ fontSize: '9.5px', fontWeight: 600, letterSpacing: '0.8px', textTransform: 'uppercase', color: 'var(--muted)', padding: '10px 14px', textAlign: 'left', borderBottom: '1px solid var(--border)', background: 'var(--bg)', whiteSpace: 'nowrap' }}>{h}</th>
+                ))}
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={5} className="py-16 text-center text-sm text-[var(--muted)]">Carregando...</td></tr>
+                <tr><td colSpan={5} style={{ padding: '64px', textAlign: 'center', fontSize: '13px', color: 'var(--muted)' }}>Carregando...</td></tr>
               ) : filteredClientes.length === 0 ? (
-                <tr><td colSpan={5} className="py-16 text-center text-sm text-[var(--muted)]">Nenhum cliente encontrado.</td></tr>
+                <tr><td colSpan={5} style={{ padding: '64px', textAlign: 'center', fontSize: '13px', color: 'var(--muted)' }}>Nenhum cliente encontrado.</td></tr>
               ) : filteredClientes.map(c => (
-                <tr key={c.id} className="border-b border-[var(--border)] last:border-0 hover:bg-[var(--sage-xlight)] transition-colors">
-                  <td className="px-3 py-3 font-medium text-[var(--ink)]">{c.leads?.nome_lead || 'Sem Nome'}</td>
-                  <td className="px-3 py-3 text-[var(--muted)] font-mono text-xs">{c.leads?.whatsapp_lead}</td>
-                  <td className="px-3 py-3 text-center">
-                    <span className="text-sm font-bold px-2.5 py-0.5 rounded-full" style={{ background: 'var(--sage-xlight)', color: 'var(--sage-dark)' }}>{c.countCompareceu}</span>
+                <tr key={c.id}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--sage-xlight)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                  style={{ borderBottom: '1px solid var(--border)', cursor: 'default' }}>
+                  <td style={{ padding: '12px 14px', fontWeight: 500, color: 'var(--ink)', verticalAlign: 'middle' }}>{c.leads?.nome_lead || 'Sem Nome'}</td>
+                  <td style={{ padding: '12px 14px', color: 'var(--muted)', fontSize: '11.5px', fontFamily: 'monospace', verticalAlign: 'middle' }}>{c.leads?.whatsapp_lead}</td>
+                  <td style={{ padding: '12px 14px', textAlign: 'center', verticalAlign: 'middle' }}>
+                    <span style={{ fontSize: '12px', fontWeight: 700, padding: '3px 10px', borderRadius: '20px', background: 'var(--sage-xlight)', color: 'var(--sage-dark)' }}>{c.countCompareceu}</span>
                   </td>
-                  <td className="px-3 py-3 text-sm text-[var(--muted)]">
-                    {c.proxAgendamento ? format(parseISO(c.proxAgendamento), 'dd/MM/yyyy HH:mm') : <span className="italic text-xs">Sem agendamentos</span>}
+                  <td style={{ padding: '12px 14px', fontSize: '12px', color: 'var(--muted)', verticalAlign: 'middle' }}>
+                    {c.proxAgendamento ? format(parseISO(c.proxAgendamento), 'dd/MM/yyyy HH:mm') : <span style={{ fontStyle: 'italic', fontSize: '11.5px' }}>Sem agendamentos</span>}
                   </td>
-                  <td className="px-3 py-3 text-sm text-[var(--muted)]">
+                  <td style={{ padding: '12px 14px', fontSize: '12px', color: 'var(--muted)', verticalAlign: 'middle' }}>
                     {c.data_primeira_visita ? format(parseISO(c.data_primeira_visita), 'dd/MM/yyyy') : '—'}
                   </td>
                 </tr>
@@ -638,106 +646,112 @@ export function LeadsClientes({ mode }: { mode?: 'leads' | 'clientes' }) {
     { key: 'reagendado',  label: 'Reagendado' },
   ];
 
+  const tabs: { key: TabLeads; label: string }[] = [
+    { key: 'leads',      label: `Leads (${filteredLeads.length})` },
+    { key: 'arquivados', label: `Arquivados (${arquivados.length})` },
+  ];
+
   return (
-    <div className="space-y-4 flex flex-col min-h-[calc(100vh-100px)] pb-10" style={{ background: 'var(--bg)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', minHeight: 'calc(100vh - 100px)', background: 'var(--bg)', paddingBottom: '40px' }}>
+
+      {/* ── Header ── */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '4px' }}>
+        <div>
+          <div className="font-display" style={{ fontSize: '22px', fontWeight: 300, fontStyle: 'italic', color: 'var(--ink)' }}>
+            Gestão de leads
+          </div>
+          <p style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '2px' }}>
+            Acompanhe e qualifique cada contato até a conversão
+          </p>
+        </div>
+      </div>
 
       {/* ── KPI cards ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
         {[
-          {
-            label: 'Leads ativos',
-            value: metricas.totalAtivos,
-            icon: <Users className="w-4 h-4" />,
-            badge: null,
-          },
-          {
-            label: 'Cancelamentos',
-            value: metricas.cancelamentos,
-            icon: <AlertCircle className="w-4 h-4" />,
-            badge: metricas.urgentes > 0 ? `${metricas.urgentes} urgente${metricas.urgentes > 1 ? 's' : ''}` : null,
-            badgeColor: '#dc2626',
-          },
-          {
-            label: 'Aguardando resposta',
-            value: metricas.aguardando,
-            icon: <Clock className="w-4 h-4" />,
-            badge: null,
-          },
-          {
-            label: 'Reagendados na semana',
-            value: metricas.reagendadosSemana,
-            icon: <CalendarCheck className="w-4 h-4" />,
-            badge: null,
-          },
-        ].map(({ label, value, icon, badge, badgeColor }) => (
-          <div key={label} className={cardCls + ' p-4'}>
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-[10px] font-semibold uppercase tracking-[1.1px] text-[var(--muted)]">{label}</p>
-              <span className="p-1.5 rounded-[7px]" style={{ background: 'var(--sage-xlight)', color: 'var(--sage-dark)' }}>{icon}</span>
+          { label: 'Leads ativos',          value: metricas.totalAtivos,       iconBg: 'var(--sage-xlight)', iconColor: 'var(--sage-dark)',  icon: <Users style={{ width: '14px', height: '14px' }} /> },
+          { label: 'Cancelamentos',         value: metricas.cancelamentos,     iconBg: 'var(--rose-light)',  iconColor: 'var(--rose-text)',  icon: <AlertCircle style={{ width: '14px', height: '14px' }} /> },
+          { label: 'Aguard. resposta',      value: metricas.aguardando,        iconBg: 'var(--champ-light)', iconColor: 'var(--champ-text)', icon: <Clock style={{ width: '14px', height: '14px' }} /> },
+          { label: 'Reagendados na semana', value: metricas.reagendadosSemana, iconBg: '#EFF6FF',            iconColor: '#1D4ED8',           icon: <CalendarCheck style={{ width: '14px', height: '14px' }} /> },
+        ].map(({ label, value, iconBg, iconColor, icon }) => (
+          <div key={label} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: '10px', padding: '13px 14px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ width: '30px', height: '30px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: iconBg, color: iconColor }}>
+              {icon}
             </div>
-            <div className="flex items-end gap-2">
-              <span className="text-[28px] font-bold leading-none" style={{ color: 'var(--sage-dark)' }}>{value}</span>
-              {badge && (
-                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full mb-0.5" style={{ background: 'rgba(220,38,38,0.1)', color: badgeColor || '#dc2626' }}>
-                  {badge}
-                </span>
-              )}
+            <div>
+              <div style={{ fontSize: '9.5px', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.6px', fontWeight: 500 }}>{label}</div>
+              <div className="font-display" style={{ fontSize: '24px', fontWeight: 300, color: 'var(--ink)', lineHeight: 1, marginTop: '1px' }}>{value}</div>
             </div>
           </div>
         ))}
       </div>
 
       {/* ── Filtros de data + busca + export ── */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex flex-col 2xl:flex-row gap-4 justify-between">
-            <div className="flex flex-col xl:flex-row gap-3 xl:items-center">
-              <div className="flex flex-wrap gap-1.5">
-                {(['ontem','hoje','7dias','14dias','mes','ano'] as DateFilter[]).map(f => (
-                  <button key={f} onClick={() => setDateFilter(f)}
-                    className="px-3 py-1.5 text-xs font-medium rounded-[8px] transition-colors"
-                    style={dateFilter === f ? { background: 'var(--sage-dark)', color: '#fff' } : { background: 'var(--sage-xlight)', color: 'var(--ink)' }}>
-                    {f === 'ontem' ? 'Ontem' : f === 'hoje' ? 'Hoje' : f === '7dias' ? '7 dias' : f === '14dias' ? '14 dias' : f === 'mes' ? 'Mês' : 'Ano'}
-                  </button>
-                ))}
-              </div>
-              <div className="flex items-center gap-2 xl:border-l border-[var(--border)] xl:pl-3">
-                <input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)}
-                  className="h-8 px-2 text-xs rounded-[7px] border border-[var(--border)] bg-[var(--bg)] text-[var(--ink)]" />
-                <span className="text-xs text-[var(--muted)]">até</span>
-                <input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)}
-                  className="h-8 px-2 text-xs rounded-[7px] border border-[var(--border)] bg-[var(--bg)] text-[var(--ink)]" />
-                <button onClick={() => setDateFilter('custom')}
-                  className="h-8 px-3 text-xs font-semibold rounded-[7px] text-white"
-                  style={{ background: 'var(--sage-dark)' }}>Filtrar</button>
-              </div>
+      <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: '12px', padding: '14px 16px', display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center', justifyContent: 'space-between' }}>
+        {/* Pills de período + date range */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center' }}>
+          {(['ontem','hoje','7dias','14dias','mes','ano'] as DateFilter[]).map(f => (
+            <button key={f} onClick={() => setDateFilter(f)}
+              style={{
+                padding: '5px 12px', borderRadius: '20px', fontSize: '11.5px', fontWeight: 500,
+                cursor: 'pointer', fontFamily: 'inherit',
+                background: dateFilter === f ? 'var(--sage-dark)' : 'var(--sage-xlight)',
+                color: dateFilter === f ? 'white' : 'var(--ink)',
+                border: dateFilter === f ? '1px solid var(--sage-dark)' : '1px solid transparent',
+              }}>
+              {f === 'ontem' ? 'Ontem' : f === 'hoje' ? 'Hoje' : f === '7dias' ? '7 dias' : f === '14dias' ? '14 dias' : f === 'mes' ? 'Mês' : 'Ano'}
+            </button>
+          ))}
+          {/* Date range */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', paddingLeft: '6px', borderLeft: '1px solid var(--border)', marginLeft: '2px' }}>
+            <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--r-xs)', padding: '5px 10px', display: 'flex', alignItems: 'center' }}>
+              <input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)}
+                style={{ fontSize: '11.5px', color: 'var(--ink)', background: 'transparent', border: 'none', outline: 'none', fontFamily: 'inherit' }} />
             </div>
-            <div className="flex items-center gap-2">
-              <div className="w-56">
-                <Input placeholder="Buscar nome ou zap..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} icon={<Search className="w-4 h-4" />} className="h-9" />
-              </div>
-              <button onClick={handleExportCSV} title="CSV" className={btnIconCls + ' border border-[var(--border)] text-[var(--muted)] hover:text-[var(--sage-dark)] hover:border-[var(--sage)]'}>
-                <Download className="w-4 h-4" />
-              </button>
-              <button onClick={handleExportPDF} title="PDF" className={btnIconCls + ' border border-[var(--border)] text-[var(--muted)] hover:text-[var(--sage-dark)] hover:border-[var(--sage)]'}>
-                <FileText className="w-4 h-4" />
-              </button>
+            <span style={{ fontSize: '11px', color: 'var(--muted)' }}>até</span>
+            <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--r-xs)', padding: '5px 10px', display: 'flex', alignItems: 'center' }}>
+              <input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)}
+                style={{ fontSize: '11.5px', color: 'var(--ink)', background: 'transparent', border: 'none', outline: 'none', fontFamily: 'inherit' }} />
             </div>
+            <button onClick={() => setDateFilter('custom')}
+              style={{ padding: '5px 12px', borderRadius: '20px', fontSize: '11.5px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', background: 'var(--sage-dark)', color: 'white', border: 'none' }}>
+              Filtrar
+            </button>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+        {/* Busca + export */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+            <Search style={{ position: 'absolute', left: '10px', width: '13px', height: '13px', color: 'var(--muted)', pointerEvents: 'none' }} />
+            <input
+              placeholder="Buscar nome ou zap..."
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              style={{ paddingLeft: '30px', paddingRight: '10px', paddingTop: '6px', paddingBottom: '6px', border: '1px solid var(--border)', borderRadius: 'var(--r-xs)', fontSize: '12px', color: 'var(--ink)', background: 'var(--white)', outline: 'none', width: '200px', fontFamily: 'inherit' }}
+            />
+          </div>
+          <button onClick={handleExportCSV} title="Exportar CSV"
+            style={{ width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--border)', borderRadius: '6px', background: 'var(--white)', color: 'var(--muted)', cursor: 'pointer', flexShrink: 0 }}>
+            <Download style={{ width: '14px', height: '14px' }} />
+          </button>
+          <button onClick={handleExportPDF} title="Exportar PDF"
+            style={{ width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--border)', borderRadius: '6px', background: 'var(--white)', color: 'var(--muted)', cursor: 'pointer', flexShrink: 0 }}>
+            <FileText style={{ width: '14px', height: '14px' }} />
+          </button>
+        </div>
+      </div>
 
       {/* ── Tabs Leads / Arquivados ── */}
-      <div className="flex border-b border-[var(--border)] gap-0">
-        {([
-          { key: 'leads',     label: `Leads (${filteredLeads.length})` },
-          { key: 'arquivados',label: `Arquivados (${arquivados.length})` },
-        ] as { key: TabLeads; label: string }[]).map(tab => (
+      <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid var(--border)' }}>
+        {tabs.map(tab => (
           <button key={tab.key} onClick={() => { setTabLeads(tab.key); setSearchTerm(''); }}
-            className="pb-3 px-1 mr-6 text-sm font-medium border-b-2 transition-colors -mb-px"
             style={{
-              borderBottomColor: tabLeads === tab.key ? 'var(--sage-dark)' : 'transparent',
+              padding: '8px 14px', fontSize: '12px', fontWeight: tabLeads === tab.key ? 600 : 400,
               color: tabLeads === tab.key ? 'var(--sage-dark)' : 'var(--muted)',
+              marginBottom: '-1px', cursor: 'pointer', background: 'none', border: 'none',
+              borderBottomWidth: '2px', borderBottomStyle: 'solid',
+              borderBottomColor: tabLeads === tab.key ? 'var(--sage-dark)' : 'transparent',
+              fontFamily: 'inherit',
             }}>
             {tab.label}
           </button>
@@ -746,17 +760,20 @@ export function LeadsClientes({ mode }: { mode?: 'leads' | 'clientes' }) {
 
       {/* ── Chips de filtro (só na aba leads) ── */}
       {tabLeads === 'leads' && (
-        <div className="flex flex-wrap gap-1.5">
+        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
           {FILTER_CHIPS.map(({ key, label }) => {
             const count = chipCounts[key] ?? 0;
             const active = filtroStatus === key;
             return (
               <button key={key} onClick={() => setFiltroStatus(key)}
-                className="px-3 py-1.5 text-xs font-medium rounded-full border transition-colors"
-                style={active
-                  ? { background: 'var(--sage-dark)', color: '#fff', borderColor: 'var(--sage-dark)' }
-                  : { background: 'var(--white)', color: 'var(--ink)', borderColor: 'var(--border)' }}>
-                {label} <span className={active ? 'opacity-70' : 'text-[var(--muted)]'}>({count})</span>
+                style={{
+                  padding: '4px 11px', borderRadius: '20px', fontSize: '11px', fontWeight: 500,
+                  cursor: 'pointer', fontFamily: 'inherit',
+                  background: active ? 'var(--sage-dark)' : 'var(--white)',
+                  color: active ? 'white' : 'var(--muted)',
+                  border: active ? '1px solid var(--sage-dark)' : '1px solid var(--border-md)',
+                }}>
+                {label} ({count})
               </button>
             );
           })}
@@ -765,208 +782,206 @@ export function LeadsClientes({ mode }: { mode?: 'leads' | 'clientes' }) {
 
       {/* ── Tabela de leads ativos ── */}
       {tabLeads === 'leads' && (
-        <div className={cardCls + ' overflow-x-auto'}>
-          <table className="w-full text-sm min-w-[860px]">
-            <thead className="border-b border-[var(--border)]" style={{ background: 'var(--sage-xlight)' }}>
-              <tr>
-                <th className={thCls}>Nome</th>
-                <th className={thCls}>Pipeline</th>
-                <th className={thCls}>Motivo</th>
-                <th className={thCls}>Tentativas</th>
-                <th className={thCls}>Próximo contato</th>
-                <th className={thCls}>Início</th>
-                <th className={thCls + ' text-right'}>Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr><td colSpan={7} className="py-16 text-center text-sm text-[var(--muted)]">Carregando...</td></tr>
-              ) : filteredLeads.length === 0 ? (
-                <tr><td colSpan={7} className="py-16 text-center text-sm text-[var(--muted)]">Nenhum lead encontrado para este filtro.</td></tr>
-              ) : filteredLeads.map(lead => {
-                const pc = proximoContatoDisplay(lead.proximo_contato);
-                const tentativas = lead.tentativas || 0;
-                const podeConverter = lead.status === 'agendado' || lead.status === 'reagendado';
-                const motBadge = lead.motivo ? MOTIVO_BADGE[lead.motivo] : null;
+        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: '10px', overflow: 'hidden' }}>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '860px' }}>
+              <thead>
+                <tr>
+                  {['Nome', 'Pipeline', 'Motivo', 'Tentativas', 'Próximo contato', 'Início', 'Ações'].map((h, i) => (
+                    <th key={h} style={{ fontSize: '9.5px', fontWeight: 600, letterSpacing: '0.8px', textTransform: 'uppercase', color: 'var(--muted)', padding: '10px 14px', textAlign: i === 6 ? 'right' : 'left', borderBottom: '1px solid var(--border)', background: 'var(--bg)', whiteSpace: 'nowrap' }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr><td colSpan={7} style={{ padding: '64px', textAlign: 'center', fontSize: '13px', color: 'var(--muted)' }}>Carregando...</td></tr>
+                ) : filteredLeads.length === 0 ? (
+                  <tr><td colSpan={7} style={{ padding: '64px', textAlign: 'center', fontSize: '13px', color: 'var(--muted)' }}>Nenhum lead encontrado para este filtro.</td></tr>
+                ) : filteredLeads.map(lead => {
+                  const pc = proximoContatoDisplay(lead.proximo_contato);
+                  const tentativas = lead.tentativas || 0;
+                  const podeConverter = lead.status === 'agendado' || lead.status === 'reagendado';
+                  const motBadge = lead.motivo ? MOTIVO_BADGE[lead.motivo] : null;
 
-                return (
-                  <tr key={lead.id}
-                    onClick={() => { setSelectedLead(lead); setOpenLeadDetails(true); }}
-                    className="border-b border-[var(--border)] last:border-0 hover:bg-[var(--sage-xlight)] transition-colors cursor-pointer group">
+                  return (
+                    <tr key={lead.id}
+                      onClick={() => { setSelectedLead(lead); setOpenLeadDetails(true); }}
+                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--sage-xlight)')}
+                      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                      style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer' }}>
 
-                    {/* Nome */}
-                    <td className="px-3 py-3">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
-                          style={{ background: 'linear-gradient(135deg, var(--sage-dark), var(--sage))' }}>
-                          {getInitials(lead.nome_lead)}
+                      {/* Nome */}
+                      <td style={{ padding: '12px 14px', verticalAlign: 'middle', borderBottom: '1px solid var(--border)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <div style={{ width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 700, flexShrink: 0, background: 'var(--champ-light)', color: 'var(--champ-text)' }}>
+                            {getInitials(lead.nome_lead)}
+                          </div>
+                          <div>
+                            <div style={{ fontSize: '12.5px', fontWeight: 500, color: 'var(--ink)' }}>{lead.nome_lead || 'Sem Nome'}</div>
+                            <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '1px' }}>{lead.whatsapp_lead}</div>
+                          </div>
                         </div>
-                        <div className="min-w-0">
-                          <p className="font-medium text-[var(--ink)] truncate text-sm">{lead.nome_lead || 'Sem Nome'}</p>
-                          <p className="text-[11px] text-[var(--muted)] font-mono truncate">{lead.whatsapp_lead}</p>
+                      </td>
+
+                      {/* Pipeline */}
+                      <td style={{ padding: '12px 14px', verticalAlign: 'middle', borderBottom: '1px solid var(--border)' }} onClick={e => e.stopPropagation()}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', padding: '3px 9px', borderRadius: '20px', fontSize: '10.5px', fontWeight: 500, background: 'var(--champ-light)', color: 'var(--champ-text)' }}>
+                          {lead.status}
+                        </span>
+                      </td>
+
+                      {/* Motivo (editável inline) */}
+                      <td style={{ padding: '12px 14px', verticalAlign: 'middle', borderBottom: '1px solid var(--border)' }} onClick={e => e.stopPropagation()}>
+                        <select
+                          value={lead.motivo || ''}
+                          onChange={e => atualizarMotivo(lead, e.target.value)}
+                          style={{
+                            fontSize: '10.5px', fontWeight: 500, padding: '3px 8px', borderRadius: '20px',
+                            border: 'none', outline: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                            background: motBadge ? motBadge.bg : 'var(--sage-xlight)',
+                            color: motBadge ? motBadge.color : 'var(--muted)',
+                          }}>
+                          <option value="">— sem motivo —</option>
+                          {MOTIVO_OPTIONS.map(m => <option key={m} value={m}>{m}</option>)}
+                        </select>
+                      </td>
+
+                      {/* Tentativas */}
+                      <td style={{ padding: '12px 14px', verticalAlign: 'middle', borderBottom: '1px solid var(--border)' }} onClick={e => e.stopPropagation()}>
+                        <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                          {[0, 1, 2].map(i => (
+                            <span key={i} style={{ width: '8px', height: '8px', borderRadius: '50%', background: i < tentativas ? 'var(--sage-dark)' : 'var(--border-md)', display: 'inline-block' }} />
+                          ))}
+                          {tentativas >= 3 && (
+                            <span style={{ fontSize: '9px', fontWeight: 700, marginLeft: '2px', padding: '1px 5px', borderRadius: '20px', background: 'rgba(220,38,38,0.1)', color: '#dc2626' }}>
+                              3×
+                            </span>
+                          )}
                         </div>
-                      </div>
-                    </td>
+                      </td>
 
-                    {/* Pipeline */}
-                    <td className="px-3 py-3" onClick={e => e.stopPropagation()}>
-                      <Badge variant={lead.status as any}>{lead.status}</Badge>
-                    </td>
+                      {/* Próximo contato */}
+                      <td style={{ padding: '12px 14px', verticalAlign: 'middle', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }}>
+                        <span style={{ fontSize: '11.5px', fontWeight: 500, color: pc.color }}>{pc.text}</span>
+                      </td>
 
-                    {/* Motivo (editável inline) */}
-                    <td className="px-3 py-3" onClick={e => e.stopPropagation()}>
-                      <select
-                        value={lead.motivo || ''}
-                        onChange={e => atualizarMotivo(lead, e.target.value)}
-                        className="text-[11px] font-semibold px-2 py-0.5 rounded-full border-0 focus:outline-none focus:ring-1 cursor-pointer"
-                        style={{
-                          background: motBadge ? motBadge.bg : 'var(--sage-xlight)',
-                          color: motBadge ? motBadge.color : 'var(--muted)',
-                          focusRingColor: 'var(--sage)',
-                        } as React.CSSProperties}
-                      >
-                        <option value="">— sem motivo —</option>
-                        {MOTIVO_OPTIONS.map(m => <option key={m} value={m}>{m}</option>)}
-                      </select>
-                    </td>
+                      {/* Início */}
+                      <td style={{ padding: '12px 14px', verticalAlign: 'middle', borderBottom: '1px solid var(--border)', fontSize: '11.5px', color: 'var(--muted)', whiteSpace: 'nowrap' }}>
+                        {lead.inicio_atendimento ? format(parseISO(lead.inicio_atendimento), 'dd/MM/yyyy', { locale: ptBR }) : '—'}
+                      </td>
 
-                    {/* Tentativas */}
-                    <td className="px-3 py-3" onClick={e => e.stopPropagation()}>
-                      <div className="flex items-center gap-1">
-                        {[0, 1, 2].map(i => (
-                          <span key={i} className="w-2.5 h-2.5 rounded-full"
-                            style={{ background: i < tentativas ? 'var(--sage)' : 'var(--border)' }} />
-                        ))}
-                        {tentativas >= 3 && (
-                          <span className="text-[9px] font-bold ml-1 px-1.5 py-0.5 rounded-full"
-                            style={{ background: 'rgba(220,38,38,0.1)', color: '#dc2626' }}>
-                            3×
-                          </span>
-                        )}
-                      </div>
-                    </td>
-
-                    {/* Próximo contato */}
-                    <td className="px-3 py-3">
-                      <span className="text-xs font-medium" style={{ color: pc.color }}>{pc.text}</span>
-                    </td>
-
-                    {/* Início */}
-                    <td className="px-3 py-3 text-xs text-[var(--muted)] whitespace-nowrap">
-                      {lead.inicio_atendimento ? format(parseISO(lead.inicio_atendimento), 'dd/MM/yyyy', { locale: ptBR }) : '—'}
-                    </td>
-
-                    {/* Ações */}
-                    <td className="px-3 py-3" onClick={e => e.stopPropagation()}>
-                      <div className="flex items-center gap-1.5 justify-end">
-                        {/* Registrar tentativa */}
-                        <button onClick={() => registrarTentativa(lead)} title="Registrar tentativa de contato"
-                          disabled={tentativas >= 3}
-                          className={btnIconCls + ' disabled:opacity-30'}
-                          style={{ background: 'var(--sage-xlight)', color: 'var(--sage-dark)' }}>
-                          <Check className="w-3.5 h-3.5" />
-                        </button>
-
-                        {/* Abrir no Inbox */}
-                        {lead.whatsapp_lead && (
-                          <button onClick={() => navigate('/inbox', { state: { lead_id: lead.id } })} title="Abrir no Inbox"
-                            className={btnIconCls} style={{ background: 'var(--sage-xlight)', color: 'var(--sage-dark)' }}>
-                            <MessageSquare className="w-3.5 h-3.5" />
+                      {/* Ações */}
+                      <td style={{ padding: '12px 14px', verticalAlign: 'middle', borderBottom: '1px solid var(--border)' }} onClick={e => e.stopPropagation()}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', justifyContent: 'flex-end' }}>
+                          {/* Registrar tentativa */}
+                          <button onClick={() => registrarTentativa(lead)} title="Registrar tentativa de contato"
+                            disabled={tentativas >= 3}
+                            style={{ width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px', border: 'none', cursor: tentativas >= 3 ? 'not-allowed' : 'pointer', opacity: tentativas >= 3 ? 0.3 : 1, background: 'var(--sage-xlight)', color: 'var(--sage-dark)', flexShrink: 0 }}>
+                            <Check style={{ width: '13px', height: '13px' }} />
                           </button>
-                        )}
 
-                        {/* Converteu */}
-                        {podeConverter && (
-                          <button onClick={() => setLeadConverteu(lead)} title="Marcar como converteu"
-                            className={btnIconCls} style={{ background: 'rgba(15,110,86,0.1)', color: 'var(--sage-dark)' }}>
-                            <CheckCircle className="w-3.5 h-3.5" />
+                          {/* Abrir no Inbox */}
+                          {lead.whatsapp_lead && (
+                            <button onClick={() => navigate('/inbox', { state: { lead_id: lead.id } })} title="Abrir no Inbox"
+                              style={{ width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px', border: 'none', cursor: 'pointer', background: 'var(--sage-xlight)', color: 'var(--sage-dark)', flexShrink: 0 }}>
+                              <MessageSquare style={{ width: '13px', height: '13px' }} />
+                            </button>
+                          )}
+
+                          {/* Converteu */}
+                          {podeConverter && (
+                            <button onClick={() => setLeadConverteu(lead)} title="Marcar como converteu"
+                              style={{ width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px', border: 'none', cursor: 'pointer', background: 'var(--sage-xlight)', color: 'var(--sage-dark)', flexShrink: 0 }}>
+                              <CheckCircle style={{ width: '13px', height: '13px' }} />
+                            </button>
+                          )}
+
+                          {/* Arquivar */}
+                          <button onClick={() => setLeadArquivar(lead)} title="Arquivar lead"
+                            style={{ width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px', border: 'none', cursor: 'pointer', background: 'var(--rose-light)', color: 'var(--rose-text)', flexShrink: 0 }}>
+                            <Archive style={{ width: '13px', height: '13px' }} />
                           </button>
-                        )}
-
-                        {/* Arquivar */}
-                        <button onClick={() => setLeadArquivar(lead)} title="Arquivar lead"
-                          className={btnIconCls} style={{ background: 'rgba(220,38,38,0.08)', color: '#dc2626' }}>
-                          <Archive className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
       {/* ── Tabela de arquivados ── */}
       {tabLeads === 'arquivados' && (
-        <div className={cardCls + ' overflow-x-auto'}>
-          <table className="w-full text-sm min-w-[720px]">
-            <thead className="border-b border-[var(--border)]" style={{ background: 'var(--sage-xlight)' }}>
-              <tr>
-                <th className={thCls}>Nome</th>
-                <th className={thCls}>Motivo</th>
-                <th className={thCls}>Observação</th>
-                <th className={thCls}>Arquivado em</th>
-                <th className={thCls + ' text-right'}>Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredArquivados.length === 0 ? (
-                <tr><td colSpan={5} className="py-16 text-center text-sm text-[var(--muted)]">Nenhum lead arquivado.</td></tr>
-              ) : filteredArquivados.map(lead => (
-                <tr key={lead.id} className="border-b border-[var(--border)] last:border-0 hover:bg-[var(--sage-xlight)] transition-colors">
-                  {/* Nome */}
-                  <td className="px-3 py-3">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
-                        style={{ background: 'linear-gradient(135deg, #94a3b8, #64748b)' }}>
-                        {getInitials(lead.nome_lead)}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="font-medium text-[var(--ink)] truncate text-sm">{lead.nome_lead || 'Sem Nome'}</p>
-                        <p className="text-[11px] text-[var(--muted)] font-mono">{lead.whatsapp_lead || '—'}</p>
-                      </div>
-                    </div>
-                  </td>
-
-                  {/* Motivo arquivamento */}
-                  <td className="px-3 py-3">
-                    <span className="text-xs font-medium px-2 py-0.5 rounded-full"
-                      style={{ background: 'rgba(100,116,139,0.1)', color: '#64748b' }}>
-                      {lead.motivo_arquivamento || '—'}
-                    </span>
-                  </td>
-
-                  {/* Observação */}
-                  <td className="px-3 py-3 text-xs text-[var(--muted)] max-w-[200px] truncate">
-                    {lead.observacao_arquivamento || '—'}
-                  </td>
-
-                  {/* Arquivado em */}
-                  <td className="px-3 py-3 text-xs text-[var(--muted)] whitespace-nowrap">
-                    {lead.arquivado_em ? format(parseISO(lead.arquivado_em), 'dd/MM/yyyy HH:mm', { locale: ptBR }) : '—'}
-                  </td>
-
-                  {/* Ações */}
-                  <td className="px-3 py-3">
-                    <div className="flex items-center gap-1.5 justify-end">
-                      <button onClick={() => setLeadReativar(lead)} title="Reativar lead"
-                        className={btnIconCls + ' flex items-center gap-1.5 px-2.5 text-xs font-semibold'}
-                        style={{ background: 'var(--sage-xlight)', color: 'var(--sage-dark)' }}>
-                        <RotateCcw className="w-3.5 h-3.5" />
-                        Reativar
-                      </button>
-                      <button onClick={() => setLeadHistorico(lead)} title="Ver histórico"
-                        className={btnIconCls} style={{ background: 'var(--sage-xlight)', color: 'var(--muted)' }}>
-                        <History className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </td>
+        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: '10px', overflow: 'hidden' }}>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '720px' }}>
+              <thead>
+                <tr>
+                  {['Nome', 'Motivo', 'Observação', 'Arquivado em', 'Ações'].map((h, i) => (
+                    <th key={h} style={{ fontSize: '9.5px', fontWeight: 600, letterSpacing: '0.8px', textTransform: 'uppercase', color: 'var(--muted)', padding: '10px 14px', textAlign: i === 4 ? 'right' : 'left', borderBottom: '1px solid var(--border)', background: 'var(--bg)', whiteSpace: 'nowrap' }}>{h}</th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {filteredArquivados.length === 0 ? (
+                  <tr><td colSpan={5} style={{ padding: '64px', textAlign: 'center', fontSize: '13px', color: 'var(--muted)' }}>Nenhum lead arquivado.</td></tr>
+                ) : filteredArquivados.map(lead => (
+                  <tr key={lead.id}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--sage-xlight)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                    style={{ borderBottom: '1px solid var(--border)' }}>
+
+                    {/* Nome */}
+                    <td style={{ padding: '12px 14px', verticalAlign: 'middle', borderBottom: '1px solid var(--border)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div style={{ width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 700, flexShrink: 0, background: 'rgba(100,116,139,0.1)', color: '#64748b' }}>
+                          {getInitials(lead.nome_lead)}
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '12.5px', fontWeight: 500, color: 'var(--ink)' }}>{lead.nome_lead || 'Sem Nome'}</div>
+                          <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '1px' }}>{lead.whatsapp_lead || '—'}</div>
+                        </div>
+                      </div>
+                    </td>
+
+                    {/* Motivo arquivamento */}
+                    <td style={{ padding: '12px 14px', verticalAlign: 'middle', borderBottom: '1px solid var(--border)' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', padding: '3px 9px', borderRadius: '20px', fontSize: '10.5px', fontWeight: 500, background: 'rgba(100,116,139,0.1)', color: '#64748b' }}>
+                        {lead.motivo_arquivamento || '—'}
+                      </span>
+                    </td>
+
+                    {/* Observação */}
+                    <td style={{ padding: '12px 14px', verticalAlign: 'middle', borderBottom: '1px solid var(--border)', fontSize: '11.5px', color: 'var(--muted)', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {lead.observacao_arquivamento || '—'}
+                    </td>
+
+                    {/* Arquivado em */}
+                    <td style={{ padding: '12px 14px', verticalAlign: 'middle', borderBottom: '1px solid var(--border)', fontSize: '11.5px', color: 'var(--muted)', whiteSpace: 'nowrap' }}>
+                      {lead.arquivado_em ? format(parseISO(lead.arquivado_em), 'dd/MM/yyyy HH:mm', { locale: ptBR }) : '—'}
+                    </td>
+
+                    {/* Ações */}
+                    <td style={{ padding: '12px 14px', verticalAlign: 'middle', borderBottom: '1px solid var(--border)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '5px', justifyContent: 'flex-end' }}>
+                        <button onClick={() => setLeadReativar(lead)} title="Reativar lead"
+                          style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '5px 10px', borderRadius: '6px', border: 'none', cursor: 'pointer', background: 'var(--sage-xlight)', color: 'var(--sage-dark)', fontSize: '11.5px', fontWeight: 500, fontFamily: 'inherit' }}>
+                          <RotateCcw style={{ width: '13px', height: '13px' }} />
+                          Reativar
+                        </button>
+                        <button onClick={() => setLeadHistorico(lead)} title="Ver histórico"
+                          style={{ width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px', border: 'none', cursor: 'pointer', background: 'var(--sage-xlight)', color: 'var(--muted)', flexShrink: 0 }}>
+                          <History style={{ width: '13px', height: '13px' }} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
