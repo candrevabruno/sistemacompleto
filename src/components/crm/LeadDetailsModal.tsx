@@ -2,27 +2,71 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { Modal } from '../ui/Modal';
-import { Badge } from '../ui/Badge';
 import { Input } from '../ui/Input';
-import { Button } from '../ui/Button';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { User, Phone, Calendar, DollarSign, Clock, FileText, Check, X, ShieldAlert, Mail, IdCard, MessageCircle } from 'lucide-react';
+import {
+  User, Calendar, DollarSign, Clock, FileText, Check, X,
+  ShieldAlert, MessageCircle, Pencil,
+} from 'lucide-react';
 import { calcularDataReativacao } from '../../lib/lead-utils';
 import type { LeadDetalhes } from '../../types';
 
 const COLUMNS = [
-  { id: 'iniciou_atendimento', title: 'Iniciou', colorClass: 'border-[var(--sage-dark)]' },
-  { id: 'conversando', title: 'Conversando', colorClass: 'border-[var(--ink)]' },
-  { id: 'follow_up', title: 'Follow-Up', colorClass: 'border-blue-500' },
-  { id: 'agendado', title: 'Agendado', colorClass: 'border-emerald-500' },
-  { id: 'reagendado', title: 'Reagendado', colorClass: 'border-amber-400' },
-  { id: 'faltou', title: 'Faltou', colorClass: 'border-slate-500' },
-  { id: 'cancelou_agendamento', title: 'Cancelou Agendamento', colorClass: 'border-rose-400' },
-  { id: 'converteu', title: 'Converteu (Venda)', colorClass: 'border-green-600 font-bold' },
-  { id: 'nao_converteu', title: 'Não Converteu', colorClass: 'border-rose-600' },
-  { id: 'abandonou_conversa', title: 'Abandonou', colorClass: 'border-gray-400' }
+  { id: 'iniciou_atendimento', title: 'Iniciou' },
+  { id: 'conversando',         title: 'Conversando' },
+  { id: 'follow_up',           title: 'Follow-Up' },
+  { id: 'agendado',            title: 'Agendado' },
+  { id: 'reagendado',          title: 'Reagendado' },
+  { id: 'faltou',              title: 'Faltou' },
+  { id: 'cancelou_agendamento', title: 'Cancelou Agendamento' },
+  { id: 'converteu',           title: 'Converteu (Venda)' },
+  { id: 'nao_converteu',       title: 'Não Converteu' },
+  { id: 'abandonou_conversa',  title: 'Abandonou' },
 ];
+
+// ── Shared style tokens ──────────────────────────────────────────────────────
+
+const sectionTitle: React.CSSProperties = {
+  fontSize: '10px', fontWeight: 600, letterSpacing: '1px',
+  textTransform: 'uppercase', color: 'var(--muted)',
+  marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '7px',
+};
+
+const fieldLabel: React.CSSProperties = {
+  fontSize: '9.5px', fontWeight: 600, letterSpacing: '0.8px',
+  textTransform: 'uppercase', color: 'var(--muted)', marginBottom: '3px',
+};
+
+const formLabel: React.CSSProperties = {
+  display: 'block', fontSize: '10px', fontWeight: 600,
+  letterSpacing: '0.8px', textTransform: 'uppercase',
+  color: 'var(--muted)', marginBottom: '5px',
+};
+
+const btnGhost: React.CSSProperties = {
+  display: 'flex', alignItems: 'center', gap: '6px',
+  background: 'transparent', color: 'var(--muted)',
+  border: '1px solid var(--border-md)', borderRadius: 'var(--r-xs)',
+  padding: '7px 13px', fontSize: '12px', fontWeight: 500,
+  cursor: 'pointer', fontFamily: 'inherit',
+};
+
+const btnPrimary: React.CSSProperties = {
+  display: 'flex', alignItems: 'center', gap: '6px',
+  background: 'var(--sage-dark)', color: 'white', border: 'none',
+  borderRadius: 'var(--r-xs)', padding: '7px 14px',
+  fontSize: '12px', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
+};
+
+const btnDanger: React.CSSProperties = {
+  display: 'flex', alignItems: 'center', gap: '6px',
+  background: '#dc2626', color: 'white', border: 'none',
+  borderRadius: 'var(--r-xs)', padding: '7px 14px',
+  fontSize: '12px', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
+};
+
+// ── Component ────────────────────────────────────────────────────────────────
 
 interface LeadDetailsModalProps {
   isOpen: boolean;
@@ -38,25 +82,17 @@ export function LeadDetailsModal({ isOpen, onClose, leadId, onUpdate }: LeadDeta
   const [appointments, setAppointments] = useState<any[]>([]);
   const [agendas, setAgendas] = useState<any[]>([]);
   const [availableServicos, setAvailableServicos] = useState<any[]>([]);
-  
-  // Status changing states
+
   const [savingStatus, setSavingStatus] = useState(false);
 
-  // Edit fields state
   const [editingDetails, setEditingDetails] = useState(false);
-  const [detailsForm, setDetailsForm] = useState({ 
-    genero: '', 
-    data_nascimento: '', 
-    observacoes: '',
-    nome_lead: '',
-    procedimento_interesse: '',
-    whatsapp_lead: '',
-    email: '',
-    cpf: ''
+  const [detailsForm, setDetailsForm] = useState({
+    genero: '', data_nascimento: '', observacoes: '',
+    nome_lead: '', procedimento_interesse: '',
+    whatsapp_lead: '', email: '', cpf: '',
   });
   const [savingDetails, setSavingDetails] = useState(false);
 
-  // Confirmation Overlays
   const [confirmAgendado, setConfirmAgendado] = useState(false);
   const [agendadoForm, setAgendadoForm] = useState({ dataHora: '', procedimento: '', agendaId: '', modalidade: 'presencial' });
   const [savingAgendado, setSavingAgendado] = useState(false);
@@ -85,18 +121,10 @@ export function LeadDetailsModal({ isOpen, onClose, leadId, onUpdate }: LeadDeta
   const loadAllData = async () => {
     try {
       setLoading(true);
-      
-      // Load Lead
       const { data: leadData, error: leadError } = await supabase
-        .from('leads')
-        .select('*')
-        .eq('id', leadId)
-        .single();
-        
+        .from('leads').select('*').eq('id', leadId).single();
       if (leadError) throw leadError;
       setLead(leadData);
-      
-      // Setup edit details form
       setDetailsForm({
         genero: leadData.genero || '',
         data_nascimento: leadData.data_nascimento || '',
@@ -105,31 +133,16 @@ export function LeadDetailsModal({ isOpen, onClose, leadId, onUpdate }: LeadDeta
         procedimento_interesse: leadData.procedimento_interesse || '',
         whatsapp_lead: leadData.whatsapp_lead || '',
         email: leadData.email || '',
-        cpf: leadData.cpf || ''
+        cpf: leadData.cpf || '',
       });
-
-      // Load Appointments
       const { data: apptData } = await supabase
-        .from('agendamentos')
-        .select('*, agendas(nome, cor)')
-        .eq('lead_id', leadId)
-        .order('data_hora_inicio', { ascending: false });
+        .from('agendamentos').select('*, agendas(nome, cor)')
+        .eq('lead_id', leadId).order('data_hora_inicio', { ascending: false });
       setAppointments(apptData || []);
-
-      // Load Agendas
-      const { data: agendasData } = await supabase
-        .from('agendas')
-        .select('id, nome, cor')
-        .eq('ativo', true);
+      const { data: agendasData } = await supabase.from('agendas').select('id, nome, cor').eq('ativo', true);
       setAgendas(agendasData || []);
-
-      // Load Services
-      const { data: servicosData } = await supabase
-        .from('servicos')
-        .select('*')
-        .order('nome');
+      const { data: servicosData } = await supabase.from('servicos').select('*').order('nome');
       setAvailableServicos(servicosData || []);
-
     } catch (err) {
       console.error('Erro ao carregar dados do lead:', err);
     } finally {
@@ -141,27 +154,22 @@ export function LeadDetailsModal({ isOpen, onClose, leadId, onUpdate }: LeadDeta
     if (!lead) return;
     setSavingDetails(true);
     try {
-      const { error } = await supabase
-        .from('leads')
-        .update({
-          nome_lead: detailsForm.nome_lead,
-          genero: detailsForm.genero || null,
-          data_nascimento: detailsForm.data_nascimento || null,
-          procedimento_interesse: detailsForm.procedimento_interesse || null,
-          observacoes: detailsForm.observacoes || null,
-          whatsapp_lead: detailsForm.whatsapp_lead,
-          email: detailsForm.email || null,
-          cpf: detailsForm.cpf || null
-        })
-        .eq('id', lead.id);
-        
+      const { error } = await supabase.from('leads').update({
+        nome_lead: detailsForm.nome_lead,
+        genero: detailsForm.genero || null,
+        data_nascimento: detailsForm.data_nascimento || null,
+        procedimento_interesse: detailsForm.procedimento_interesse || null,
+        observacoes: detailsForm.observacoes || null,
+        whatsapp_lead: detailsForm.whatsapp_lead,
+        email: detailsForm.email || null,
+        cpf: detailsForm.cpf || null,
+      }).eq('id', lead.id);
       if (error) throw error;
-      
       setEditingDetails(false);
       await loadAllData();
       if (onUpdate) onUpdate();
     } catch (err: any) {
-      alert(`Erro ao salvar observações: ${err.message}`);
+      alert(`Erro ao salvar: ${err.message}`);
     } finally {
       setSavingDetails(false);
     }
@@ -169,35 +177,14 @@ export function LeadDetailsModal({ isOpen, onClose, leadId, onUpdate }: LeadDeta
 
   const handleStatusChange = async (newStatus: string) => {
     if (!lead) return;
-    if (newStatus === 'nao_converteu') {
-      setNaoConverteuForm({ objecao: '', motivo: '' });
-      setConfirmNaoConverteu(true);
-      return;
-    }
-    if (newStatus === 'converteu') {
-      setConverteuForm({ servicos: [], valor: '', observacao: '' });
-      setConfirmConverteu(true);
-      return;
-    }
-    if (newStatus === 'agendado') {
-      setAgendadoForm({ dataHora: '', procedimento: lead.procedimento_interesse || '', agendaId: agendas[0]?.id || '', modalidade: 'presencial' });
-      setConfirmAgendado(true);
-      return;
-    }
-    if (newStatus === 'reagendado') {
-      setReagendadoForm({ dataHora: '', agendaId: lead.agenda_id || agendas[0]?.id || '', modalidade: lead.modalidade || 'presencial' });
-      setConfirmReagendado(true);
-      return;
-    }
-
+    if (newStatus === 'nao_converteu') { setNaoConverteuForm({ objecao: '', motivo: '' }); setConfirmNaoConverteu(true); return; }
+    if (newStatus === 'converteu') { setConverteuForm({ servicos: [], valor: '', observacao: '' }); setConfirmConverteu(true); return; }
+    if (newStatus === 'agendado') { setAgendadoForm({ dataHora: '', procedimento: lead.procedimento_interesse || '', agendaId: agendas[0]?.id || '', modalidade: 'presencial' }); setConfirmAgendado(true); return; }
+    if (newStatus === 'reagendado') { setReagendadoForm({ dataHora: '', agendaId: lead.agenda_id || agendas[0]?.id || '', modalidade: lead.modalidade || 'presencial' }); setConfirmReagendado(true); return; }
     setSavingStatus(true);
     try {
-      const { error } = await supabase
-        .from('leads')
-        .update({ status: newStatus })
-        .eq('id', lead.id);
+      const { error } = await supabase.from('leads').update({ status: newStatus }).eq('id', lead.id);
       if (error) throw error;
-      
       await loadAllData();
       if (onUpdate) onUpdate();
     } catch (err: any) {
@@ -211,36 +198,20 @@ export function LeadDetailsModal({ isOpen, onClose, leadId, onUpdate }: LeadDeta
     if (!lead || !agendadoForm.dataHora) return;
     setSavingAgendado(true);
     try {
-      const { data: agendamento, error: agError } = await supabase
-        .from('agendamentos')
-        .insert({
-          lead_id: lead.id,
-          agenda_id: agendadoForm.agendaId || null,
-          procedimento_nome: agendadoForm.procedimento || lead.procedimento_interesse || null,
-          nome_lead: lead.nome_lead || null,
-          whatsapp_lead: lead.whatsapp_lead || null,
-          data_hora_inicio: new Date(agendadoForm.dataHora).toISOString(),
-          modalidade: agendadoForm.modalidade,
-          status: 'agendado'
-        })
-        .select()
-        .single();
-
+      const { data: agendamento, error: agError } = await supabase.from('agendamentos').insert({
+        lead_id: lead.id, agenda_id: agendadoForm.agendaId || null,
+        procedimento_nome: agendadoForm.procedimento || lead.procedimento_interesse || null,
+        nome_lead: lead.nome_lead || null, whatsapp_lead: lead.whatsapp_lead || null,
+        data_hora_inicio: new Date(agendadoForm.dataHora).toISOString(),
+        modalidade: agendadoForm.modalidade, status: 'agendado',
+      }).select().single();
       if (agError) throw agError;
-
-      const { error: updateError } = await supabase
-        .from('leads')
-        .update({
-          status: 'agendado',
-          data_agendamento: new Date(agendadoForm.dataHora).toISOString(),
-          agendamento_criado_em: new Date().toISOString(),
-          id_agendamento: agendamento.id,
-          modalidade: agendadoForm.modalidade
-        })
-        .eq('id', lead.id);
-
+      const { error: updateError } = await supabase.from('leads').update({
+        status: 'agendado', data_agendamento: new Date(agendadoForm.dataHora).toISOString(),
+        agendamento_criado_em: new Date().toISOString(),
+        id_agendamento: agendamento.id, modalidade: agendadoForm.modalidade,
+      }).eq('id', lead.id);
       if (updateError) throw updateError;
-
       setConfirmAgendado(false);
       await loadAllData();
       if (onUpdate) onUpdate();
@@ -255,58 +226,29 @@ export function LeadDetailsModal({ isOpen, onClose, leadId, onUpdate }: LeadDeta
     if (!lead || !converteuForm.valor || converteuForm.servicos.length === 0) return;
     setSavingConverteu(true);
     try {
-      const { error } = await supabase
-        .from('leads')
-        .update({ 
-          status: 'converteu',
-          valor_pago: parseFloat(converteuForm.valor.replace(',', '.')),
-          servicos_contratados: converteuForm.servicos,
-          observacoes: converteuForm.observacao ? `${lead.observacoes || ''}\nInformações Complementares: ${converteuForm.observacao}` : lead.observacoes
-        })
-        .eq('id', lead.id);
+      const { error } = await supabase.from('leads').update({
+        status: 'converteu',
+        valor_pago: parseFloat(converteuForm.valor.replace(',', '.')),
+        servicos_contratados: converteuForm.servicos,
+        observacoes: converteuForm.observacao
+          ? `${lead.observacoes || ''}\nInformações Complementares: ${converteuForm.observacao}`
+          : lead.observacoes,
+      }).eq('id', lead.id);
       if (error) throw error;
-
       if (lead.id_agendamento) {
-        await supabase
-          .from('agendamentos')
-          .update({ 
-            status: 'compareceu',
-            valor_pago: parseFloat(converteuForm.valor.replace(',', '.'))
-          })
-          .eq('id', lead.id_agendamento);
+        await supabase.from('agendamentos').update({
+          status: 'compareceu',
+          valor_pago: parseFloat(converteuForm.valor.replace(',', '.')),
+        }).eq('id', lead.id_agendamento);
       }
-
-      // Check if client is registered in clientes table
-      const { data: existingClient } = await supabase
-        .from('clientes')
-        .select('id')
-        .eq('lead_id', lead.id)
-        .maybeSingle();
-
+      const { data: existingClient } = await supabase.from('clientes').select('id').eq('lead_id', lead.id).maybeSingle();
       if (!existingClient) {
-        await supabase
-          .from('clientes')
-          .insert({
-            lead_id: lead.id,
-            data_primeira_visita: new Date().toISOString(),
-            valor_pago: parseFloat(converteuForm.valor.replace(',', '.'))
-          });
+        await supabase.from('clientes').insert({ lead_id: lead.id, data_primeira_visita: new Date().toISOString(), valor_pago: parseFloat(converteuForm.valor.replace(',', '.')) });
       } else {
-        // Increment LTV
-        const { data: currentClient } = await supabase
-          .from('clientes')
-          .select('valor_pago')
-          .eq('lead_id', lead.id)
-          .single();
+        const { data: currentClient } = await supabase.from('clientes').select('valor_pago').eq('lead_id', lead.id).single();
         const currentLTV = parseFloat(currentClient?.valor_pago || '0');
-        await supabase
-          .from('clientes')
-          .update({
-            valor_pago: currentLTV + parseFloat(converteuForm.valor.replace(',', '.'))
-          })
-          .eq('lead_id', lead.id);
+        await supabase.from('clientes').update({ valor_pago: currentLTV + parseFloat(converteuForm.valor.replace(',', '.')) }).eq('lead_id', lead.id);
       }
-
       setConfirmConverteu(false);
       await loadAllData();
       if (onUpdate) onUpdate();
@@ -321,17 +263,12 @@ export function LeadDetailsModal({ isOpen, onClose, leadId, onUpdate }: LeadDeta
     if (!lead || !naoConverteuForm.objecao || (naoConverteuForm.objecao === 'Outro' && !naoConverteuForm.motivo)) return;
     setSavingNaoConverteu(true);
     try {
-      const updates = { 
-        status: 'nao_converteu', 
+      const { error } = await supabase.from('leads').update({
+        status: 'nao_converteu',
         objecao: naoConverteuForm.objecao,
-        motivo_perda: naoConverteuForm.objecao === 'Outro' ? naoConverteuForm.motivo : null 
-      };
-      const { error } = await supabase
-        .from('leads')
-        .update(updates)
-        .eq('id', lead.id);
+        motivo_perda: naoConverteuForm.objecao === 'Outro' ? naoConverteuForm.motivo : null,
+      }).eq('id', lead.id);
       if (error) throw error;
-
       setConfirmNaoConverteu(false);
       await loadAllData();
       if (onUpdate) onUpdate();
@@ -348,47 +285,21 @@ export function LeadDetailsModal({ isOpen, onClose, leadId, onUpdate }: LeadDeta
     try {
       const novaData = new Date(reagendadoForm.dataHora).toISOString();
       let agId = lead.id_agendamento;
-      
       if (agId) {
-        await supabase
-          .from('agendamentos')
-          .update({ 
-            data_hora_inicio: novaData, 
-            status: 'reagendado', 
-            modalidade: reagendadoForm.modalidade 
-          })
-          .eq('id', agId);
+        await supabase.from('agendamentos').update({ data_hora_inicio: novaData, status: 'reagendado', modalidade: reagendadoForm.modalidade }).eq('id', agId);
       } else {
-        const { data: newAg, error: insertError } = await supabase
-          .from('agendamentos')
-          .insert({
-            lead_id: lead.id,
-            agenda_id: reagendadoForm.agendaId || null,
-            procedimento_nome: lead.procedimento_interesse || 'Consulta Inicial',
-            nome_lead: lead.nome_lead || 'Lead sem nome',
-            whatsapp_lead: lead.whatsapp_lead || '',
-            data_hora_inicio: novaData,
-            status: 'reagendado',
-            modalidade: reagendadoForm.modalidade
-          })
-          .select()
-          .single();
+        const { data: newAg, error: insertError } = await supabase.from('agendamentos').insert({
+          lead_id: lead.id, agenda_id: reagendadoForm.agendaId || null,
+          procedimento_nome: lead.procedimento_interesse || 'Consulta Inicial',
+          nome_lead: lead.nome_lead || 'Lead sem nome',
+          whatsapp_lead: lead.whatsapp_lead || '',
+          data_hora_inicio: novaData, status: 'reagendado', modalidade: reagendadoForm.modalidade,
+        }).select().single();
         if (insertError) throw insertError;
         agId = newAg.id;
       }
-
-      const { error } = await supabase
-        .from('leads')
-        .update({ 
-          status: 'reagendado', 
-          data_agendamento: novaData, 
-          modalidade: reagendadoForm.modalidade, 
-          id_agendamento: agId 
-        })
-        .eq('id', lead.id);
-        
+      const { error } = await supabase.from('leads').update({ status: 'reagendado', data_agendamento: novaData, modalidade: reagendadoForm.modalidade, id_agendamento: agId }).eq('id', lead.id);
       if (error) throw error;
-
       setConfirmReagendado(false);
       await loadAllData();
       if (onUpdate) onUpdate();
@@ -399,461 +310,418 @@ export function LeadDetailsModal({ isOpen, onClose, leadId, onUpdate }: LeadDeta
     }
   };
 
-  const calculateAge = (birthDateStr: string) => {
-    if (!birthDateStr) return null;
-    try {
-      const birthDate = new Date(birthDateStr);
-      const today = new Date();
-      let age = today.getFullYear() - birthDate.getFullYear();
-      const m = today.getMonth() - birthDate.getMonth();
-      if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-        age--;
-      }
-      return age;
-    } catch (e) {
-      return null;
-    }
-  };
+  // ── Field helper ─────────────────────────────────────────────────────────────
+
+  const renderField = (
+    label: string,
+    value: string | null | undefined,
+    fullWidth: boolean,
+    editInput?: React.ReactNode
+  ) => (
+    <div style={{
+      gridColumn: fullWidth ? '1 / -1' : undefined,
+      paddingBottom: '10px', marginBottom: '2px',
+      borderBottom: '1px solid var(--border)',
+    }}>
+      <div style={fieldLabel}>{label}</div>
+      {editInput ?? (
+        <div style={{
+          fontSize: '13px', fontWeight: 400,
+          color: value ? 'var(--ink)' : '#C4C9D4',
+          fontStyle: value ? 'normal' : 'italic',
+        }}>
+          {value || 'Não informado'}
+        </div>
+      )}
+    </div>
+  );
+
+  // ── Render ────────────────────────────────────────────────────────────────────
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Detalhes do Lead" className="max-w-5xl">
+    <Modal isOpen={isOpen} onClose={onClose} bare className="max-w-[680px]">
+
       {loading ? (
-        <div className="py-20 text-center text-sm text-[var(--muted)] flex flex-col items-center gap-3">
+        <div style={{ padding: '80px 24px', textAlign: 'center', color: 'var(--muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
           <div className="w-8 h-8 rounded-full border-4 border-[var(--sage-xlight)] border-t-[var(--sage-dark)] animate-spin" />
-          <span>Carregando informações do lead...</span>
+          <span style={{ fontSize: '13px' }}>Carregando informações do lead...</span>
         </div>
       ) : lead ? (
-        <div className="space-y-6 max-h-[75vh] overflow-y-auto pr-2 custom-scrollbar">
-          {/* Header e Status */}
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-[var(--sage-xlight)] p-5 border border-[var(--border)] rounded-[12px]">
-            <div className="space-y-2">
-              <h2 className="font-cormorant text-2xl font-bold text-[var(--ink)]">
-                {lead.nome_lead || 'Lead sem nome'}
-              </h2>
-              {(() => {
-                const { data, reativarHoje } = calcularDataReativacao(lead);
-                if (!data) return null;
-                return (
-                  <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full border ${
-                    reativarHoje
-                      ? 'bg-green-100 text-green-700 border-green-300'
-                      : 'bg-gray-100 text-gray-600 border-gray-200'
-                  }`}>
-                    <Clock size={11} />
-                    Reativar em {format(data, 'dd/MM/yyyy')}
-                    {reativarHoje && ' — Hoje!'}
-                  </span>
-                );
-              })()}
-            </div>
+        <div style={{ display: 'flex', flexDirection: 'column', maxHeight: '90vh' }}>
 
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full md:w-auto justify-start md:justify-end">
+          {/* ── HEADER ── */}
+          <div style={{ padding: '20px 24px 0', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexShrink: 0 }}>
+            <div>
+              <div style={{ fontSize: '10px', fontWeight: 600, letterSpacing: '1.2px', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: '6px' }}>
+                Detalhes do Lead
+              </div>
+              <div className="font-display" style={{ fontSize: '26px', fontWeight: 300, fontStyle: 'italic', color: 'var(--ink)', letterSpacing: '-0.4px', lineHeight: 1 }}>
+                {lead.nome_lead || 'Lead sem nome'}
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              style={{ width: '30px', height: '30px', borderRadius: '7px', border: '1px solid var(--border-md)', background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--muted)', flexShrink: 0, marginTop: '2px' }}
+            >
+              <X size={16} />
+            </button>
+          </div>
+
+          {/* ── STATUS BAR ── */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 24px 16px', borderBottom: '1px solid var(--border)', flexShrink: 0, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '11px', color: 'var(--muted)', fontWeight: 500 }}>Estágio:</span>
+
+            <select
+              value={lead.status}
+              onChange={e => handleStatusChange(e.target.value)}
+              disabled={savingStatus}
+              style={{
+                appearance: 'none', background: 'var(--sage-xlight)',
+                border: '1px solid var(--border-md)', borderRadius: 'var(--r-xs)',
+                padding: '5px 28px 5px 10px', fontSize: '12px', fontWeight: 500,
+                color: 'var(--sage-dark)', cursor: 'pointer', fontFamily: 'inherit',
+              }}
+            >
+              {COLUMNS.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+            </select>
+
+            {(() => {
+              const { data: rDate, reativarHoje } = calcularDataReativacao(lead);
+              if (!rDate) return null;
+              return (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11px', fontWeight: 500, padding: '4px 10px', borderRadius: '20px', color: reativarHoje ? 'var(--sage-dark)' : 'var(--champ-text)', background: reativarHoje ? 'var(--sage-xlight)' : 'var(--champ-light)' }}>
+                  <Clock size={12} />
+                  {reativarHoje ? 'Reativar hoje!' : `Reativar em ${format(rDate, 'dd/MM/yyyy')}`}
+                </div>
+              );
+            })()}
+
+            <div style={{ marginLeft: 'auto', display: 'flex', gap: '7px' }}>
+              <button
+                onClick={() => {
+                  setAgendadoForm({ dataHora: '', procedimento: lead.procedimento_interesse || '', agendaId: agendas[0]?.id || '', modalidade: 'presencial' });
+                  setConfirmAgendado(true);
+                }}
+                style={btnGhost}
+              >
+                <Calendar size={14} /> Agendar
+              </button>
               {lead.whatsapp_lead && (
                 <button
                   onClick={() => { onClose(); navigate('/inbox', { state: { lead_id: lead.id } }); }}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white text-xs font-semibold rounded-[8px] transition-colors shrink-0"
+                  style={btnPrimary}
                 >
-                  <MessageCircle size={14} />
-                  WhatsApp
+                  <MessageCircle size={14} /> WhatsApp
                 </button>
               )}
-              <span className="text-xs font-semibold text-[var(--muted)] uppercase shrink-0">Estágio Atual:</span>
-              <select
-                value={lead.status}
-                onChange={(e) => handleStatusChange(e.target.value)}
-                disabled={savingStatus}
-                className="border border-[var(--border)] rounded-[8px] px-3 py-1.5 text-sm bg-[var(--bg)] text-[var(--ink)] font-medium focus:outline-none focus:ring-2 focus:ring-[var(--sage-dark)] cursor-pointer transition-all"
-              >
-                {COLUMNS.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
-              </select>
             </div>
           </div>
 
-          {/* Grid de Informações Principais */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            {/* Coluna Esquerda - Campos Cadastrais e Observações Manuais */}
-            <div className="lg:col-span-7 space-y-6">
-              <div className="bg-[var(--white)] border border-[var(--border)] rounded-[12px] p-5 space-y-4">
-                <h3 className="font-semibold text-sm border-b pb-2 flex items-center gap-2">
-                  <User size={16} className="text-[var(--sage-dark)]" />
-                  Informações de Cadastro
-                </h3>
+          {/* ── BODY (2 cols) ── */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', flex: 1, overflow: 'hidden', minHeight: 0 }}>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="sm:col-span-2">
-                    <span className="text-[10px] text-[var(--muted)] font-bold uppercase block">Nome Completo</span>
-                    {editingDetails ? (
-                      <Input 
-                        value={detailsForm.nome_lead} 
-                        onChange={e => setDetailsForm({...detailsForm, nome_lead: e.target.value})} 
-                        className="mt-1 h-9 bg-white" 
-                      />
-                    ) : (
-                      <p className="text-sm font-medium mt-1">{lead.nome_lead || 'Não informado'}</p>
-                    )}
-                  </div>
+            {/* LEFT: cadastro */}
+            <div style={{ padding: '18px 24px', borderRight: '1px solid var(--border)', overflowY: 'auto' }}>
+              <div style={sectionTitle}>
+                <User size={13} style={{ color: 'var(--sage-dark)' }} />
+                Informações de cadastro
+              </div>
 
-                  <div>
-                    <span className="text-[10px] text-[var(--muted)] font-bold uppercase block">WhatsApp / Telefone</span>
-                    {editingDetails ? (
-                      <Input 
-                        value={detailsForm.whatsapp_lead} 
-                        onChange={e => setDetailsForm({...detailsForm, whatsapp_lead: e.target.value})} 
-                        className="mt-1 h-9 bg-white" 
-                      />
-                    ) : (
-                      <p className="text-sm font-medium mt-1">{lead.whatsapp_lead || 'Não informado'}</p>
-                    )}
-                  </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
+                {renderField('Nome completo', lead.nome_lead, true,
+                  editingDetails ? <Input value={detailsForm.nome_lead} onChange={e => setDetailsForm({ ...detailsForm, nome_lead: e.target.value })} className="mt-1 h-8 text-sm bg-white" /> : undefined
+                )}
+                {renderField('WhatsApp', lead.whatsapp_lead, false,
+                  editingDetails ? <Input value={detailsForm.whatsapp_lead} onChange={e => setDetailsForm({ ...detailsForm, whatsapp_lead: e.target.value })} className="mt-1 h-8 text-sm bg-white" /> : undefined
+                )}
+                {renderField('E-mail', lead.email, false,
+                  editingDetails ? <Input value={detailsForm.email} onChange={e => setDetailsForm({ ...detailsForm, email: e.target.value })} className="mt-1 h-8 text-sm bg-white" /> : undefined
+                )}
+                {renderField('Gênero', lead.genero, false,
+                  editingDetails ? (
+                    <select value={detailsForm.genero} onChange={e => setDetailsForm({ ...detailsForm, genero: e.target.value })} className="w-full mt-1 border border-[var(--border-md)] rounded-[8px] px-2 py-1 text-sm bg-white focus:outline-none">
+                      <option value="">Não informado</option>
+                      <option value="Masculino">Masculino</option>
+                      <option value="Feminino">Feminino</option>
+                      <option value="Outro">Outro</option>
+                    </select>
+                  ) : undefined
+                )}
+                {renderField('Serviço de interesse', lead.procedimento_interesse, true,
+                  editingDetails ? <Input value={detailsForm.procedimento_interesse} onChange={e => setDetailsForm({ ...detailsForm, procedimento_interesse: e.target.value })} className="mt-1 h-8 text-sm bg-white" /> : undefined
+                )}
+                {renderField('Origem', lead.origem, false)}
+                {renderField('1º Contato', lead.inicio_atendimento ? format(parseISO(lead.inicio_atendimento), 'dd/MM/yyyy', { locale: ptBR }) : null, false)}
+              </div>
 
-                  <div>
-                    <span className="text-[10px] text-[var(--muted)] font-bold uppercase block">E-mail</span>
-                    {editingDetails ? (
-                      <Input 
-                        value={detailsForm.email} 
-                        onChange={e => setDetailsForm({...detailsForm, email: e.target.value})} 
-                        className="mt-1 h-9 bg-white" 
-                        placeholder="exemplo@email.com"
-                      />
-                    ) : (
-                      <p className="text-sm font-medium mt-1">{lead.email || 'Não informado'}</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <span className="text-[10px] text-[var(--muted)] font-bold uppercase block">Gênero</span>
-                    {editingDetails ? (
-                      <select 
-                        value={detailsForm.genero} 
-                        onChange={e => setDetailsForm({...detailsForm, genero: e.target.value})}
-                        className="w-full mt-1 border border-gray-300 rounded-[8px] px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[var(--sage-dark)]"
-                      >
-                        <option value="">Não informado</option>
-                        <option value="Masculino">Masculino</option>
-                        <option value="Feminino">Feminino</option>
-                        <option value="Outro">Outro</option>
-                      </select>
-                    ) : (
-                      <p className="text-sm font-medium mt-1">{lead.genero || 'Não informado'}</p>
-                    )}
-                  </div>
-
-                  <div className="sm:col-span-2">
-                    <span className="text-[10px] text-[var(--muted)] font-bold uppercase block">Serviço de Interesse</span>
-                    {editingDetails ? (
-                      <Input 
-                        value={detailsForm.procedimento_interesse} 
-                        onChange={e => setDetailsForm({...detailsForm, procedimento_interesse: e.target.value})}
-                        className="mt-1 h-9 bg-white"
-                      />
-                    ) : (
-                      <p className="text-sm font-medium mt-1">{lead.procedimento_interesse || 'Não informado'}</p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="pt-2">
+              {/* Observações */}
+              {(editingDetails || lead.observacoes) && (
+                <div style={{ marginTop: '14px', paddingTop: '14px', borderTop: '1px solid var(--border)' }}>
+                  <div style={fieldLabel}>Observações</div>
                   {editingDetails ? (
-                    <div className="flex gap-2">
-                      <Button onClick={handleUpdateDetails} disabled={savingDetails} className="w-full bg-green-600 hover:bg-green-700">
-                        <Check size={16} className="mr-2" /> Salvar Detalhes
-                      </Button>
-                      <Button variant="secondary" onClick={() => setEditingDetails(false)} className="w-full">
-                        <X size={16} className="mr-2" /> Cancelar
-                      </Button>
-                    </div>
+                    <textarea
+                      rows={4}
+                      value={detailsForm.observacoes}
+                      onChange={e => setDetailsForm({ ...detailsForm, observacoes: e.target.value })}
+                      style={{ width: '100%', border: '1px solid var(--border-md)', borderRadius: '8px', padding: '8px 10px', fontSize: '13px', color: 'var(--ink)', background: 'white', resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.5, marginTop: '4px' }}
+                      placeholder="Anote informações pertinentes..."
+                    />
                   ) : (
-                    <Button variant="secondary" onClick={() => setEditingDetails(true)} className="w-full font-bold">
-                      Editar Informações
-                    </Button>
+                    <p style={{ fontSize: '13px', color: 'var(--ink)', lineHeight: 1.5, marginTop: '4px' }}>{lead.observacoes}</p>
                   )}
                 </div>
-              </div>
+              )}
 
-              {/* Resumo da Conversa */}
-              <div className="bg-[var(--white)] border border-[var(--border)] rounded-[12px] p-5 space-y-4">
-                <h3 className="font-semibold text-sm border-b pb-2 flex items-center gap-2">
-                  <FileText size={16} className="text-[var(--sage-dark)]" />
-                  Resumo da Conversa
-                </h3>
-
-                {lead.procedimento_interesse && (
-                  <div>
-                    <span className="text-[10px] text-[var(--muted)] font-bold uppercase block">Procedimento de Interesse</span>
-                    <p className="text-sm font-medium mt-1">{lead.procedimento_interesse}</p>
-                  </div>
-                )}
-
-                {editingDetails ? (
-                  <textarea
-                    rows={6}
-                    value={detailsForm.observacoes}
-                    onChange={e => setDetailsForm({...detailsForm, observacoes: e.target.value})}
-                    className="w-full mt-2 border rounded p-2 text-sm bg-white"
-                    placeholder="Anote informações pertinentes coletadas no atendimento..."
-                  />
-                ) : (
-                  <p className="text-sm text-[var(--ink)] whitespace-pre-wrap leading-relaxed min-h-[100px] p-3 bg-gray-50 rounded-[8px] border border-gray-100">
-                    {lead.observacoes || 'Nenhuma observação interna anotada pela equipe.'}
-                  </p>
-                )}
-              </div>
-
-              {/* Resumo Automático da Conversa */}
+              {/* IA / Resumo da conversa */}
               {lead.resumo_conversa && (
-                <div className="p-4 border border-[var(--border)] rounded-[12px] bg-white relative">
-                  <span className="absolute -top-2 left-3 bg-white px-2 text-[10px] text-[var(--sage-dark)] font-bold uppercase tracking-tight">IA - Resumo Automático</span>
-                  <p className="text-sm text-[var(--ink)] italic leading-relaxed pt-1">
-                    "{lead.resumo_conversa}"
-                  </p>
+                <div style={{ marginTop: '12px', background: 'var(--champ-light)', border: '1px solid var(--champ)', borderRadius: 'var(--r-xs)', padding: '10px 12px', display: 'flex', gap: '9px', alignItems: 'flex-start' }}>
+                  <FileText size={15} style={{ color: 'var(--champ-text)', flexShrink: 0, marginTop: '1px' }} />
+                  <div>
+                    <div style={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--champ-text)', marginBottom: '2px' }}>Resumo da Conversa (IA)</div>
+                    <div style={{ fontSize: '11.5px', color: 'var(--champ-text)', lineHeight: 1.5, fontStyle: 'italic' }}>"{lead.resumo_conversa}"</div>
+                  </div>
                 </div>
               )}
             </div>
 
-            {/* Coluna Direita - Histórico de Atendimentos & LTV e Jornada */}
-            <div className="lg:col-span-5 space-y-6">
-              {/* Timeline da Jornada do Cliente */}
-              <div className="bg-[var(--white)] border border-[var(--border)] rounded-[12px] p-5">
-                <h3 className="font-semibold text-sm border-b pb-2 mb-4">Jornada do Cliente</h3>
-                {lead.jornada && Array.isArray(lead.jornada) && lead.jornada.length > 0 ? (
-                  <div className="max-h-[250px] overflow-y-auto pr-1 custom-scrollbar py-1">
-                    <div className="relative pl-6 space-y-4 border-l-2 border-gray-200 ml-3">
-                      {(lead.jornada ?? []).map((item: any, index: number) => {
-                        const col = COLUMNS.find(c => c.id === item.status);
-                        const displayTitle = col ? col.title : item.status;
-                        const formattedTime = format(parseISO(item.timestamp), "dd/MM/yyyy 'às' HH:mm'h'", { locale: ptBR });
-                        const isLatest = index === (lead.jornada?.length ?? 0) - 1;
-                        
-                        return (
-                          <div key={index} className="relative group">
-                            {/* Pontinho indicador */}
-                            <div className={`absolute -left-[31px] top-1 w-3 h-3 rounded-full border-2 transition-all ${
-                              isLatest 
-                                ? 'bg-[var(--sage-dark)] border-[var(--sage-dark)] scale-110 shadow-sm' 
-                                : 'bg-white border-gray-400 group-hover:border-gray-600'
-                            }`} />
-                            <div>
-                              <p className={`text-xs font-semibold ${isLatest ? 'text-[var(--sage-dark)] font-bold' : 'text-[var(--ink)]'}`}>
-                                {displayTitle}
-                                {item.valor_pago && (
-                                  <span className="ml-2 text-[10px] px-1.5 py-0.5 bg-emerald-100 text-emerald-800 rounded font-bold">
-                                    + {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.valor_pago)}
-                                  </span>
-                                )}
-                              </p>
-                              <p className="text-[10px] text-[var(--muted)] mt-0.5">{formattedTime}</p>
+            {/* RIGHT: jornada + agendamentos */}
+            <div style={{ padding: '18px 20px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+
+              <div>
+                <div style={sectionTitle}>
+                  <Clock size={13} style={{ color: 'var(--sage-dark)' }} />
+                  Jornada do cliente
+                </div>
+
+                {lead.jornada && lead.jornada.length > 0 ? (
+                  <div>
+                    {lead.jornada.map((item, index) => {
+                      const col = COLUMNS.find(c => c.id === item.status);
+                      const displayTitle = col ? col.title : item.status;
+                      const formattedTime = (() => {
+                        try { return format(parseISO(item.timestamp), "dd/MM/yyyy 'às' HH:mm'h'", { locale: ptBR }); }
+                        catch { return item.timestamp; }
+                      })();
+                      const isLatest = index === lead.jornada!.length - 1;
+
+                      return (
+                        <div key={index} style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                            <div style={{
+                              width: '9px', height: '9px', borderRadius: '50%', flexShrink: 0, marginTop: '3px',
+                              background: isLatest ? 'var(--champ)' : 'var(--sage-dark)',
+                              border: isLatest ? '2px solid var(--champ-text)' : 'none',
+                            }} />
+                            {!isLatest && (
+                              <div style={{ flex: 1, width: '1px', background: 'var(--border)', margin: '3px auto 0', minHeight: '32px' }} />
+                            )}
+                          </div>
+                          <div style={{ flex: 1, paddingBottom: isLatest ? 0 : '10px' }}>
+                            <div style={{ fontSize: '12.5px', fontWeight: isLatest ? 600 : 500, color: isLatest ? 'var(--champ-text)' : 'var(--ink)' }}>
+                              {displayTitle}
+                              {item.valor_pago ? (
+                                <span style={{ marginLeft: '6px', fontSize: '10px', padding: '2px 6px', background: 'var(--sage-xlight)', color: 'var(--sage-dark)', borderRadius: '10px' }}>
+                                  + {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.valor_pago)}
+                                </span>
+                              ) : null}
+                            </div>
+                            <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '1px' }}>{formattedTime}</div>
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '10px', fontWeight: 500, padding: '2px 8px', borderRadius: '20px', marginTop: '4px', background: isLatest ? 'var(--champ-light)' : 'var(--sage-xlight)', color: isLatest ? 'var(--champ-text)' : 'var(--sage-dark)' }}>
+                              {isLatest ? '! Atual' : '✓ Concluído'}
                             </div>
                           </div>
-                        );
-                      })}
-                    </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 ) : (
-                  <p className="text-xs text-[var(--muted)] italic">Nenhuma transição registrada.</p>
+                  <p style={{ fontSize: '12px', color: 'var(--muted)', fontStyle: 'italic' }}>Nenhuma transição registrada.</p>
                 )}
               </div>
 
+              {appointments.length > 0 && (
+                <div style={{ paddingTop: '14px', borderTop: '1px solid var(--border)' }}>
+                  <div style={sectionTitle}>
+                    <Calendar size={13} style={{ color: 'var(--sage-dark)' }} />
+                    Agendamentos
+                  </div>
+                  {appointments.slice(0, 3).map((appt: any) => (
+                    <div key={appt.id} style={{ padding: '8px 10px', background: 'var(--bg)', borderRadius: '8px', marginBottom: '6px', border: '1px solid var(--border)' }}>
+                      <div style={{ fontSize: '12px', fontWeight: 500, color: 'var(--ink)' }}>{appt.procedimento_nome || 'Consulta'}</div>
+                      <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '2px' }}>
+                        {appt.data_hora_inicio ? format(parseISO(appt.data_hora_inicio), "dd/MM 'às' HH:mm'h'", { locale: ptBR }) : '—'}
+                        {appt.agendas?.nome ? ` · ${appt.agendas.nome}` : ''}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
             </div>
           </div>
+
+          {/* ── FOOTER ── */}
+          <div style={{ padding: '12px 24px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--bg)', flexShrink: 0 }}>
+            {editingDetails ? (
+              <>
+                <button onClick={() => setEditingDetails(false)} style={btnGhost}>
+                  <X size={13} /> Cancelar
+                </button>
+                <div style={{ marginLeft: 'auto' }}>
+                  <button onClick={handleUpdateDetails} disabled={savingDetails} style={{ ...btnPrimary, opacity: savingDetails ? 0.7 : 1 }}>
+                    <Check size={13} /> Salvar alterações
+                  </button>
+                </div>
+              </>
+            ) : (
+              <button onClick={() => setEditingDetails(true)} style={btnGhost}>
+                <Pencil size={13} /> Editar informações
+              </button>
+            )}
+          </div>
+
         </div>
       ) : (
-        <div className="py-20 text-center text-sm text-[var(--muted)]">
+        <div style={{ padding: '80px 24px', textAlign: 'center', color: 'var(--muted)', fontSize: '13px' }}>
           Lead não encontrado ou excluído.
         </div>
       )}
 
-      {/* Confirmation Dialogs */}
-      {/* 1. Modal Agendamento */}
+      {/* ── SUB-MODALS ─────────────────────────────────────────────────────────── */}
+
+      {/* 1. Criar Agendamento */}
       <Modal isOpen={confirmAgendado} onClose={() => setConfirmAgendado(false)} title="Criar Agendamento">
-        <div className="space-y-4">
-          <p className="text-sm text-[var(--ink)]">Defina as informações de agendamento do lead.</p>
-          
-          <div>
-            <label className="block text-sm font-medium mb-1">Data e Hora *</label>
-            <input 
-              type="datetime-local" 
-              value={agendadoForm.dataHora} 
-              onChange={e => setAgendadoForm({...agendadoForm, dataHora: e.target.value})}
-              className="w-full border rounded p-2 text-sm bg-white"
-            />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <div style={{ padding: '10px 12px', background: 'var(--sage-xlight)', border: '1px solid var(--border-md)', borderRadius: 'var(--r-xs)', fontSize: '12px', fontWeight: 500, color: 'var(--sage-dark)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Calendar size={14} /> Defina os detalhes do agendamento
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Agenda / Profissional *</label>
-            <select 
-              value={agendadoForm.agendaId} 
-              onChange={e => setAgendadoForm({...agendadoForm, agendaId: e.target.value})}
-              className="w-full border rounded p-2 text-sm bg-white"
-            >
+            <label style={formLabel}>Data e Hora *</label>
+            <input type="datetime-local" value={agendadoForm.dataHora} onChange={e => setAgendadoForm({ ...agendadoForm, dataHora: e.target.value })} className="w-full rounded-[8px] px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--sage-dark)]" style={{ border: '1px solid var(--border-md)', background: 'var(--bg)' }} />
+          </div>
+
+          <div>
+            <label style={formLabel}>Agenda / Profissional</label>
+            <select value={agendadoForm.agendaId} onChange={e => setAgendadoForm({ ...agendadoForm, agendaId: e.target.value })} className="w-full rounded-[8px] px-3 py-2 text-sm focus:outline-none" style={{ border: '1px solid var(--border-md)', background: 'var(--bg)' }}>
               <option value="">Selecione uma agenda</option>
               {agendas.map(ag => <option key={ag.id} value={ag.id}>{ag.nome}</option>)}
             </select>
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Modalidade *</label>
-            <select 
-              value={agendadoForm.modalidade} 
-              onChange={e => setAgendadoForm({...agendadoForm, modalidade: e.target.value})}
-              className="w-full border rounded p-2 text-sm bg-white"
-            >
+            <label style={formLabel}>Modalidade</label>
+            <select value={agendadoForm.modalidade} onChange={e => setAgendadoForm({ ...agendadoForm, modalidade: e.target.value })} className="w-full rounded-[8px] px-3 py-2 text-sm focus:outline-none" style={{ border: '1px solid var(--border-md)', background: 'var(--bg)' }}>
               <option value="presencial">Presencial</option>
               <option value="online">Online / Teleconsulta</option>
             </select>
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Procedimento</label>
-            <Input 
-              value={agendadoForm.procedimento} 
-              onChange={e => setAgendadoForm({...agendadoForm, procedimento: e.target.value})}
-              className="h-9"
-            />
+            <label style={formLabel}>Procedimento</label>
+            <Input value={agendadoForm.procedimento} onChange={e => setAgendadoForm({ ...agendadoForm, procedimento: e.target.value })} className="h-9" />
           </div>
 
-          <div className="flex gap-2 pt-2">
-            <Button onClick={confirmAgendadoAction} disabled={savingAgendado} className="w-full bg-[var(--sage-dark)]">
-              Agendar Lead
-            </Button>
-            <Button variant="secondary" onClick={() => setConfirmAgendado(false)} className="w-full">
-              Cancelar
-            </Button>
+          <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', paddingTop: '4px' }}>
+            <button onClick={() => setConfirmAgendado(false)} style={btnGhost}>Cancelar</button>
+            <button onClick={confirmAgendadoAction} disabled={savingAgendado} style={{ ...btnPrimary, opacity: savingAgendado ? 0.7 : 1 }}>
+              <Calendar size={13} /> Agendar
+            </button>
           </div>
         </div>
       </Modal>
 
-      {/* 2. Modal Reagendamento */}
+      {/* 2. Reagendar */}
       <Modal isOpen={confirmReagendado} onClose={() => setConfirmReagendado(false)} title="Reagendar Lead">
-        <div className="space-y-4">
-          <p className="text-sm text-[var(--ink)]">Defina o novo horário de agendamento do lead.</p>
-          
-          <div>
-            <label className="block text-sm font-medium mb-1">Data e Hora *</label>
-            <input 
-              type="datetime-local" 
-              value={reagendadoForm.dataHora} 
-              onChange={e => setReagendadoForm({...reagendadoForm, dataHora: e.target.value})}
-              className="w-full border rounded p-2 text-sm bg-white"
-            />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <div style={{ padding: '10px 12px', background: 'var(--champ-light)', border: '1px solid var(--champ)', borderRadius: 'var(--r-xs)', fontSize: '12px', fontWeight: 500, color: 'var(--champ-text)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Clock size={14} /> Defina o novo horário do agendamento
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Agenda / Profissional *</label>
-            <select 
-              value={reagendadoForm.agendaId} 
-              onChange={e => setReagendadoForm({...reagendadoForm, agendaId: e.target.value})}
-              className="w-full border rounded p-2 text-sm bg-white"
-            >
+            <label style={formLabel}>Nova Data e Hora *</label>
+            <input type="datetime-local" value={reagendadoForm.dataHora} onChange={e => setReagendadoForm({ ...reagendadoForm, dataHora: e.target.value })} className="w-full rounded-[8px] px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--sage-dark)]" style={{ border: '1px solid var(--border-md)', background: 'var(--bg)' }} />
+          </div>
+
+          <div>
+            <label style={formLabel}>Agenda / Profissional</label>
+            <select value={reagendadoForm.agendaId} onChange={e => setReagendadoForm({ ...reagendadoForm, agendaId: e.target.value })} className="w-full rounded-[8px] px-3 py-2 text-sm focus:outline-none" style={{ border: '1px solid var(--border-md)', background: 'var(--bg)' }}>
               <option value="">Selecione uma agenda</option>
               {agendas.map(ag => <option key={ag.id} value={ag.id}>{ag.nome}</option>)}
             </select>
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Modalidade *</label>
-            <select 
-              value={reagendadoForm.modalidade} 
-              onChange={e => setReagendadoForm({...reagendadoForm, modalidade: e.target.value})}
-              className="w-full border rounded p-2 text-sm bg-white"
-            >
+            <label style={formLabel}>Modalidade</label>
+            <select value={reagendadoForm.modalidade} onChange={e => setReagendadoForm({ ...reagendadoForm, modalidade: e.target.value })} className="w-full rounded-[8px] px-3 py-2 text-sm focus:outline-none" style={{ border: '1px solid var(--border-md)', background: 'var(--bg)' }}>
               <option value="presencial">Presencial</option>
               <option value="online">Online / Teleconsulta</option>
             </select>
           </div>
 
-          <div className="flex gap-2 pt-2">
-            <Button onClick={confirmReagendadoAction} disabled={savingReagendado} className="w-full bg-[var(--sage-dark)]">
-              Reagendar Lead
-            </Button>
-            <Button variant="secondary" onClick={() => setConfirmReagendado(false)} className="w-full">
-              Cancelar
-            </Button>
+          <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', paddingTop: '4px' }}>
+            <button onClick={() => setConfirmReagendado(false)} style={btnGhost}>Cancelar</button>
+            <button onClick={confirmReagendadoAction} disabled={savingReagendado} style={{ ...btnPrimary, opacity: savingReagendado ? 0.7 : 1 }}>
+              <Check size={13} /> Reagendar
+            </button>
           </div>
         </div>
       </Modal>
 
-      {/* 3. Modal Converteu (Venda) */}
-      <Modal isOpen={confirmConverteu} onClose={() => setConfirmConverteu(false)} title="Finalizar Venda / Conversão">
-        <div className="space-y-4">
-          <div className="p-3 bg-green-50 border border-green-200 rounded-[8px] text-green-800 font-medium text-sm flex items-center gap-2">
-            🚀 Parabéns! Preencha os dados do contrato de conversão.
+      {/* 3. Finalizar Venda */}
+      <Modal isOpen={confirmConverteu} onClose={() => setConfirmConverteu(false)} title="Finalizar Venda">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <div style={{ padding: '10px 12px', background: 'var(--sage-xlight)', border: '1px solid var(--border-md)', borderRadius: 'var(--r-xs)', fontSize: '12px', fontWeight: 500, color: 'var(--sage-dark)' }}>
+            🚀 Parabéns! Preencha os dados da conversão.
           </div>
-          
+
           <div>
-            <label className="block text-sm font-medium mb-2">Serviços Contratados *</label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto custom-scrollbar pr-2 p-1">
+            <label style={formLabel}>Serviços Contratados *</label>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', maxHeight: '180px', overflowY: 'auto', padding: '2px' }}>
               {availableServicos.map(srv => (
-                <label key={srv.id} className="flex items-center gap-2 p-2 border border-[var(--border)] rounded-[8px] hover:bg-[var(--bg)] cursor-pointer transition-colors text-sm">
-                  <input 
-                    type="checkbox" 
-                    checked={converteuForm.servicos.includes(srv.nome)}
-                    onChange={e => {
-                      if (e.target.checked) {
-                        setConverteuForm({ ...converteuForm, servicos: [...converteuForm.servicos, srv.nome] });
-                      } else {
-                        setConverteuForm({ ...converteuForm, servicos: converteuForm.servicos.filter(s => s !== srv.nome) });
-                      }
-                    }}
-                    className="rounded text-[var(--sage-dark)] focus:ring-[var(--sage-dark)]"
-                  />
-                  <span>{srv.nome}</span>
+                <label key={srv.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 10px', border: '1px solid var(--border)', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', background: converteuForm.servicos.includes(srv.nome) ? 'var(--sage-xlight)' : 'transparent', transition: 'background 0.15s' }}>
+                  <input type="checkbox" checked={converteuForm.servicos.includes(srv.nome)} onChange={e => {
+                    if (e.target.checked) setConverteuForm({ ...converteuForm, servicos: [...converteuForm.servicos, srv.nome] });
+                    else setConverteuForm({ ...converteuForm, servicos: converteuForm.servicos.filter(s => s !== srv.nome) });
+                  }} style={{ accentColor: 'var(--sage-dark)' }} />
+                  <span style={{ color: 'var(--ink)' }}>{srv.nome}</span>
                 </label>
               ))}
               {availableServicos.length === 0 && (
-                <p className="text-xs text-[var(--muted)] italic">Nenhum serviço/procedimento cadastrado.</p>
+                <p style={{ gridColumn: '1/-1', fontSize: '12px', color: 'var(--muted)', fontStyle: 'italic' }}>Nenhum serviço cadastrado.</p>
               )}
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Valor do Fechamento (R$) *</label>
-            <Input 
-              type="text" 
-              placeholder="Ex: 500,00" 
-              value={converteuForm.valor} 
-              onChange={e => setConverteuForm({...converteuForm, valor: e.target.value})}
-              icon={<DollarSign className="w-4 h-4"/>}
-              className="h-9"
-            />
+            <label style={formLabel}>Valor do Fechamento (R$) *</label>
+            <Input type="text" placeholder="Ex: 500,00" value={converteuForm.valor} onChange={e => setConverteuForm({ ...converteuForm, valor: e.target.value })} icon={<DollarSign className="w-4 h-4" />} className="h-9" />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Informações Complementares da Venda</label>
-            <textarea 
-              rows={3} 
-              value={converteuForm.observacao} 
-              onChange={e => setConverteuForm({...converteuForm, observacao: e.target.value})}
-              className="w-full border rounded p-2 text-sm bg-white"
-              placeholder="Ex: Pagamento parcelado, contrato assinado..."
-            />
+            <label style={formLabel}>Informações Complementares</label>
+            <textarea rows={3} value={converteuForm.observacao} onChange={e => setConverteuForm({ ...converteuForm, observacao: e.target.value })} style={{ width: '100%', border: '1px solid var(--border-md)', borderRadius: '8px', padding: '8px 10px', fontSize: '13px', background: 'var(--bg)', fontFamily: 'inherit', resize: 'vertical' }} placeholder="Ex: Pagamento parcelado, contrato assinado..." />
           </div>
 
-          <div className="flex gap-2 pt-2">
-            <Button onClick={confirmConverteuAction} disabled={savingConverteu} className="w-full bg-green-600 hover:bg-green-700">
-              Confirmar Conversão
-            </Button>
-            <Button variant="secondary" onClick={() => setConfirmConverteu(false)} className="w-full">
-              Cancelar
-            </Button>
+          <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', paddingTop: '4px' }}>
+            <button onClick={() => setConfirmConverteu(false)} style={btnGhost}>Cancelar</button>
+            <button onClick={confirmConverteuAction} disabled={savingConverteu || !converteuForm.valor || converteuForm.servicos.length === 0} style={{ ...btnPrimary, opacity: (savingConverteu || !converteuForm.valor || converteuForm.servicos.length === 0) ? 0.7 : 1 }}>
+              <Check size={13} /> Confirmar Conversão
+            </button>
           </div>
         </div>
       </Modal>
 
-      {/* 4. Modal Não Converteu */}
+      {/* 4. Não Converteu */}
       <Modal isOpen={confirmNaoConverteu} onClose={() => setConfirmNaoConverteu(false)} title="Lead Não Converteu">
-        <div className="space-y-4">
-          <div className="p-3 bg-rose-50 border border-rose-200 rounded-[8px] text-rose-800 font-medium text-sm flex items-center gap-2">
-            <ShieldAlert size={16} />
-            Entenda o motivo do encerramento do atendimento para melhorar seu funil.
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <div style={{ padding: '10px 12px', background: 'var(--rose-light)', border: '1px solid #E9C0C0', borderRadius: 'var(--r-xs)', fontSize: '12px', fontWeight: 500, color: 'var(--rose-text)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <ShieldAlert size={14} /> Entenda o motivo para melhorar seu funil.
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Objeção Principal *</label>
-            <select 
-              value={naoConverteuForm.objecao} 
-              onChange={e => setNaoConverteuForm({...naoConverteuForm, objecao: e.target.value})}
-              className="w-full border rounded p-2 text-sm bg-white"
-            >
+            <label style={formLabel}>Objeção Principal *</label>
+            <select value={naoConverteuForm.objecao} onChange={e => setNaoConverteuForm({ ...naoConverteuForm, objecao: e.target.value })} className="w-full rounded-[8px] px-3 py-2 text-sm focus:outline-none" style={{ border: '1px solid var(--border-md)', background: 'var(--bg)' }}>
               <option value="">Selecione o motivo</option>
               <option value="Preço / Financeiro">Preço / Financeiro</option>
               <option value="Horário / Agenda">Horário / Agenda</option>
@@ -866,25 +734,20 @@ export function LeadDetailsModal({ isOpen, onClose, leadId, onUpdate }: LeadDeta
 
           {naoConverteuForm.objecao === 'Outro' && (
             <div>
-              <label className="block text-sm font-medium mb-1">Especifique o motivo *</label>
-              <Input 
-                value={naoConverteuForm.motivo} 
-                onChange={e => setNaoConverteuForm({...naoConverteuForm, motivo: e.target.value})}
-                className="h-9"
-              />
+              <label style={formLabel}>Especifique o motivo *</label>
+              <Input value={naoConverteuForm.motivo} onChange={e => setNaoConverteuForm({ ...naoConverteuForm, motivo: e.target.value })} className="h-9" placeholder="Descreva o motivo..." />
             </div>
           )}
 
-          <div className="flex gap-2 pt-2">
-            <Button onClick={confirmNaoConverteuAction} disabled={savingNaoConverteu} className="w-full bg-rose-600 hover:bg-rose-700">
-              Confirmar Não Conversão
-            </Button>
-            <Button variant="secondary" onClick={() => setConfirmNaoConverteu(false)} className="w-full">
-              Cancelar
-            </Button>
+          <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', paddingTop: '4px' }}>
+            <button onClick={() => setConfirmNaoConverteu(false)} style={btnGhost}>Cancelar</button>
+            <button onClick={confirmNaoConverteuAction} disabled={savingNaoConverteu || !naoConverteuForm.objecao} style={{ ...btnDanger, opacity: (savingNaoConverteu || !naoConverteuForm.objecao) ? 0.7 : 1 }}>
+              <Check size={13} /> Confirmar
+            </button>
           </div>
         </div>
       </Modal>
+
     </Modal>
   );
 }

@@ -13,6 +13,36 @@ import { Plus, User, FileText, Calendar, DollarSign, Clock, Trash2 } from 'lucid
 import { LeadDetailsModal } from '../components/crm/LeadDetailsModal';
 
 
+// ── Modal style tokens ────────────────────────────────────────────────────────
+
+const crmFormLabel: React.CSSProperties = {
+  display: 'block', fontSize: '10px', fontWeight: 600,
+  letterSpacing: '0.8px', textTransform: 'uppercase',
+  color: 'var(--muted)', marginBottom: '5px',
+};
+
+const crmBtnGhost: React.CSSProperties = {
+  display: 'flex', alignItems: 'center', gap: '6px',
+  background: 'transparent', color: 'var(--muted)',
+  border: '1px solid var(--border-md)', borderRadius: 'var(--r-xs)',
+  padding: '7px 13px', fontSize: '12px', fontWeight: 500,
+  cursor: 'pointer', fontFamily: 'inherit',
+};
+
+const crmBtnPrimary: React.CSSProperties = {
+  display: 'flex', alignItems: 'center', gap: '6px',
+  background: 'var(--sage-dark)', color: 'white', border: 'none',
+  borderRadius: 'var(--r-xs)', padding: '7px 14px',
+  fontSize: '12px', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
+};
+
+const crmBtnDanger: React.CSSProperties = {
+  display: 'flex', alignItems: 'center', gap: '6px',
+  background: '#dc2626', color: 'white', border: 'none',
+  borderRadius: 'var(--r-xs)', padding: '7px 14px',
+  fontSize: '12px', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
+};
+
 const COLUMNS = [
   { id: 'iniciou_atendimento', title: 'Iniciou', colorClass: 'border-[var(--sage-dark)]' },
   { id: 'conversando', title: 'Conversando', colorClass: 'border-[var(--ink)]' },
@@ -505,82 +535,95 @@ export function CRM() {
       </div>
 
       <Modal isOpen={openNewLead} onClose={() => setOpenNewLead(false)} title="Novo Lead Manual">
-        <div className="space-y-4">
-          <Input label="WhatsApp *" placeholder="+5511999999999" value={newLeadForm.whatsapp} onChange={e => setNewLeadForm({...newLeadForm, whatsapp: e.target.value})} />
-          <Input label="Nome" placeholder="Ex: Maria" value={newLeadForm.nome} onChange={e => setNewLeadForm({...newLeadForm, nome: e.target.value})} />
-          <Button onClick={handleSaveNewLead} className="w-full" disabled={!newLeadForm.whatsapp}>Criar Lead</Button>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <div>
+            <label style={crmFormLabel}>WhatsApp *</label>
+            <Input placeholder="+5511999999999" value={newLeadForm.whatsapp} onChange={e => setNewLeadForm({...newLeadForm, whatsapp: e.target.value})} className="h-9" />
+          </div>
+          <div>
+            <label style={crmFormLabel}>Nome</label>
+            <Input placeholder="Ex: Maria" value={newLeadForm.nome} onChange={e => setNewLeadForm({...newLeadForm, nome: e.target.value})} className="h-9" />
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: '4px' }}>
+            <button onClick={handleSaveNewLead} disabled={!newLeadForm.whatsapp} style={{ ...crmBtnPrimary, opacity: !newLeadForm.whatsapp ? 0.6 : 1 }}>
+              Criar Lead
+            </button>
+          </div>
         </div>
       </Modal>
 
       <Modal isOpen={!!confirmAgendado} onClose={() => setConfirmAgendado(null)} title="Registrar Agendamento">
-        <div className="space-y-4">
-          <div className="p-3 bg-[#7A9E87]/10 border border-[#7A9E87] rounded-[8px] text-[#7A9E87] font-medium text-sm">📅 {confirmAgendado?.lead?.nome_lead}</div>
-          <div><label className="block text-sm font-medium mb-1">Data/Hora *</label><input type="datetime-local" value={agendadoForm.dataHora} onChange={e => setAgendadoForm({...agendadoForm, dataHora: e.target.value})} className="w-full border rounded-[8px] px-3 py-2 text-sm" /></div>
-          <div><label className="block text-sm font-medium mb-1">Serviço</label><Input placeholder="Ex: Inventário" value={agendadoForm.procedimento} onChange={e => setAgendadoForm({...agendadoForm, procedimento: e.target.value})} /></div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <div style={{ padding: '10px 12px', background: 'var(--sage-xlight)', border: '1px solid var(--border-md)', borderRadius: 'var(--r-xs)', fontSize: '12px', fontWeight: 500, color: 'var(--sage-dark)' }}>
+            📅 {confirmAgendado?.lead?.nome_lead}
+          </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Modalidade</label>
-            <select value={agendadoForm.modalidade} onChange={e => setAgendadoForm({...agendadoForm, modalidade: e.target.value})} className="w-full border rounded-[8px] px-3 py-2 text-sm">
+            <label style={crmFormLabel}>Data / Hora *</label>
+            <input type="datetime-local" value={agendadoForm.dataHora} onChange={e => setAgendadoForm({...agendadoForm, dataHora: e.target.value})} className="w-full rounded-[8px] px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--sage-dark)]" style={{ border: '1px solid var(--border-md)', background: 'var(--bg)' }} />
+          </div>
+          <div>
+            <label style={crmFormLabel}>Serviço</label>
+            <Input placeholder="Ex: Inventário" value={agendadoForm.procedimento} onChange={e => setAgendadoForm({...agendadoForm, procedimento: e.target.value})} className="h-9" />
+          </div>
+          <div>
+            <label style={crmFormLabel}>Modalidade</label>
+            <select value={agendadoForm.modalidade} onChange={e => setAgendadoForm({...agendadoForm, modalidade: e.target.value})} className="w-full rounded-[8px] px-3 py-2 text-sm focus:outline-none" style={{ border: '1px solid var(--border-md)', background: 'var(--bg)' }}>
               <option value="presencial">Presencial</option>
               <option value="online">Online</option>
             </select>
           </div>
-          <div className="flex gap-3 justify-end mt-4">
-            <Button variant="secondary" onClick={() => setConfirmAgendado(null)}>Cancelar</Button>
-            <Button className="bg-[#7A9E87] text-white" onClick={confirmAgendadoAction} disabled={!agendadoForm.dataHora || savingAgendado}>Confirmar</Button>
+          <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', paddingTop: '4px' }}>
+            <button onClick={() => setConfirmAgendado(null)} style={crmBtnGhost}>Cancelar</button>
+            <button onClick={confirmAgendadoAction} disabled={!agendadoForm.dataHora || savingAgendado} style={{ ...crmBtnPrimary, opacity: (!agendadoForm.dataHora || savingAgendado) ? 0.7 : 1 }}>Confirmar</button>
           </div>
         </div>
       </Modal>
 
       <Modal isOpen={!!confirmConverteu} onClose={() => setConfirmConverteu(null)} title="Finalizar Venda">
-        <div className="space-y-4">
-          <div className="p-3 bg-green-50 border border-green-200 rounded-[8px] text-green-800 font-medium text-sm">🚀 Parabéns! Preencha os dados do contrato.</div>
-          
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <div style={{ padding: '10px 12px', background: 'var(--sage-xlight)', border: '1px solid var(--border-md)', borderRadius: 'var(--r-xs)', fontSize: '12px', fontWeight: 500, color: 'var(--sage-dark)' }}>
+            🚀 Parabéns! Preencha os dados do contrato.
+          </div>
           <div>
-            <label className="block text-sm font-medium mb-2">Serviços Contratados *</label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto custom-scrollbar pr-2 p-1">
+            <label style={crmFormLabel}>Serviços Contratados *</label>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', maxHeight: '180px', overflowY: 'auto', padding: '2px' }}>
               {availableServicos.map(srv => (
-                <label key={srv.id} className="flex items-center gap-2 p-2 border border-[var(--border)] rounded-[8px] hover:bg-[var(--bg)] cursor-pointer transition-colors text-sm">
-                  <input 
-                    type="checkbox" 
-                    className="w-4 h-4 text-green-600 rounded border-gray-300 focus:ring-green-500"
-                    checked={converteuForm.servicos.includes(srv.nome)}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        setConverteuForm(prev => ({ ...prev, servicos: [...prev.servicos, srv.nome] }));
-                      } else {
-                        setConverteuForm(prev => ({ ...prev, servicos: prev.servicos.filter(n => n !== srv.nome) }));
-                      }
-                    }}
-                  />
-                  <span className="truncate">{srv.nome}</span>
+                <label key={srv.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 10px', border: '1px solid var(--border)', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', background: converteuForm.servicos.includes(srv.nome) ? 'var(--sage-xlight)' : 'transparent' }}>
+                  <input type="checkbox" checked={converteuForm.servicos.includes(srv.nome)} onChange={e => {
+                    if (e.target.checked) setConverteuForm(prev => ({ ...prev, servicos: [...prev.servicos, srv.nome] }));
+                    else setConverteuForm(prev => ({ ...prev, servicos: prev.servicos.filter(n => n !== srv.nome) }));
+                  }} style={{ accentColor: 'var(--sage-dark)' }} />
+                  <span style={{ color: 'var(--ink)' }}>{srv.nome}</span>
                 </label>
               ))}
               {availableServicos.length === 0 && (
-                <div className="col-span-1 sm:col-span-2 text-sm text-[var(--muted)] p-2">Nenhum serviço cadastrado em Configurações.</div>
+                <p style={{ gridColumn: '1/-1', fontSize: '12px', color: 'var(--muted)', fontStyle: 'italic' }}>Nenhum serviço cadastrado.</p>
               )}
             </div>
           </div>
-
-          <div><label className="block text-sm font-medium mb-1">Valor Total Faturado (R$) *</label><Input placeholder="0,00" value={converteuForm.valor} onChange={e => setConverteuForm({...converteuForm, valor: e.target.value})} /></div>
-          <div><label className="block text-sm font-medium mb-1">Informações Complementares</label><textarea rows={3} value={converteuForm.observacao} onChange={e => setConverteuForm({...converteuForm, observacao: e.target.value})} className="w-full border rounded-[8px] px-3 py-2 text-sm bg-[var(--bg)]" /></div>
-          <div className="flex gap-3 justify-end mt-4">
-            <Button variant="secondary" onClick={() => setConfirmConverteu(null)}>Cancelar</Button>
-            <Button className="bg-green-600 text-white" onClick={confirmConverteuAction} disabled={!converteuForm.valor || converteuForm.servicos.length === 0 || savingConverteu}>Confirmar</Button>
+          <div>
+            <label style={crmFormLabel}>Valor Total Faturado (R$) *</label>
+            <Input placeholder="0,00" value={converteuForm.valor} onChange={e => setConverteuForm({...converteuForm, valor: e.target.value})} className="h-9" />
+          </div>
+          <div>
+            <label style={crmFormLabel}>Informações Complementares</label>
+            <textarea rows={3} value={converteuForm.observacao} onChange={e => setConverteuForm({...converteuForm, observacao: e.target.value})} style={{ width: '100%', border: '1px solid var(--border-md)', borderRadius: '8px', padding: '8px 10px', fontSize: '13px', background: 'var(--bg)', fontFamily: 'inherit', resize: 'vertical' }} />
+          </div>
+          <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', paddingTop: '4px' }}>
+            <button onClick={() => setConfirmConverteu(null)} style={crmBtnGhost}>Cancelar</button>
+            <button onClick={confirmConverteuAction} disabled={!converteuForm.valor || converteuForm.servicos.length === 0 || savingConverteu} style={{ ...crmBtnPrimary, opacity: (!converteuForm.valor || converteuForm.servicos.length === 0 || savingConverteu) ? 0.7 : 1 }}>Confirmar</button>
           </div>
         </div>
       </Modal>
 
       <Modal isOpen={!!confirmNaoConverteu} onClose={() => setConfirmNaoConverteu(null)} title="Registrar Não Conversão">
-        <div className="space-y-4">
-          <div className="p-3 bg-rose-50 border border-rose-200 rounded-[8px] text-rose-800 font-medium text-sm">Entender o motivo da perda ajuda a melhorar.</div>
-          
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <div style={{ padding: '10px 12px', background: 'var(--rose-light)', border: '1px solid #E9C0C0', borderRadius: 'var(--r-xs)', fontSize: '12px', fontWeight: 500, color: 'var(--rose-text)' }}>
+            Entender o motivo da perda ajuda a melhorar o funil.
+          </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Principal Objeção *</label>
-            <select 
-              value={naoConverteuForm.objecao} 
-              onChange={e => setNaoConverteuForm({...naoConverteuForm, objecao: e.target.value})}
-              className="w-full border rounded-[8px] px-3 py-2 text-sm bg-[var(--bg)]"
-            >
+            <label style={crmFormLabel}>Principal Objeção *</label>
+            <select value={naoConverteuForm.objecao} onChange={e => setNaoConverteuForm({...naoConverteuForm, objecao: e.target.value})} className="w-full rounded-[8px] px-3 py-2 text-sm focus:outline-none" style={{ border: '1px solid var(--border-md)', background: 'var(--bg)' }}>
               <option value="" disabled>Selecione uma opção...</option>
               <option value="Valor/Orçamento">Valor/Orçamento</option>
               <option value="Condições de Pagamento">Condições de Pagamento</option>
@@ -590,47 +633,38 @@ export function CRM() {
               <option value="Outro">Outro</option>
             </select>
           </div>
-
           {naoConverteuForm.objecao === 'Outro' && (
             <div>
-              <label className="block text-sm font-medium mb-1">Especifique o Motivo *</label>
-              <textarea 
-                rows={3} 
-                value={naoConverteuForm.motivo} 
-                onChange={e => setNaoConverteuForm({...naoConverteuForm, motivo: e.target.value})} 
-                className="w-full border rounded-[8px] px-3 py-2 text-sm bg-[var(--bg)]" 
-                placeholder="Descreva o motivo pelo qual a venda não ocorreu..."
-              />
+              <label style={crmFormLabel}>Especifique o Motivo *</label>
+              <textarea rows={3} value={naoConverteuForm.motivo} onChange={e => setNaoConverteuForm({...naoConverteuForm, motivo: e.target.value})} style={{ width: '100%', border: '1px solid var(--border-md)', borderRadius: '8px', padding: '8px 10px', fontSize: '13px', background: 'var(--bg)', fontFamily: 'inherit', resize: 'vertical' }} placeholder="Descreva o motivo..." />
             </div>
           )}
-
-          <div className="flex gap-3 justify-end mt-4">
-            <Button variant="secondary" onClick={() => setConfirmNaoConverteu(null)}>Cancelar</Button>
-            <Button 
-              className="bg-rose-600 text-white" 
-              onClick={confirmNaoConverteuAction} 
-              disabled={!naoConverteuForm.objecao || (naoConverteuForm.objecao === 'Outro' && !naoConverteuForm.motivo) || savingNaoConverteu}
-            >
-              Salvar
-            </Button>
+          <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', paddingTop: '4px' }}>
+            <button onClick={() => setConfirmNaoConverteu(null)} style={crmBtnGhost}>Cancelar</button>
+            <button onClick={confirmNaoConverteuAction} disabled={!naoConverteuForm.objecao || (naoConverteuForm.objecao === 'Outro' && !naoConverteuForm.motivo) || savingNaoConverteu} style={{ ...crmBtnDanger, opacity: (!naoConverteuForm.objecao || savingNaoConverteu) ? 0.7 : 1 }}>Salvar</button>
           </div>
         </div>
       </Modal>
 
       <Modal isOpen={!!confirmReagendado} onClose={() => setConfirmReagendado(null)} title="Reagendar Lead">
-        <div className="space-y-4">
-          <div className="p-4 bg-amber-50 rounded-[8px] text-amber-800 text-sm font-medium">Lembre-se de remarcar no Cal.com primeiro.</div>
-          <div><label className="block text-sm font-medium mb-1">Nova Data/Hora *</label><input type="datetime-local" value={reagendadoForm.dataHora} onChange={e => setReagendadoForm({...reagendadoForm, dataHora: e.target.value})} className="w-full border rounded-[8px] px-3 py-2 text-sm bg-[var(--bg)]" /></div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <div style={{ padding: '10px 12px', background: 'var(--champ-light)', border: '1px solid var(--champ)', borderRadius: 'var(--r-xs)', fontSize: '12px', fontWeight: 500, color: 'var(--champ-text)' }}>
+            Defina o novo horário do agendamento.
+          </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Modalidade</label>
-            <select value={reagendadoForm.modalidade} onChange={e => setReagendadoForm({...reagendadoForm, modalidade: e.target.value})} className="w-full border rounded-[8px] px-3 py-2 text-sm">
+            <label style={crmFormLabel}>Nova Data / Hora *</label>
+            <input type="datetime-local" value={reagendadoForm.dataHora} onChange={e => setReagendadoForm({...reagendadoForm, dataHora: e.target.value})} className="w-full rounded-[8px] px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--sage-dark)]" style={{ border: '1px solid var(--border-md)', background: 'var(--bg)' }} />
+          </div>
+          <div>
+            <label style={crmFormLabel}>Modalidade</label>
+            <select value={reagendadoForm.modalidade} onChange={e => setReagendadoForm({...reagendadoForm, modalidade: e.target.value})} className="w-full rounded-[8px] px-3 py-2 text-sm focus:outline-none" style={{ border: '1px solid var(--border-md)', background: 'var(--bg)' }}>
               <option value="presencial">Presencial</option>
               <option value="online">Online</option>
             </select>
           </div>
-          <div className="flex gap-3 justify-end mt-4">
-            <Button variant="secondary" onClick={() => setConfirmReagendado(null)}>Cancelar</Button>
-            <Button className="bg-amber-500 text-white" onClick={confirmReagendadoAction} disabled={!reagendadoForm.dataHora || savingReagendado}>Salvar</Button>
+          <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', paddingTop: '4px' }}>
+            <button onClick={() => setConfirmReagendado(null)} style={crmBtnGhost}>Cancelar</button>
+            <button onClick={confirmReagendadoAction} disabled={!reagendadoForm.dataHora || savingReagendado} style={{ ...crmBtnPrimary, opacity: (!reagendadoForm.dataHora || savingReagendado) ? 0.7 : 1 }}>Salvar</button>
           </div>
         </div>
       </Modal>
