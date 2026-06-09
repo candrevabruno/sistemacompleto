@@ -7,7 +7,7 @@ import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
   User, Calendar, DollarSign, Clock, FileText, Check, X,
-  ShieldAlert, MessageCircle, Pencil,
+  ShieldAlert, MessageCircle,
 } from 'lucide-react';
 import { calcularDataReativacao } from '../../lib/lead-utils';
 import type { LeadDetalhes } from '../../types';
@@ -85,7 +85,6 @@ export function LeadDetailsModal({ isOpen, onClose, leadId, onUpdate }: LeadDeta
 
   const [savingStatus, setSavingStatus] = useState(false);
 
-  const [editingDetails, setEditingDetails] = useState(false);
   const [detailsForm, setDetailsForm] = useState({
     genero: '', data_nascimento: '', observacoes: '',
     nome_lead: '', procedimento_interesse: '',
@@ -165,7 +164,6 @@ export function LeadDetailsModal({ isOpen, onClose, leadId, onUpdate }: LeadDeta
         cpf: detailsForm.cpf || null,
       }).eq('id', lead.id);
       if (error) throw error;
-      setEditingDetails(false);
       await loadAllData();
       if (onUpdate) onUpdate();
     } catch (err: any) {
@@ -368,7 +366,7 @@ export function LeadDetailsModal({ isOpen, onClose, leadId, onUpdate }: LeadDeta
           </div>
 
           {/* ── STATUS BAR ── */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 24px 16px', borderBottom: '1px solid var(--border)', flexShrink: 0, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 24px 16px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
             <span style={{ fontSize: '11px', color: 'var(--muted)', fontWeight: 500 }}>Estágio:</span>
 
             <select
@@ -396,7 +394,7 @@ export function LeadDetailsModal({ isOpen, onClose, leadId, onUpdate }: LeadDeta
               );
             })()}
 
-            <div style={{ marginLeft: 'auto', display: 'flex', gap: '7px' }}>
+            <div style={{ marginLeft: 'auto', display: 'flex', gap: '7px', flexShrink: 0 }}>
               <button
                 onClick={() => {
                   setAgendadoForm({ dataHora: '', procedimento: lead.procedimento_interesse || '', agendaId: agendas[0]?.id || '', modalidade: 'presencial' });
@@ -429,48 +427,40 @@ export function LeadDetailsModal({ isOpen, onClose, leadId, onUpdate }: LeadDeta
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
                 {renderField('Nome completo', lead.nome_lead, true,
-                  editingDetails ? <Input value={detailsForm.nome_lead} onChange={e => setDetailsForm({ ...detailsForm, nome_lead: e.target.value })} className="mt-1 h-8 text-sm bg-white" /> : undefined
+                  <Input value={detailsForm.nome_lead} onChange={e => setDetailsForm({ ...detailsForm, nome_lead: e.target.value })} className="mt-1 h-8 text-sm bg-white" />
                 )}
                 {renderField('WhatsApp', lead.whatsapp_lead, false,
-                  editingDetails ? <Input value={detailsForm.whatsapp_lead} onChange={e => setDetailsForm({ ...detailsForm, whatsapp_lead: e.target.value })} className="mt-1 h-8 text-sm bg-white" /> : undefined
+                  <Input value={detailsForm.whatsapp_lead} onChange={e => setDetailsForm({ ...detailsForm, whatsapp_lead: e.target.value })} className="mt-1 h-8 text-sm bg-white" />
                 )}
                 {renderField('E-mail', lead.email, false,
-                  editingDetails ? <Input value={detailsForm.email} onChange={e => setDetailsForm({ ...detailsForm, email: e.target.value })} className="mt-1 h-8 text-sm bg-white" /> : undefined
+                  <Input value={detailsForm.email} onChange={e => setDetailsForm({ ...detailsForm, email: e.target.value })} className="mt-1 h-8 text-sm bg-white" />
                 )}
                 {renderField('Gênero', lead.genero, false,
-                  editingDetails ? (
-                    <select value={detailsForm.genero} onChange={e => setDetailsForm({ ...detailsForm, genero: e.target.value })} className="w-full mt-1 border border-[var(--border-md)] rounded-[8px] px-2 py-1 text-sm bg-white focus:outline-none">
-                      <option value="">Não informado</option>
-                      <option value="Masculino">Masculino</option>
-                      <option value="Feminino">Feminino</option>
-                      <option value="Outro">Outro</option>
-                    </select>
-                  ) : undefined
+                  <select value={detailsForm.genero} onChange={e => setDetailsForm({ ...detailsForm, genero: e.target.value })} className="w-full mt-1 border border-[var(--border-md)] rounded-[8px] px-2 py-1 text-sm bg-white focus:outline-none">
+                    <option value="">Não informado</option>
+                    <option value="Masculino">Masculino</option>
+                    <option value="Feminino">Feminino</option>
+                    <option value="Outro">Outro</option>
+                  </select>
                 )}
                 {renderField('Serviço de interesse', lead.procedimento_interesse, true,
-                  editingDetails ? <Input value={detailsForm.procedimento_interesse} onChange={e => setDetailsForm({ ...detailsForm, procedimento_interesse: e.target.value })} className="mt-1 h-8 text-sm bg-white" /> : undefined
+                  <Input value={detailsForm.procedimento_interesse} onChange={e => setDetailsForm({ ...detailsForm, procedimento_interesse: e.target.value })} className="mt-1 h-8 text-sm bg-white" />
                 )}
                 {renderField('Origem', lead.origem, false)}
                 {renderField('1º Contato', lead.inicio_atendimento ? format(parseISO(lead.inicio_atendimento), 'dd/MM/yyyy', { locale: ptBR }) : null, false)}
               </div>
 
               {/* Observações */}
-              {(editingDetails || lead.observacoes) && (
-                <div style={{ marginTop: '14px', paddingTop: '14px', borderTop: '1px solid var(--border)' }}>
-                  <div style={fieldLabel}>Observações</div>
-                  {editingDetails ? (
-                    <textarea
-                      rows={4}
-                      value={detailsForm.observacoes}
-                      onChange={e => setDetailsForm({ ...detailsForm, observacoes: e.target.value })}
-                      style={{ width: '100%', border: '1px solid var(--border-md)', borderRadius: '8px', padding: '8px 10px', fontSize: '13px', color: 'var(--ink)', background: 'white', resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.5, marginTop: '4px' }}
-                      placeholder="Anote informações pertinentes..."
-                    />
-                  ) : (
-                    <p style={{ fontSize: '13px', color: 'var(--ink)', lineHeight: 1.5, marginTop: '4px' }}>{lead.observacoes}</p>
-                  )}
-                </div>
-              )}
+              <div style={{ marginTop: '14px', paddingTop: '14px', borderTop: '1px solid var(--border)' }}>
+                <div style={fieldLabel}>Observações</div>
+                <textarea
+                  rows={4}
+                  value={detailsForm.observacoes}
+                  onChange={e => setDetailsForm({ ...detailsForm, observacoes: e.target.value })}
+                  style={{ width: '100%', border: '1px solid var(--border-md)', borderRadius: '8px', padding: '8px 10px', fontSize: '13px', color: 'var(--ink)', background: 'white', resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.5, marginTop: '4px' }}
+                  placeholder="Anote informações pertinentes..."
+                />
+              </div>
 
               {/* IA / Resumo da conversa */}
               {lead.resumo_conversa && (
@@ -562,22 +552,14 @@ export function LeadDetailsModal({ isOpen, onClose, leadId, onUpdate }: LeadDeta
 
           {/* ── FOOTER ── */}
           <div style={{ padding: '12px 24px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--bg)', flexShrink: 0 }}>
-            {editingDetails ? (
-              <>
-                <button onClick={() => setEditingDetails(false)} style={btnGhost}>
-                  <X size={13} /> Cancelar
-                </button>
-                <div style={{ marginLeft: 'auto' }}>
-                  <button onClick={handleUpdateDetails} disabled={savingDetails} style={{ ...btnPrimary, opacity: savingDetails ? 0.7 : 1 }}>
-                    <Check size={13} /> Salvar alterações
-                  </button>
-                </div>
-              </>
-            ) : (
-              <button onClick={() => setEditingDetails(true)} style={btnGhost}>
-                <Pencil size={13} /> Editar informações
+            <button onClick={onClose} style={btnGhost}>
+              <X size={13} /> Cancelar
+            </button>
+            <div style={{ marginLeft: 'auto' }}>
+              <button onClick={handleUpdateDetails} disabled={savingDetails} style={{ ...btnPrimary, opacity: savingDetails ? 0.7 : 1 }}>
+                <Check size={13} /> Salvar alterações
               </button>
-            )}
+            </div>
           </div>
 
         </div>
