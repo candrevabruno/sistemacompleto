@@ -2,19 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { supabase } from '../../lib/supabase';
-import { Copy, Loader2, Check, CalendarDays, Bot, AlertCircle } from 'lucide-react';
+import { Copy, Loader2, Check, CalendarDays, Bot, AlertCircle, User, MapPin, CreditCard, FileText, Clock, StickyNote } from 'lucide-react';
 import { PainelAnotacoes } from './PainelAnotacoes';
 
 interface Props {
   lead: any;
   pacienteId: string | null;
 }
-
-const cardCls = 'rounded-[12px] border border-[var(--border)] bg-[var(--white)] shadow-[0_1px_4px_rgba(4,52,44,0.06)] p-5';
-const labelCls = 'text-[10px] font-semibold uppercase tracking-[1px] text-[var(--muted)] block mb-1.5';
-const inputCls = 'w-full rounded-[8px] px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--sage-dark)]';
-const inputStyle: React.CSSProperties = { border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)' };
-const gridCls = 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4';
 
 const COMO_CONHECEU_OPTS = [
   { value: 'indicacao', label: 'Indicação' },
@@ -28,28 +22,99 @@ const STATUS_PROXIMO: Record<string, { label: string; color: string; bg: string 
   confirmado: { label: 'Confirmou',  color: '#065F46', bg: 'rgba(16,185,129,0.1)' },
   reagendado: { label: 'Reagendou',  color: '#92400E', bg: 'rgba(245,158,11,0.1)'  },
   cancelado:  { label: 'Cancelou',   color: '#991B1B', bg: 'rgba(220,38,38,0.1)'   },
-  agendado:   { label: 'Agendado',   color: 'var(--sage-dark)', bg: 'var(--sage-xlight)'        },
+  agendado:   { label: 'Agendado',   color: 'var(--sage-dark)', bg: 'var(--sage-xlight)' },
 };
+
+// ── Shared style constants ────────────────────────────────────────────────────
+
+const inputStyle: React.CSSProperties = {
+  width: '100%',
+  padding: '8px 11px',
+  border: '1px solid var(--border-md)',
+  borderRadius: 'var(--r-xs)',
+  fontSize: '12.5px',
+  color: 'var(--ink)',
+  fontFamily: 'inherit',
+  background: 'var(--white)',
+  outline: 'none',
+};
+
+const labelStyle: React.CSSProperties = {
+  fontSize: '9.5px',
+  fontWeight: 600,
+  letterSpacing: '0.8px',
+  textTransform: 'uppercase',
+  color: 'var(--muted)',
+  display: 'block',
+  marginBottom: '5px',
+};
+
+const sectionHeaderStyle: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '7px',
+  fontSize: '10px',
+  fontWeight: 600,
+  letterSpacing: '1px',
+  textTransform: 'uppercase',
+  color: 'var(--muted)',
+  marginBottom: '14px',
+  paddingBottom: '8px',
+  borderBottom: '1px solid var(--border)',
+};
+
+const grid3: React.CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(3, 1fr)',
+  gap: '12px 16px',
+};
+
+// ── Sub-components ────────────────────────────────────────────────────────────
 
 function SaveButton({ salvando, saved, onClick }: { salvando: boolean; saved: boolean; onClick: () => void }) {
   return (
-    <button onClick={onClick} disabled={salvando}
-      className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-[8px] text-white disabled:opacity-50 transition-all"
-      style={{ background: saved ? 'rgba(16,185,129,0.85)' : 'var(--sage-dark)' }}>
-      {salvando ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : saved ? <Check className="w-3.5 h-3.5" /> : null}
+    <button
+      onClick={onClick}
+      disabled={salvando}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '6px',
+        padding: '7px 16px',
+        fontSize: '12px',
+        fontWeight: 600,
+        borderRadius: 'var(--r-xs)',
+        border: 'none',
+        cursor: salvando ? 'default' : 'pointer',
+        fontFamily: 'inherit',
+        color: '#fff',
+        background: saved ? 'rgba(16,185,129,0.85)' : 'var(--sage-dark)',
+        opacity: salvando ? 0.6 : 1,
+        transition: 'background 0.2s',
+      }}
+    >
+      {salvando ? (
+        <Loader2 style={{ width: '13px', height: '13px' }} className="animate-spin" />
+      ) : saved ? (
+        <Check style={{ width: '13px', height: '13px' }} />
+      ) : null}
       {saved ? 'Salvo!' : 'Salvar'}
     </button>
   );
 }
 
-function SectionTitle({ children }: { children: React.ReactNode }) {
+function SectionHeader({ icon, label }: { icon: React.ReactNode; label: string }) {
   return (
-    <p className="text-[11px] font-bold uppercase tracking-[1.2px] mb-4 flex items-center gap-2" style={{ color: 'var(--sage-dark)' }}>
-      <span className="w-1.5 h-4 rounded-full inline-block" style={{ background: 'var(--sage-dark)' }} />
-      {children}
-    </p>
+    <div style={sectionHeaderStyle}>
+      <span style={{ color: 'var(--sage-dark)', display: 'flex', alignItems: 'center', fontSize: '13px' }}>
+        {icon}
+      </span>
+      {label}
+    </div>
   );
 }
+
+// ── Main component ────────────────────────────────────────────────────────────
 
 export function DadosTab({ lead, pacienteId }: Props) {
   // ── Dados pessoais (leads) ─────────────────────────────────────
@@ -223,243 +288,417 @@ export function DadosTab({ lead, pacienteId }: Props) {
 
   const pcStatus = proximaConsulta ? STATUS_PROXIMO[proximaConsulta.status] || STATUS_PROXIMO.agendado : null;
 
-  return (
-    <div className="p-5 space-y-5">
+  // ── Shared field wrapper ──
+  const Field = ({ label, children, style }: { label: string; children: React.ReactNode; style?: React.CSSProperties }) => (
+    <div style={style}>
+      <label style={labelStyle}>{label}</label>
+      {children}
+    </div>
+  );
 
-      {/* ── 1. Informações Pessoais + Endereço ── */}
-      <div className={cardCls}>
-        <SectionTitle>Informações Pessoais</SectionTitle>
-        <div className={gridCls}>
-          <div>
-            <label className={labelCls}>Nome completo</label>
-            <input value={nome} onChange={e => setNome(e.target.value)} className={inputCls} style={inputStyle} />
-          </div>
-          <div>
-            <label className={labelCls}>Telefone / WhatsApp</label>
-            <input value={telefone} readOnly className={inputCls + ' opacity-60 cursor-default'} style={inputStyle} />
-          </div>
-          <div>
-            <label className={labelCls}>E-mail</label>
-            <input value={email} onChange={e => setEmail(e.target.value)} type="email" className={inputCls} style={inputStyle} />
-          </div>
-          <div>
-            <label className={labelCls}>Data de nascimento</label>
-            <input value={dataNasc} onChange={e => setDataNasc(e.target.value)} type="date" className={inputCls} style={inputStyle} />
-          </div>
-          <div>
-            <label className={labelCls}>Como nos conheceu</label>
-            <select value={comoConheceu} onChange={e => setComoConheceu(e.target.value)} className={inputCls} style={inputStyle}>
+  // ── Save bar ──
+  const SaveBar = ({ salvando, saved, onSave }: { salvando: boolean; saved: boolean; onSave: () => void }) => (
+    <div
+      style={{
+        position: 'sticky',
+        bottom: 0,
+        background: 'var(--white)',
+        borderTop: '1px solid var(--border)',
+        padding: '10px 22px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'flex-end',
+        gap: '8px',
+        marginTop: '18px',
+      }}
+    >
+      <SaveButton salvando={salvando} saved={saved} onClick={onSave} />
+    </div>
+  );
+
+  return (
+    <div style={{ padding: '20px 22px' }}>
+
+      {/* ── 1. Informações Pessoais ── */}
+      <div style={{ marginBottom: '22px' }}>
+        <SectionHeader icon={<User size={13} />} label="Informações Pessoais" />
+
+        <div style={grid3}>
+          {/* Nome full-width */}
+          <Field label="Nome completo" style={{ gridColumn: '1 / -1' }}>
+            <input value={nome} onChange={e => setNome(e.target.value)} style={inputStyle} />
+          </Field>
+
+          <Field label="Telefone / WhatsApp">
+            <input value={telefone} readOnly style={{ ...inputStyle, opacity: 0.6, cursor: 'default' }} />
+          </Field>
+
+          <Field label="E-mail">
+            <input value={email} onChange={e => setEmail(e.target.value)} type="email" style={inputStyle} />
+          </Field>
+
+          <Field label="Data de nascimento">
+            <input value={dataNasc} onChange={e => setDataNasc(e.target.value)} type="date" style={inputStyle} />
+          </Field>
+
+          <Field label="Como nos conheceu">
+            <select value={comoConheceu} onChange={e => setComoConheceu(e.target.value)} style={inputStyle}>
               <option value="">Selecionar...</option>
               {COMO_CONHECEU_OPTS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
-          </div>
+          </Field>
+
           {comoConheceu === 'indicacao' && (
-            <div className="relative">
-              <label className={labelCls}>Indicado por</label>
-              <input value={indicadoPorBusca} onChange={e => buscarIndicadoPor(e.target.value)}
-                onFocus={() => sugestoes.length > 0 && setMostrarSugestoes(true)}
-                onBlur={() => setTimeout(() => setMostrarSugestoes(false), 150)}
-                placeholder="Buscar paciente..." className={inputCls} style={inputStyle} />
-              {mostrarSugestoes && sugestoes.length > 0 && (
-                <div className="absolute z-20 mt-1 w-full rounded-[8px] border border-[var(--border)] bg-[var(--white)] shadow-lg overflow-hidden">
-                  {sugestoes.map(s => (
-                    <button key={s.id} onMouseDown={() => selecionarIndicador(s)}
-                      className="w-full text-left px-3 py-2 text-sm hover:bg-[var(--sage-xlight)] transition-colors" style={{ color: 'var(--ink)' }}>
-                      {s.nome_lead}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+            <Field label="Indicado por">
+              <div style={{ position: 'relative' }}>
+                <input
+                  value={indicadoPorBusca}
+                  onChange={e => buscarIndicadoPor(e.target.value)}
+                  onFocus={() => sugestoes.length > 0 && setMostrarSugestoes(true)}
+                  onBlur={() => setTimeout(() => setMostrarSugestoes(false), 150)}
+                  placeholder="Buscar paciente..."
+                  style={inputStyle}
+                />
+                {mostrarSugestoes && sugestoes.length > 0 && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      zIndex: 20,
+                      top: 'calc(100% + 4px)',
+                      left: 0,
+                      right: 0,
+                      borderRadius: 'var(--r-xs)',
+                      border: '1px solid var(--border)',
+                      background: 'var(--white)',
+                      boxShadow: 'var(--shadow)',
+                      overflow: 'hidden',
+                    }}
+                  >
+                    {sugestoes.map(s => (
+                      <button
+                        key={s.id}
+                        onMouseDown={() => selecionarIndicador(s)}
+                        style={{
+                          width: '100%',
+                          textAlign: 'left',
+                          padding: '8px 11px',
+                          fontSize: '12.5px',
+                          color: 'var(--ink)',
+                          background: 'transparent',
+                          border: 'none',
+                          cursor: 'pointer',
+                          fontFamily: 'inherit',
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.background = 'var(--sage-xlight)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                      >
+                        {s.nome_lead}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </Field>
           )}
         </div>
 
-        {/* Endereço */}
-        <div className="mt-4 pt-4 border-t border-[var(--border)]">
-          <p className="text-[10px] font-semibold uppercase tracking-[1px] text-[var(--muted)] mb-3">Endereço</p>
-          <div className={gridCls}>
-            <div className="sm:col-span-2">
-              <label className={labelCls}>Rua</label>
-              <input value={rua} onChange={e => setRua(e.target.value)} className={inputCls} style={inputStyle} />
-            </div>
-            <div>
-              <label className={labelCls}>Número</label>
-              <input value={numero} onChange={e => setNumero(e.target.value)} className={inputCls} style={inputStyle} />
-            </div>
-            <div>
-              <label className={labelCls}>Bairro</label>
-              <input value={bairro} onChange={e => setBairro(e.target.value)} className={inputCls} style={inputStyle} />
-            </div>
-            <div>
-              <label className={labelCls}>Cidade</label>
-              <input value={cidade} onChange={e => setCidade(e.target.value)} className={inputCls} style={inputStyle} />
-            </div>
-            <div>
-              <label className={labelCls}>Estado (UF)</label>
-              <input value={estado} onChange={e => setEstado(e.target.value)} maxLength={2} placeholder="SP" className={inputCls} style={inputStyle} />
-            </div>
-            <div>
-              <label className={labelCls}>CEP</label>
-              <input value={cep} onChange={e => setCep(e.target.value)} placeholder="00000-000" className={inputCls} style={inputStyle} />
-            </div>
+        {/* Sub-seção endereço */}
+        <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid var(--border)' }}>
+          <div style={{ ...sectionHeaderStyle, marginBottom: '12px' }}>
+            <span style={{ color: 'var(--sage-dark)', display: 'flex', alignItems: 'center', fontSize: '13px' }}>
+              <MapPin size={13} />
+            </span>
+            Endereço
+          </div>
+          <div style={grid3}>
+            <Field label="Rua" style={{ gridColumn: '1 / span 2' }}>
+              <input value={rua} onChange={e => setRua(e.target.value)} style={inputStyle} />
+            </Field>
+            <Field label="Número">
+              <input value={numero} onChange={e => setNumero(e.target.value)} style={inputStyle} />
+            </Field>
+            <Field label="Bairro">
+              <input value={bairro} onChange={e => setBairro(e.target.value)} style={inputStyle} />
+            </Field>
+            <Field label="Cidade">
+              <input value={cidade} onChange={e => setCidade(e.target.value)} style={inputStyle} />
+            </Field>
+            <Field label="Estado (UF)">
+              <input value={estado} onChange={e => setEstado(e.target.value)} maxLength={2} placeholder="SP" style={inputStyle} />
+            </Field>
+            <Field label="CEP">
+              <input value={cep} onChange={e => setCep(e.target.value)} placeholder="00000-000" style={inputStyle} />
+            </Field>
           </div>
         </div>
 
-        <div className="flex justify-end mt-4 pt-4 border-t border-[var(--border)]">
-          <SaveButton salvando={salvandoPessoal} saved={savedPessoal} onClick={salvarPessoal} />
-        </div>
+        <SaveBar salvando={salvandoPessoal} saved={savedPessoal} onSave={salvarPessoal} />
       </div>
 
       {/* ── 2. Financeiro ── */}
-      <div className={cardCls}>
-        <SectionTitle>Financeiro</SectionTitle>
-        <div className="flex gap-2 mb-5">
+      <div style={{ marginBottom: '22px' }}>
+        <SectionHeader icon={<CreditCard size={13} />} label="Financeiro" />
+
+        {/* Toggle Particular / Convênio */}
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
           {(['particular', 'convenio'] as const).map(t => (
-            <button key={t} onClick={() => setTipo(t)}
-              className="px-4 py-2 text-sm font-semibold rounded-[8px] transition-all"
-              style={tipo === t
-                ? { background: 'var(--sage-dark)', color: '#fff' }
-                : { background: 'var(--sage-xlight)', color: 'var(--ink)', border: '1px solid var(--border)' }}>
+            <div
+              key={t}
+              onClick={() => setTipo(t)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '7px 14px',
+                borderRadius: 'var(--r-xs)',
+                border: `1px solid ${tipo === t ? 'var(--sage)' : 'var(--border-md)'}`,
+                cursor: 'pointer',
+                fontSize: '12.5px',
+                color: tipo === t ? 'var(--sage-dark)' : 'var(--muted)',
+                background: tipo === t ? 'var(--sage-xlight)' : 'transparent',
+                userSelect: 'none',
+              }}
+            >
+              <span
+                style={{
+                  width: '8px',
+                  height: '8px',
+                  borderRadius: '50%',
+                  border: '2px solid currentColor',
+                  background: tipo === t ? 'var(--sage-dark)' : 'transparent',
+                  flexShrink: 0,
+                }}
+              />
               {t === 'particular' ? 'Particular' : 'Convênio'}
-            </button>
+            </div>
           ))}
         </div>
-        <div className={gridCls}>
+
+        <div style={grid3}>
           {tipo === 'convenio' ? (
             <>
-              <div>
-                <label className={labelCls}>Nome do convênio</label>
-                <input value={convenioNome} onChange={e => setConvenioNome(e.target.value)} className={inputCls} style={inputStyle} />
-              </div>
-              <div>
-                <label className={labelCls}>Número da carteirinha</label>
-                <input value={convenioNumero} onChange={e => setConvenioNumero(e.target.value)} className={inputCls} style={inputStyle} />
-              </div>
+              <Field label="Nome do convênio">
+                <input value={convenioNome} onChange={e => setConvenioNome(e.target.value)} style={inputStyle} />
+              </Field>
+              <Field label="Número da carteirinha">
+                <input value={convenioNumero} onChange={e => setConvenioNumero(e.target.value)} style={inputStyle} />
+              </Field>
             </>
           ) : (
-            <div>
-              <label className={labelCls}>Forma de pagamento preferida</label>
-              <input value={prefPagamento} onChange={e => setPrefPagamento(e.target.value)}
-                placeholder="Ex: Cartão de crédito, PIX..." className={inputCls} style={inputStyle} />
-            </div>
+            <Field label="Forma de pagamento preferida">
+              <input
+                value={prefPagamento}
+                onChange={e => setPrefPagamento(e.target.value)}
+                placeholder="Ex: Cartão de crédito, PIX..."
+                style={inputStyle}
+              />
+            </Field>
           )}
         </div>
-        <div className="flex justify-end mt-4 pt-4 border-t border-[var(--border)]">
-          <SaveButton salvando={salvandoFinanceiro} saved={savedFinanceiro} onClick={salvarFinanceiro} />
-        </div>
+
+        <SaveBar salvando={salvandoFinanceiro} saved={savedFinanceiro} onSave={salvarFinanceiro} />
       </div>
 
       {/* ── 3. Dados para Nota Fiscal ── */}
-      <div className={cardCls}>
-        <SectionTitle>Dados para Nota Fiscal</SectionTitle>
-        <div className={gridCls}>
-          <div>
-            <label className={labelCls}>CPF / CNPJ</label>
-            <input value={nfDocumento} onChange={e => setNfDocumento(e.target.value)} placeholder="000.000.000-00" className={inputCls} style={inputStyle} />
-          </div>
-          <div className="sm:col-span-2">
-            <label className={labelCls}>Razão social / Nome para nota fiscal</label>
-            <input value={nfNome} onChange={e => setNfNome(e.target.value)} className={inputCls} style={inputStyle} />
-          </div>
+      <div style={{ marginBottom: '22px' }}>
+        <SectionHeader icon={<FileText size={13} />} label="Dados para Nota Fiscal" />
+
+        <div style={grid3}>
+          <Field label="CPF / CNPJ">
+            <input value={nfDocumento} onChange={e => setNfDocumento(e.target.value)} placeholder="000.000.000-00" style={inputStyle} />
+          </Field>
+          <Field label="Razão social / Nome para nota fiscal" style={{ gridColumn: '2 / span 2' }}>
+            <input value={nfNome} onChange={e => setNfNome(e.target.value)} style={inputStyle} />
+          </Field>
         </div>
-        <div className="mt-4">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-[10px] font-semibold uppercase tracking-[1px]" style={{ color: 'var(--muted)' }}>Endereço de cobrança</p>
-            <button onClick={copiarEnderecoParaNF}
-              className="flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-[6px]"
-              style={{ background: 'var(--sage-xlight)', color: 'var(--sage-dark)' }}>
-              <Copy className="w-3 h-3" /> Copiar do endereço pessoal
+
+        <div style={{ marginTop: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+            <span style={{ fontSize: '9.5px', fontWeight: 600, letterSpacing: '0.8px', textTransform: 'uppercase' as const, color: 'var(--muted)' }}>
+              Endereço de cobrança
+            </span>
+            <button
+              onClick={copiarEnderecoParaNF}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px',
+                fontSize: '11px',
+                fontWeight: 600,
+                padding: '5px 10px',
+                borderRadius: 'var(--r-xs)',
+                border: 'none',
+                background: 'var(--sage-xlight)',
+                color: 'var(--sage-dark)',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+              }}
+            >
+              <Copy style={{ width: '11px', height: '11px' }} />
+              Copiar do endereço pessoal
             </button>
           </div>
-          <div className={gridCls}>
-            <div className="sm:col-span-2">
-              <label className={labelCls}>Rua</label>
-              <input value={nfRua} onChange={e => setNfRua(e.target.value)} className={inputCls} style={inputStyle} />
-            </div>
-            <div><label className={labelCls}>Número</label><input value={nfNumero} onChange={e => setNfNumero(e.target.value)} className={inputCls} style={inputStyle} /></div>
-            <div><label className={labelCls}>Bairro</label><input value={nfBairro} onChange={e => setNfBairro(e.target.value)} className={inputCls} style={inputStyle} /></div>
-            <div><label className={labelCls}>Cidade</label><input value={nfCidade} onChange={e => setNfCidade(e.target.value)} className={inputCls} style={inputStyle} /></div>
-            <div><label className={labelCls}>Estado (UF)</label><input value={nfEstado} onChange={e => setNfEstado(e.target.value)} maxLength={2} className={inputCls} style={inputStyle} /></div>
-            <div><label className={labelCls}>CEP</label><input value={nfCep} onChange={e => setNfCep(e.target.value)} className={inputCls} style={inputStyle} /></div>
+          <div style={grid3}>
+            <Field label="Rua" style={{ gridColumn: '1 / span 2' }}>
+              <input value={nfRua} onChange={e => setNfRua(e.target.value)} style={inputStyle} />
+            </Field>
+            <Field label="Número">
+              <input value={nfNumero} onChange={e => setNfNumero(e.target.value)} style={inputStyle} />
+            </Field>
+            <Field label="Bairro">
+              <input value={nfBairro} onChange={e => setNfBairro(e.target.value)} style={inputStyle} />
+            </Field>
+            <Field label="Cidade">
+              <input value={nfCidade} onChange={e => setNfCidade(e.target.value)} style={inputStyle} />
+            </Field>
+            <Field label="Estado (UF)">
+              <input value={nfEstado} onChange={e => setNfEstado(e.target.value)} maxLength={2} style={inputStyle} />
+            </Field>
+            <Field label="CEP">
+              <input value={nfCep} onChange={e => setNfCep(e.target.value)} style={inputStyle} />
+            </Field>
           </div>
         </div>
-        <div className="flex justify-end mt-4 pt-4 border-t border-[var(--border)]">
-          <SaveButton salvando={salvandoNF} saved={savedNF} onClick={salvarNF} />
-        </div>
+
+        <SaveBar salvando={salvandoNF} saved={savedNF} onSave={salvarNF} />
       </div>
 
       {/* ── 4. Próxima Consulta ── */}
-      <div className={cardCls}>
-        <SectionTitle>Próxima Consulta</SectionTitle>
+      <div style={{ marginBottom: '22px' }}>
+        <SectionHeader icon={<Clock size={13} />} label="Próxima Consulta" />
+
         {loadingPac ? (
-          <div className="flex items-center gap-2 py-1"><Loader2 className="w-4 h-4 animate-spin" style={{ color: 'var(--muted)' }} />
-            <span className="text-sm" style={{ color: 'var(--muted)' }}>Carregando...</span></div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Loader2 style={{ width: '15px', height: '15px', color: 'var(--muted)' }} className="animate-spin" />
+            <span style={{ fontSize: '12.5px', color: 'var(--muted)' }}>Carregando...</span>
+          </div>
         ) : proximaConsulta ? (
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-[10px]" style={{ background: 'var(--sage-xlight)' }}>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-[10px] flex items-center justify-center flex-shrink-0" style={{ background: 'var(--sage-dark)' }}>
-                <CalendarDays className="w-5 h-5 text-white" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold" style={{ color: 'var(--ink)' }}>
-                  {format(parseISO(proximaConsulta.data_hora_inicio), "dd 'de' MMMM 'às' HH:mm", { locale: ptBR })}
-                </p>
-                {proximaConsulta.agendas?.nome && (
-                  <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>{proximaConsulta.agendas.nome}</p>
-                )}
-                {proximaConsulta.procedimento_nome && (
-                  <p className="text-xs" style={{ color: 'var(--muted)' }}>{proximaConsulta.procedimento_nome}</p>
-                )}
-              </div>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '14px',
+              padding: '14px 16px',
+              borderRadius: 'var(--r-sm)',
+              background: 'var(--sage-xlight)',
+              border: '1px solid var(--border)',
+            }}
+          >
+            {/* Day avatar */}
+            <div
+              style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '50%',
+                background: 'var(--sage-dark)',
+                color: '#fff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <CalendarDays style={{ width: '18px', height: '18px' }} />
             </div>
-            {pcStatus && (
-              <span className="text-xs font-bold px-3 py-1.5 rounded-full flex-shrink-0"
-                style={{ background: pcStatus.bg, color: pcStatus.color }}>
-                {pcStatus.label}
-              </span>
-            )}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              {pcStatus && (
+                <div
+                  style={{
+                    fontSize: '10px',
+                    fontWeight: 600,
+                    letterSpacing: '1px',
+                    textTransform: 'uppercase',
+                    color: 'var(--sage-dark)',
+                    marginBottom: '3px',
+                  }}
+                >
+                  {pcStatus.label}
+                </div>
+              )}
+              <div style={{ fontSize: '12.5px', fontWeight: 500, color: 'var(--ink)' }}>
+                {format(parseISO(proximaConsulta.data_hora_inicio), "dd 'de' MMMM 'às' HH:mm", { locale: ptBR })}
+              </div>
+              {(proximaConsulta.agendas?.nome || proximaConsulta.procedimento_nome) && (
+                <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '2px' }}>
+                  {proximaConsulta.agendas?.nome}
+                  {proximaConsulta.agendas?.nome && proximaConsulta.procedimento_nome ? ' · ' : ''}
+                  {proximaConsulta.procedimento_nome}
+                </div>
+              )}
+            </div>
           </div>
         ) : (
-          <div className="flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--muted)' }} />
-            <span className="text-sm" style={{ color: 'var(--muted)' }}>Nenhuma consulta agendada</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <AlertCircle style={{ width: '15px', height: '15px', color: 'var(--muted)', flexShrink: 0 }} />
+            <span style={{ fontSize: '12.5px', color: 'var(--muted)' }}>Nenhuma consulta agendada</span>
           </div>
         )}
       </div>
 
       {/* ── 5. Resumo da Última Conversa (IA) ── */}
-      <div className={cardCls}>
-        <div className="flex items-center gap-2 mb-3">
-          <div className="w-7 h-7 rounded-[8px] flex items-center justify-center" style={{ background: 'var(--sage-xlight)' }}>
-            <Bot className="w-4 h-4" style={{ color: 'var(--sage-dark)' }} />
-          </div>
-          <SectionTitle>Resumo da Última Conversa</SectionTitle>
-          {resumoIAAt && (
-            <span className="text-[10px] ml-auto flex-shrink-0" style={{ color: 'var(--muted)' }}>
-              {format(new Date(resumoIAAt), "dd/MM/yy 'às' HH:mm", { locale: ptBR })}
+      <div style={{ marginBottom: '22px' }}>
+        <SectionHeader icon={<Bot size={13} />} label="Resumo da Última Conversa" />
+
+        <div
+          style={{
+            background: 'var(--champ-light)',
+            border: '1px solid var(--champ)',
+            borderRadius: 'var(--r-sm)',
+            padding: '13px 15px',
+          }}
+        >
+          {/* Header caixa IA */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '8px' }}>
+            <Bot style={{ width: '13px', height: '13px', color: 'var(--champ-text)', flexShrink: 0 }} />
+            <span
+              style={{
+                fontSize: '9.5px',
+                fontWeight: 600,
+                letterSpacing: '0.8px',
+                textTransform: 'uppercase',
+                color: 'var(--champ-text)',
+              }}
+            >
+              Gerado por IA
             </span>
+          </div>
+
+          {resumoIA ? (
+            <>
+              <p
+                style={{
+                  fontSize: '12.5px',
+                  color: 'var(--ink)',
+                  lineHeight: 1.6,
+                  whiteSpace: 'pre-wrap',
+                  margin: 0,
+                }}
+              >
+                {resumoIA}
+              </p>
+              {resumoIAAt && (
+                <p style={{ fontSize: '10.5px', color: 'var(--muted)', marginTop: '8px' }}>
+                  {format(new Date(resumoIAAt), "dd/MM/yy 'às' HH:mm", { locale: ptBR })}
+                </p>
+              )}
+            </>
+          ) : (
+            <p style={{ fontSize: '12.5px', color: 'var(--muted)', fontStyle: 'italic' }}>
+              Nenhuma conversa registrada ainda.
+            </p>
           )}
         </div>
-        {resumoIA ? (
-          <p className="text-sm leading-relaxed whitespace-pre-wrap p-3 rounded-[8px]" style={{ background: 'var(--sage-xlight)', color: 'var(--ink)' }}>
-            {resumoIA}
-          </p>
-        ) : (
-          <p className="text-sm italic" style={{ color: 'var(--muted)' }}>Nenhuma conversa registrada ainda.</p>
-        )}
       </div>
 
       {/* ── 6. Anotações Gerais ── */}
-      <div className="rounded-[12px] border border-[var(--border)] bg-[var(--white)] shadow-[0_1px_4px_rgba(4,52,44,0.06)] overflow-hidden">
-        <div className="px-5 py-4 border-b border-[var(--border)]">
-          <SectionTitle>Anotações Gerais</SectionTitle>
-        </div>
-        <div className="p-5">
-          {pacienteId
-            ? <PainelAnotacoes pacienteId={pacienteId} tipo="geral" />
-            : <p className="text-sm" style={{ color: 'var(--muted)' }}>Carregando...</p>
-          }
-        </div>
+      <div style={{ marginBottom: '22px' }}>
+        <SectionHeader icon={<StickyNote size={13} />} label="Anotações Gerais" />
+
+        {pacienteId ? (
+          <PainelAnotacoes pacienteId={pacienteId} tipo="geral" />
+        ) : (
+          <p style={{ fontSize: '12.5px', color: 'var(--muted)' }}>Carregando...</p>
+        )}
       </div>
 
     </div>

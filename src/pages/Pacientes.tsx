@@ -120,175 +120,396 @@ export function Pacientes() {
     confirmado: { label: 'Confirmou',  color: '#065F46', bg: 'rgba(16,185,129,0.15)' },
     reagendado: { label: 'Reagendou',  color: '#92400E', bg: 'rgba(245,158,11,0.15)' },
     cancelado:  { label: 'Cancelou',   color: '#991B1B', bg: 'rgba(220,38,38,0.15)'  },
-    agendado:   { label: 'Agendado',   color: 'var(--sage-dark)', bg: 'var(--sage-xlight)'        },
+    agendado:   { label: 'Agendado',   color: 'var(--sage-dark)', bg: 'var(--sage-xlight)' },
   };
   const nextBadge = proximaConsulta ? BADGE_STATUS[proximaConsulta.status] || BADGE_STATUS.agendado : null;
 
   return (
-    <div className="flex h-[calc(100vh-60px)] -m-6 overflow-hidden" style={{ background: 'var(--bg)' }}>
-
+    <div
+      className="flex h-[calc(100vh-60px)] -m-6 overflow-hidden"
+      style={{ background: 'var(--bg)' }}
+    >
       {/* ── Lista lateral ── */}
-      <div className="w-[300px] flex-shrink-0 flex flex-col border-r" style={{ borderColor: 'var(--border)', background: '#fff' }}>
-        <div className="px-4 pt-5 pb-4 border-b flex-shrink-0" style={{ borderColor: 'var(--border)' }}>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-display text-[18px]" style={{ color: 'var(--ink)', letterSpacing: '-0.2px' }}>
+      <div
+        style={{
+          width: '240px',
+          flexShrink: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          borderRight: '1px solid var(--border)',
+          background: 'var(--white)',
+        }}
+      >
+        {/* Header da lista */}
+        <div
+          style={{
+            padding: '18px 16px 14px',
+            borderBottom: '1px solid var(--border)',
+            flexShrink: 0,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+            <h2
+              className="font-display"
+              style={{ fontSize: '18px', fontWeight: 300, fontStyle: 'italic', color: 'var(--ink)', letterSpacing: '-0.2px' }}
+            >
               Pacientes
             </h2>
-            <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: 'var(--sage-xlight)', color: 'var(--sage-dark)' }}>
+            <span
+              style={{
+                fontSize: '10.5px',
+                fontWeight: 600,
+                padding: '2px 8px',
+                borderRadius: '20px',
+                background: 'var(--sage-xlight)',
+                color: 'var(--sage-dark)',
+              }}
+            >
               {leads.length}
             </span>
           </div>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: 'var(--muted)' }} />
+
+          {/* Search */}
+          <div style={{ position: 'relative' }}>
+            <Search
+              style={{
+                position: 'absolute',
+                left: '9px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                width: '13px',
+                height: '13px',
+                color: 'var(--muted)',
+                pointerEvents: 'none',
+              }}
+            />
             <input
-              type="text" placeholder="Buscar paciente..."
-              value={search} onChange={e => setSearch(e.target.value)}
-              className="w-full rounded-[9px] pl-9 pr-3 py-2 text-[13px] focus:outline-none focus:ring-2"
-              style={{ border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', '--tw-ring-color': 'var(--sage)' } as React.CSSProperties}
+              type="text"
+              placeholder="Buscar paciente..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              style={{
+                width: '100%',
+                background: 'var(--bg)',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--r-xs)',
+                padding: '6px 10px 6px 28px',
+                fontSize: '12.5px',
+                color: 'var(--ink)',
+                fontFamily: 'inherit',
+                outline: 'none',
+                boxSizing: 'border-box',
+              }}
             />
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto">
+        {/* Lista de pacientes */}
+        <div style={{ flex: 1, overflowY: 'auto' }}>
           {loading ? (
-            <div className="p-6 text-center text-sm" style={{ color: 'var(--muted)' }}>Carregando...</div>
+            <div style={{ padding: '20px', textAlign: 'center', fontSize: '12.5px', color: 'var(--muted)' }}>
+              Carregando...
+            </div>
           ) : leadsFiltrados.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full p-6 gap-3">
-              <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ background: 'var(--sage-xlight)' }}>
-                <Users className="w-5 h-5" style={{ color: 'var(--sage)' }} />
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', padding: '24px', gap: '10px' }}>
+              <div
+                style={{
+                  width: '44px',
+                  height: '44px',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: 'var(--sage-xlight)',
+                }}
+              >
+                <Users style={{ width: '18px', height: '18px', color: 'var(--sage)' }} />
               </div>
-              <p className="text-sm text-center" style={{ color: 'var(--muted)' }}>
+              <p style={{ fontSize: '12px', textAlign: 'center', color: 'var(--muted)', fontStyle: 'italic' }}>
                 {search ? 'Nenhum paciente encontrado' : 'Nenhum paciente ainda'}
               </p>
             </div>
           ) : (
-            <div className="py-1">
-              {leadsFiltrados.map(lead => {
-                const isSelected = leadSelecionado?.id === lead.id;
-                return (
-                  <button key={lead.id} onClick={() => selecionarLead(lead)}
-                    className="w-full text-left px-3 py-3 flex gap-3 items-center transition-colors relative"
+            leadsFiltrados.map(lead => {
+              const isSelected = leadSelecionado?.id === lead.id;
+              return (
+                <button
+                  key={lead.id}
+                  onClick={() => selecionarLead(lead)}
+                  className="w-full text-left"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '9px',
+                    padding: '10px 12px',
+                    borderBottom: '1px solid var(--border)',
+                    cursor: 'pointer',
+                    background: isSelected ? 'var(--sage-xlight)' : 'transparent',
+                    borderLeft: isSelected ? '3px solid var(--sage-dark)' : '3px solid transparent',
+                  }}
+                  onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = 'var(--sage-xlight)'; }}
+                  onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = 'transparent'; }}
+                >
+                  <div
                     style={{
-                      background: isSelected ? 'var(--sage-xlight)' : 'transparent',
-                      borderLeft: isSelected ? '3px solid var(--sage-dark)' : '3px solid transparent',
+                      width: '34px',
+                      height: '34px',
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      flexShrink: 0,
+                      background: 'var(--sage-xlight)',
+                      color: 'var(--sage-dark)',
                     }}
-                    onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = 'var(--sage-xlight)'; }}
-                    onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = 'transparent'; }}>
-                    <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-[13px] font-bold flex-shrink-0"
-                      style={{ background: 'linear-gradient(135deg, var(--sage-dark), var(--sage))' }}>
-                      {getIniciais(lead.nome_lead)}
+                  >
+                    {getIniciais(lead.nome_lead)}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div
+                      style={{
+                        fontSize: '12.5px',
+                        fontWeight: 500,
+                        color: 'var(--ink)',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                    >
+                      {lead.nome_lead || 'Sem nome'}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[13px] font-semibold truncate" style={{ color: 'var(--ink)' }}>
-                        {lead.nome_lead || 'Sem nome'}
-                      </p>
-                      <p className="text-[11px] truncate" style={{ color: 'var(--muted)' }}>
-                        {lead.procedimento_interesse || lead.whatsapp_lead || '—'}
-                      </p>
+                    <div
+                      style={{
+                        fontSize: '11px',
+                        color: 'var(--muted)',
+                        marginTop: '1px',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {lead.procedimento_interesse || lead.whatsapp_lead || '—'}
                     </div>
-                  </button>
-                );
-              })}
-            </div>
+                  </div>
+                </button>
+              );
+            })
           )}
         </div>
       </div>
 
       {/* ── Área do perfil ── */}
       {!leadSelecionado ? (
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: 'var(--sage-xlight)' }}>
-              <ClipboardList className="w-7 h-7" style={{ color: 'var(--sage)' }} />
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ textAlign: 'center' }}>
+            <div
+              style={{
+                width: '60px',
+                height: '60px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: 'var(--sage-xlight)',
+                margin: '0 auto 14px',
+              }}
+            >
+              <ClipboardList style={{ width: '26px', height: '26px', color: 'var(--sage)' }} />
             </div>
-            <p className="text-sm" style={{ color: 'var(--muted)' }}>Selecione uma paciente para ver o perfil</p>
+            <p style={{ fontSize: '13px', color: 'var(--muted)', fontStyle: 'italic' }}>
+              Selecione uma paciente para ver o perfil
+            </p>
           </div>
         </div>
       ) : (
-        <div className="flex-1 flex flex-col min-h-0 min-w-0">
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, minWidth: 0 }}>
 
           {/* ── Header do perfil ── */}
-          <div className="flex items-center gap-4 px-6 py-4 border-b flex-shrink-0" style={{ borderColor: 'var(--border)', background: '#fff' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '14px',
+              padding: '16px 22px',
+              background: 'var(--white)',
+              borderBottom: '1px solid var(--border)',
+              flexShrink: 0,
+            }}
+          >
             {/* Avatar */}
-            <div className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg flex-shrink-0"
-              style={{ background: 'linear-gradient(135deg, var(--sage-dark), var(--sage))' }}>
+            <div
+              style={{
+                width: '46px',
+                height: '46px',
+                borderRadius: '50%',
+                background: 'var(--sage-xlight)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '14px',
+                fontWeight: 700,
+                color: 'var(--sage-dark)',
+                flexShrink: 0,
+                border: '2px solid var(--sage-light)',
+              }}
+            >
               {getIniciais(leadSelecionado.nome_lead)}
             </div>
 
             {/* Info */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="font-display text-[20px] leading-tight" style={{ color: 'var(--ink)', letterSpacing: '-0.3px' }}>
-                  {leadSelecionado.nome_lead || 'Sem nome'}
-                </h2>
-                {/* Badge convênio/particular */}
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0"
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div
+                className="font-display"
+                style={{
+                  fontSize: '20px',
+                  fontWeight: 300,
+                  fontStyle: 'italic',
+                  color: 'var(--ink)',
+                  letterSpacing: '-0.3px',
+                }}
+              >
+                {leadSelecionado.nome_lead || 'Sem nome'}
+              </div>
+              {leadSelecionado.whatsapp_lead && (
+                <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '2px' }}>
+                  {leadSelecionado.whatsapp_lead}
+                </div>
+              )}
+              {/* Badges */}
+              <div style={{ display: 'flex', gap: '6px', marginTop: '5px', flexWrap: 'wrap' }}>
+                <span
                   style={{
-                    background: tipoConvenio === 'convenio' ? 'rgba(59,130,246,0.1)' : 'var(--sage-xlight)',
-                    color: tipoConvenio === 'convenio' ? '#2563eb' : 'var(--sage-dark)',
-                  }}>
+                    fontSize: '10.5px',
+                    fontWeight: 500,
+                    padding: '3px 9px',
+                    borderRadius: '20px',
+                    background: tipoConvenio === 'convenio' ? '#EFF6FF' : 'var(--champ-light)',
+                    color: tipoConvenio === 'convenio' ? '#1D4ED8' : 'var(--champ-text)',
+                  }}
+                >
                   {tipoConvenio === 'convenio' ? 'Convênio' : 'Particular'}
                 </span>
-                {/* Badge próxima consulta */}
                 {nextBadge && !loadingProfile && (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0"
-                    style={{ background: nextBadge.bg, color: nextBadge.color }}>
-                    {nextBadge.label}
+                  <span
+                    style={{
+                      fontSize: '10.5px',
+                      fontWeight: 500,
+                      padding: '3px 9px',
+                      borderRadius: '20px',
+                      background: nextBadge.bg,
+                      color: nextBadge.color,
+                    }}
+                  >
+                    {nextBadge.label} próxima consulta
                   </span>
                 )}
               </div>
-              {leadSelecionado.whatsapp_lead && (
-                <p className="text-[12px] font-mono mt-0.5" style={{ color: 'var(--muted)' }}>
-                  {leadSelecionado.whatsapp_lead}
-                </p>
-              )}
             </div>
 
             {/* Botões de ação */}
-            <div className="flex gap-2 flex-shrink-0">
+            <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
               {leadSelecionado.whatsapp_lead && (
                 <button
                   onClick={() => navigate('/inbox', { state: { lead_id: leadSelecionado.id } })}
-                  className="flex items-center gap-1.5 text-[12px] font-semibold px-3 py-2 rounded-[8px] text-white transition-opacity hover:opacity-90"
-                  style={{ background: 'var(--sage-dark)' }}>
-                  <MessageSquare className="w-3.5 h-3.5" />
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    padding: '7px 13px',
+                    borderRadius: 'var(--r-xs)',
+                    background: 'var(--sage-dark)',
+                    color: '#fff',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontFamily: 'inherit',
+                  }}
+                >
+                  <MessageSquare style={{ width: '13px', height: '13px' }} />
                   WhatsApp
                 </button>
               )}
               {calcomLink && (
                 <button
                   onClick={abrirAgendamento}
-                  className="flex items-center gap-1.5 text-[12px] font-semibold px-3 py-2 rounded-[8px] border transition-colors"
-                  style={{ borderColor: 'var(--border)', color: 'var(--ink)', background: 'transparent' }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--sage-dark)'; e.currentTarget.style.color = 'var(--sage-dark)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--ink)'; }}>
-                  <CalendarPlus className="w-3.5 h-3.5" />
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    padding: '7px 13px',
+                    borderRadius: 'var(--r-xs)',
+                    border: '1px solid var(--border-md)',
+                    color: 'var(--ink)',
+                    background: 'transparent',
+                    cursor: 'pointer',
+                    fontFamily: 'inherit',
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.borderColor = 'var(--sage-dark)';
+                    e.currentTarget.style.color = 'var(--sage-dark)';
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.borderColor = 'var(--border-md)';
+                    e.currentTarget.style.color = 'var(--ink)';
+                  }}
+                >
+                  <CalendarPlus style={{ width: '13px', height: '13px' }} />
                   Agendar
-                  <ExternalLink className="w-3 h-3 opacity-50" />
+                  <ExternalLink style={{ width: '11px', height: '11px', opacity: 0.5 }} />
                 </button>
               )}
             </div>
           </div>
 
           {/* ── Tabs ── */}
-          <div className="flex border-b px-6 flex-shrink-0 overflow-x-auto" style={{ borderColor: 'var(--border)', background: '#fff' }}>
+          <div
+            style={{
+              display: 'flex',
+              gap: 0,
+              borderBottom: '1px solid var(--border)',
+              padding: '0 22px',
+              background: 'var(--white)',
+              flexShrink: 0,
+              overflowX: 'auto',
+            }}
+          >
             {TABS.map(tab => (
-              <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                className="px-4 py-3 text-[13px] font-medium border-b-2 transition-colors -mb-px whitespace-nowrap"
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
                 style={{
-                  borderBottomColor: activeTab === tab.id ? 'var(--sage-dark)' : 'transparent',
+                  padding: '10px 14px',
+                  fontSize: '12.5px',
+                  fontWeight: activeTab === tab.id ? 600 : 400,
                   color: activeTab === tab.id ? 'var(--sage-dark)' : 'var(--muted)',
-                }}>
+                  borderBottom: `2px solid ${activeTab === tab.id ? 'var(--sage-dark)' : 'transparent'}`,
+                  marginBottom: '-1px',
+                  cursor: 'pointer',
+                  background: 'none',
+                  border: 'none',
+                  borderBottomWidth: '2px',
+                  borderBottomStyle: 'solid',
+                  borderBottomColor: activeTab === tab.id ? 'var(--sage-dark)' : 'transparent',
+                  fontFamily: 'inherit',
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0,
+                }}
+              >
                 {tab.label}
               </button>
             ))}
           </div>
 
           {/* ── Conteúdo da tab ── */}
-          <div className="flex-1 overflow-y-auto" style={{ background: 'var(--bg)' }}>
+          <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)' }}>
             {loadingProfile ? (
-              <div className="flex items-center justify-center p-12">
-                <p className="text-sm" style={{ color: 'var(--muted)' }}>Carregando perfil...</p>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px' }}>
+                <p style={{ fontSize: '13px', color: 'var(--muted)' }}>Carregando perfil...</p>
               </div>
             ) : (
               <>
