@@ -3,13 +3,11 @@ import { supabase } from '../lib/supabase';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import type { DropResult } from '@hello-pangea/dnd';
 import { format } from 'date-fns';
-import { Badge } from '../components/ui/Badge';
-import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
 import { Input } from '../components/ui/Input';
 import { formatDistanceToNow, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Plus, User, FileText, Calendar, DollarSign, Clock, Trash2 } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import { LeadDetailsModal } from '../components/crm/LeadDetailsModal';
 
 
@@ -55,6 +53,37 @@ const COLUMNS = [
   { id: 'nao_converteu', title: 'Não Converteu', colorClass: 'border-rose-600' },
   { id: 'abandonou_conversa', title: 'Abandonou', colorClass: 'border-gray-400' }
 ];
+
+function getInitials(name: string | null | undefined): string {
+  if (!name) return '?';
+  return name.split(' ').filter(Boolean).map((p: string) => p[0]).slice(0, 2).join('').toUpperCase();
+}
+
+const COLUMN_STRIPE: Record<string, string> = {
+  iniciou_atendimento: 'var(--champ)',
+  conversando: '#93C5FD',
+  follow_up: 'var(--sage)',
+  agendado: '#C4B5FD',
+  reagendado: '#FCD34D',
+  faltou: '#94A3B8',
+  cancelou_agendamento: '#F87171',
+  converteu: 'var(--sage-dark)',
+  nao_converteu: '#F87171',
+  abandonou_conversa: '#CBD5E1',
+};
+
+const COLUMN_BADGE: Record<string, { bg: string; color: string }> = {
+  iniciou_atendimento: { bg: 'var(--champ-light)', color: 'var(--champ-text)' },
+  conversando: { bg: '#EFF6FF', color: '#1D4ED8' },
+  follow_up: { bg: 'var(--sage-xlight)', color: 'var(--sage-dark)' },
+  agendado: { bg: '#F3E8FF', color: '#7C3AED' },
+  reagendado: { bg: 'var(--champ-light)', color: 'var(--champ-text)' },
+  faltou: { bg: '#F1F5F9', color: '#64748B' },
+  cancelou_agendamento: { bg: 'var(--rose-light)', color: 'var(--rose-text)' },
+  converteu: { bg: 'var(--sage-xlight)', color: 'var(--sage-dark)' },
+  nao_converteu: { bg: 'var(--rose-light)', color: 'var(--rose-text)' },
+  abandonou_conversa: { bg: '#F1F5F9', color: '#64748B' },
+};
 
 export function CRM() {
   const [leads, setLeads] = useState<any[]>([]);
@@ -478,56 +507,109 @@ export function CRM() {
   }, {} as Record<string, any[]>);
 
   return (
-    <div className="flex flex-col h-full overflow-hidden bg-[var(--bg)]">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4 p-4 text-[var(--ink)]">
-          <div><p className="text-sm text-[var(--muted)] mt-1 font-medium">Navegue os contatos pelos estágios de venda.</p></div>
-          <Button onClick={() => setOpenNewLead(true)} className="w-full sm:w-auto font-bold"><Plus className="w-4 h-4 mr-2"/> Novo Lead</Button>
+    <div className="flex flex-col h-full overflow-hidden" style={{ background: 'var(--bg)' }}>
+
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 22px 18px', flexShrink: 0 }}>
+        <div>
+          <div className="font-display" style={{ fontSize: '22px', fontWeight: 300, fontStyle: 'italic', color: 'var(--ink)' }}>Pipeline de contatos</div>
+          <p style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '2px' }}>
+            Navegue pelos estágios de venda · {leads.length} leads ativos
+          </p>
+        </div>
+        <button onClick={() => setOpenNewLead(true)} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--sage-dark)', color: 'white', border: 'none', borderRadius: 'var(--r-xs)', padding: '8px 14px', fontSize: '12px', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}>
+          <Plus style={{ width: '14px', height: '14px' }} /> Novo lead
+        </button>
       </div>
 
+      {/* Kanban */}
       <div className="flex-1 overflow-x-auto pb-4">
         {loading ? (
-          <div className="flex items-center justify-center h-full">Carregando CRM...</div>
+          <div className="flex items-center justify-center h-full" style={{ color: 'var(--muted)' }}>Carregando...</div>
         ) : (
           <DragDropContext onDragEnd={handleDragEnd}>
-            <div className="flex h-full gap-4 items-start w-fit px-4">
+            <div style={{ display: 'flex', height: '100%', gap: '12px', alignItems: 'flex-start', width: 'fit-content', padding: '0 22px 16px' }}>
               {COLUMNS.map(col => {
                 const colCards = cardsByCol[col.id] || [];
+                const badge = COLUMN_BADGE[col.id] || { bg: 'var(--sage-xlight)', color: 'var(--sage-dark)' };
                 return (
-                  <div key={col.id} className={`flex flex-col flex-shrink-0 w-[300px] h-full max-h-full bg-white rounded-[12px] border border-[var(--border)] border-t-4 shadow-sm transition-all ${col.colorClass}`}>
-                    <div className="p-3 font-semibold text-[var(--ink)] flex justify-between items-center bg-gray-50/50 border-b border-[var(--border)] rounded-t-[10px]">
-                      <span className="truncate pr-2 font-cormorant text-lg">{col.title}</span>
-                      <span className="bg-white border border-[var(--border)] rounded-full px-2 py-0.5 text-[10px] text-[var(--muted)] font-mono">{colCards.length}</span>
+                  <div key={col.id} style={{ width: '220px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {/* Column header */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 2px', marginBottom: '4px' }}>
+                      <span style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', color: 'var(--muted)' }}>
+                        {col.title}
+                      </span>
+                      <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 7px', borderRadius: '20px', background: badge.bg, color: badge.color }}>
+                        {colCards.length}
+                      </span>
                     </div>
 
                     <Droppable droppableId={col.id}>
                       {(provided, snapshot) => (
-                        <div ref={provided.innerRef} {...provided.droppableProps} className={`flex-1 overflow-y-auto p-2 space-y-3 transition-colors bg-[#F9FAFB]/80 ${snapshot.isDraggingOver ? 'bg-[var(--sage-xlight)]/40' : ''}`}>
+                        <div ref={provided.innerRef} {...provided.droppableProps}
+                          style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px', padding: '2px', minHeight: '80px', background: snapshot.isDraggingOver ? 'var(--sage-xlight)' : 'transparent', borderRadius: '10px', transition: 'background 0.1s' }}>
+
+                          {colCards.length === 0 && !snapshot.isDraggingOver && (
+                            <div style={{ background: 'rgba(143,174,154,0.04)', border: '1.5px dashed var(--border-md)', borderRadius: '10px', padding: '24px 12px', textAlign: 'center', color: 'var(--muted)', fontSize: '11.5px', fontStyle: 'italic' }}>
+                              Vazio
+                            </div>
+                          )}
+
                           {colCards.map((card, index) => (
                             <Draggable key={card.id} draggableId={card.id} index={index}>
                               {(provided, snapshot) => (
-                                <div ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps} className={`bg-white p-4 rounded-[12px] border-l-4 shadow-[0_2px_12px_-3px_rgba(0,0,0,0.06)] cursor-grab hover:shadow-md hover:-translate-y-0.5 transition-all group relative ${col.colorClass} ${snapshot.isDragging ? 'opacity-90 scale-[1.02] shadow-xl ring-1 ring-[var(--sage-dark)]/20' : ''}`} onClick={() => { 
-                                  setSelectedLead(card); 
-                                  setOpenLeadDetails(true); 
-                                }}>
-                                  <button onClick={(e) => { e.stopPropagation(); handleDeleteLead(card.id); }} className="absolute top-2 right-2 p-1 text-gray-300 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <Trash2 className="w-4 h-4" />
+                                <div ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps}
+                                  className="group"
+                                  onClick={() => { setSelectedLead(card); setOpenLeadDetails(true); }}
+                                  style={{ ...provided.draggableProps.style, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: '10px', padding: '12px', cursor: 'pointer', position: 'relative', overflow: 'hidden', boxShadow: snapshot.isDragging ? '0 8px 24px rgba(30,41,59,0.12)' : 'none', transition: 'box-shadow 0.12s' }}>
+
+                                  {/* Left stripe */}
+                                  <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '3px', background: COLUMN_STRIPE[col.id] || 'var(--sage)' }} />
+
+                                  {/* Delete button */}
+                                  <button onClick={(e) => { e.stopPropagation(); handleDeleteLead(card.id); }}
+                                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    style={{ width: '20px', height: '20px', borderRadius: '4px', border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--muted)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <Trash2 style={{ width: '12px', height: '12px' }} />
                                   </button>
-                                  <div className="font-semibold text-sm line-clamp-1 mb-1 pr-6">{card.nome_lead || 'Lead sem nome'}</div>
-                                  <div className="text-xs text-[var(--muted)] mb-3">{card.whatsapp_lead}</div>
-                                  <div className="flex justify-between items-center mt-auto">
-                                    <Badge variant={card.status} className="scale-90 origin-left">{col.title}</Badge>
-                                    <div className="text-[10px] text-[var(--muted)] font-medium">{card.ultima_mensagem ? `há ${formatDistanceToNow(parseISO(card.ultima_mensagem), { locale: ptBR })}` : 'Sem msg'}</div>
+
+                                  {/* Avatar */}
+                                  <div style={{ width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 700, marginBottom: '8px', background: badge.bg, color: badge.color }}>
+                                    {getInitials(card.nome_lead)}
+                                  </div>
+
+                                  <div style={{ fontSize: '12.5px', fontWeight: 500, color: 'var(--ink)', marginBottom: '2px', paddingRight: '20px', lineHeight: 1.3 }}>
+                                    {card.nome_lead || 'Lead sem nome'}
+                                  </div>
+                                  <div style={{ fontSize: '11px', color: 'var(--muted)' }}>
+                                    {card.whatsapp_lead}
+                                  </div>
+
+                                  {/* Footer */}
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '10px' }}>
+                                    <span style={{ fontSize: '10px', fontWeight: 500, padding: '2px 8px', borderRadius: '20px', background: badge.bg, color: badge.color }}>
+                                      {col.title}
+                                    </span>
+                                    <span style={{ fontSize: '10px', color: 'var(--muted)' }}>
+                                      {card.ultima_mensagem ? formatDistanceToNow(parseISO(card.ultima_mensagem), { locale: ptBR, addSuffix: true }) : 'Sem msg'}
+                                    </span>
                                   </div>
                                 </div>
                               )}
                             </Draggable>
                           ))}
                           {provided.placeholder}
+
+                          {/* Add card */}
+                          <button onClick={() => setOpenNewLead(true)}
+                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', background: 'transparent', border: '1.5px dashed var(--border-md)', borderRadius: '10px', padding: '8px', fontSize: '11.5px', color: 'var(--muted)', cursor: 'pointer', width: '100%', fontFamily: 'inherit' }}>
+                            <Plus style={{ width: '13px', height: '13px' }} /> Adicionar
+                          </button>
                         </div>
                       )}
                     </Droppable>
                   </div>
-                )
+                );
               })}
             </div>
           </DragDropContext>

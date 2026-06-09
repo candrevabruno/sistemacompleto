@@ -1,30 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { format, parseISO, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
+import { format, parseISO, startOfDay, endOfDay, startOfMonth, endOfMonth, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { useNavigate } from 'react-router-dom';
 import { Modal } from '../components/ui/Modal';
-import { Button } from '../components/ui/Button';
-import { Badge } from '../components/ui/Badge';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Input } from '../components/ui/Input';
-import { CalendarCheck, Phone, Clock, ChevronDown, RefreshCw, CheckCircle, XCircle, UserCheck, CalendarIcon, Monitor, MapPin, ExternalLink } from 'lucide-react';
+import { CalendarIcon, Clock, RefreshCw, User, MessageSquare } from 'lucide-react';
 import { LeadDetailsModal } from '../components/crm/LeadDetailsModal';
 
-const COLUMNS = [
-  { id: 'iniciou_atendimento', title: 'Iniciou' },
-  { id: 'conversando', title: 'Conversando' },
-  { id: 'follow_up', title: 'Follow-Up' },
-  { id: 'agendado', title: 'Agendado' },
-  { id: 'reagendado', title: 'Reagendado' },
-  { id: 'faltou', title: 'Faltou' },
-  { id: 'cancelou_agendamento', title: 'Cancelou Agendamento' },
-  { id: 'converteu', title: 'Converteu (Venda)' },
-  { id: 'nao_converteu', title: 'Não Converteu' },
-  { id: 'abandonou_conversa', title: 'Abandonou' }
-];
-
 type Filtro = 'hoje' | 'amanha' | '7_dias' | '14_dias' | 'mes' | 'custom';
-type StatusAgendamento = 'agendado' | 'confirmado' | 'compareceu' | 'faltou' | 'cancelado';
 
 const STATUS_LABELS: Record<string, string> = {
   agendado: 'Agendado',
@@ -32,17 +16,31 @@ const STATUS_LABELS: Record<string, string> = {
   compareceu: 'Compareceu',
   faltou: 'Faltou',
   cancelado: 'Cancelado',
+  reagendado: 'Reagendado',
 };
 
-const STATUS_COLORS: Record<string, string> = {
-  agendado: 'bg-blue-100 text-blue-700 border-blue-200',
-  confirmado: 'bg-[#7A9E87]/15 text-[#5f8a6e] border-[#7A9E87]/30',
-  compareceu: 'bg-green-100 text-green-700 border-green-200',
-  faltou: 'bg-gray-100 text-gray-600 border-gray-200',
-  cancelado: 'bg-red-100 text-red-600 border-red-200',
+const STATUS_BADGE: Record<string, { background: string; color: string }> = {
+  agendado:    { background: '#EFF6FF',             color: '#1D4ED8' },
+  confirmado:  { background: 'var(--sage-xlight)',  color: 'var(--sage-dark)' },
+  compareceu:  { background: 'var(--sage-xlight)',  color: 'var(--sage-dark)' },
+  faltou:      { background: '#F1F5F9',             color: '#64748B' },
+  cancelado:   { background: 'var(--rose-light)',   color: 'var(--rose-text)' },
+  reagendado:  { background: 'var(--champ-light)',  color: 'var(--champ-text)' },
 };
+
+function getInitials(name: string | null | undefined): string {
+  if (!name) return '?';
+  return name
+    .split(' ')
+    .filter(Boolean)
+    .map((p: string) => p[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
+}
 
 export function CentralAgendamentos() {
+  const navigate = useNavigate();
   const [agendamentos, setAgendamentos] = useState<any[]>([]);
   const [agendas, setAgendas] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -57,8 +55,6 @@ export function CentralAgendamentos() {
   // Modal de detalhes do Lead
   const [selectedLead, setSelectedLead] = useState<any>(null);
   const [openLeadDetails, setOpenLeadDetails] = useState(false);
-
-
 
   const getDateRange = () => {
     const now = new Date();
@@ -130,10 +126,10 @@ export function CentralAgendamentos() {
   };
 
   useEffect(() => { fetchAgendas(); }, []);
-  
-  useEffect(() => { 
-    fetchAgendamentos(); 
-    
+
+  useEffect(() => {
+    fetchAgendamentos();
+
     const handleFocus = () => fetchAgendamentos();
     const handleOnline = () => fetchAgendamentos();
     const handleVisibility = () => { if (document.visibilityState === 'visible') fetchAgendamentos(); };
@@ -148,7 +144,7 @@ export function CentralAgendamentos() {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'agendamentos' },
         () => {
-          fetchAgendamentos(); // Atualiza a tela instantaneamente
+          fetchAgendamentos();
         }
       )
       .subscribe();
@@ -160,143 +156,461 @@ export function CentralAgendamentos() {
       document.removeEventListener('visibilitychange', handleVisibility);
     };
   }, [filtro, agendaFiltro, statusFiltro, customStart, customEnd]);
+
+  // ─── Agrupamento por data ─────────────────────────────────────────────────
+  const grouped: { label: string; date: Date; items: any[] }[] = [];
+  agendamentos.forEach(ag => {
+    const d = parseISO(ag.data_hora_inicio);
+    const existing = grouped.find(g => isSameDay(g.date, d));
+    if (existing) {
+      existing.items.push(ag);
+    } else {
+      grouped.push({
+        label: format(d, "EEEE, dd 'de' MMMM", { locale: ptBR }),
+        date: d,
+        items: [ag],
+      });
+    }
+  });
+
   // ─── RENDER ──────────────────────────────────────────────────────────────
 
+  const PERIOD_PILLS: { key: Filtro; label: string }[] = [
+    { key: 'hoje', label: 'Hoje' },
+    { key: 'amanha', label: 'Amanhã' },
+    { key: '7_dias', label: '7 dias' },
+    { key: '14_dias', label: '14 dias' },
+    { key: 'mes', label: 'Mês' },
+  ];
+
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="font-cormorant text-2xl font-bold">Central de Agendamentos</h1>
-          <p className="text-sm text-[var(--muted)] mt-1">Gerencie todos os agendamentos por profissional e status.</p>
+    <div style={{ padding: '22px 24px', background: 'var(--bg)', minHeight: '100%' }}>
+
+      {/* Header */}
+      <div style={{ marginBottom: '20px' }}>
+        <div
+          className="font-display"
+          style={{ fontSize: '24px', fontWeight: 300, fontStyle: 'italic', color: 'var(--ink)', lineHeight: 1.2 }}
+        >
+          Central de Agendamentos
         </div>
-        <button onClick={fetchAgendamentos} className="flex items-center gap-2 text-sm text-[var(--muted)] hover:text-[var(--sage-dark)] transition-colors">
-          <RefreshCw className="w-4 h-4" /> Atualizar
-        </button>
+        <p style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '4px' }}>
+          Gerencie todos os agendamentos por profissional e status
+        </p>
       </div>
 
       {/* Filtros */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex flex-col xl:flex-row gap-4 items-start xl:items-center">
-            {/* Filtro de período */}
-            <div className="flex flex-wrap gap-2">
-              {(['hoje', 'amanha', '7_dias', '14_dias', 'mes'] as Filtro[]).map(f => (
-                <button key={f} onClick={() => setFiltro(f)}
-                  className={`px-3 py-1.5 text-sm font-medium rounded-[8px] transition-colors ${filtro === f ? 'bg-[var(--sage-dark)] text-white' : 'bg-[var(--bg)] text-[var(--ink)] hover:bg-[var(--sage-xlight)]'}`}>
-                  {f === 'hoje' ? 'Hoje' : f === 'amanha' ? 'Amanhã' : f === '7_dias' ? '7 dias' : f === '14_dias' ? '14 dias' : 'Mês'}
-                </button>
-              ))}
-              <div className="flex items-center gap-2">
-                <input type="date" value={customStart}
-                  onChange={e => { setCustomStart(e.target.value); setFiltro('custom'); }}
-                  className="border border-[var(--border)] rounded-[8px] px-2 py-1.5 text-sm bg-[var(--bg)] text-[var(--ink)]" />
-                <span className="text-[var(--muted)] text-sm">até</span>
-                <input type="date" value={customEnd}
-                  onChange={e => { setCustomEnd(e.target.value); setFiltro('custom'); }}
-                  className="border border-[var(--border)] rounded-[8px] px-2 py-1.5 text-sm bg-[var(--bg)] text-[var(--ink)]" />
+      <div
+        style={{
+          background: 'var(--white)',
+          border: '1px solid var(--border)',
+          borderRadius: '12px',
+          padding: '14px',
+          marginBottom: '20px',
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          gap: '10px',
+        }}
+      >
+        {/* Period pills */}
+        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+          {PERIOD_PILLS.map(p => (
+            <button
+              key={p.key}
+              onClick={() => setFiltro(p.key)}
+              style={{
+                padding: '5px 12px',
+                fontSize: '12px',
+                fontWeight: 500,
+                borderRadius: '20px',
+                border: filtro === p.key ? 'none' : '1px solid var(--border-md)',
+                background: filtro === p.key ? 'var(--sage-dark)' : 'transparent',
+                color: filtro === p.key ? 'white' : 'var(--muted)',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                transition: 'all 0.12s',
+              }}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Date range */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            border: '1px solid var(--border-md)',
+            borderRadius: '8px',
+            padding: '4px 8px',
+            background: 'var(--bg)',
+          }}
+        >
+          <input
+            type="date"
+            value={customStart}
+            onChange={e => { setCustomStart(e.target.value); setFiltro('custom'); }}
+            style={{ border: 'none', background: 'transparent', fontSize: '12px', color: 'var(--ink)', outline: 'none', fontFamily: 'inherit' }}
+          />
+          <span style={{ fontSize: '11px', color: 'var(--muted)' }}>–</span>
+          <input
+            type="date"
+            value={customEnd}
+            onChange={e => { setCustomEnd(e.target.value); setFiltro('custom'); }}
+            style={{ border: 'none', background: 'transparent', fontSize: '12px', color: 'var(--ink)', outline: 'none', fontFamily: 'inherit' }}
+          />
+        </div>
+
+        {/* Selects */}
+        <select
+          value={agendaFiltro}
+          onChange={e => setAgendaFiltro(e.target.value)}
+          style={{
+            border: '1px solid var(--border-md)',
+            borderRadius: '8px',
+            padding: '5px 10px',
+            fontSize: '12px',
+            color: 'var(--ink)',
+            background: 'var(--bg)',
+            outline: 'none',
+            fontFamily: 'inherit',
+            cursor: 'pointer',
+          }}
+        >
+          <option value="todas">Todas as agendas</option>
+          {agendas.map(a => <option key={a.id} value={a.id}>{a.nome}</option>)}
+        </select>
+
+        <select
+          value={statusFiltro}
+          onChange={e => setStatusFiltro(e.target.value)}
+          style={{
+            border: '1px solid var(--border-md)',
+            borderRadius: '8px',
+            padding: '5px 10px',
+            fontSize: '12px',
+            color: 'var(--ink)',
+            background: 'var(--bg)',
+            outline: 'none',
+            fontFamily: 'inherit',
+            cursor: 'pointer',
+          }}
+        >
+          <option value="todos">Todos os status</option>
+          {Object.entries(STATUS_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+        </select>
+
+        {/* Atualizar button */}
+        <button
+          onClick={fetchAgendamentos}
+          style={{
+            marginLeft: 'auto',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '5px 12px',
+            fontSize: '12px',
+            fontWeight: 500,
+            color: 'var(--muted)',
+            background: 'transparent',
+            border: '1px solid var(--border-md)',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+            transition: 'color 0.12s',
+          }}
+        >
+          <RefreshCw style={{ width: '13px', height: '13px' }} />
+          Atualizar
+        </button>
+      </div>
+
+      {/* Content */}
+      {loading ? (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '64px 0', color: 'var(--muted)' }}>
+          <div
+            className="animate-spin"
+            style={{
+              width: '22px',
+              height: '22px',
+              borderRadius: '50%',
+              border: '2px solid var(--border-md)',
+              borderTopColor: 'var(--sage-dark)',
+              marginRight: '10px',
+            }}
+          />
+          Carregando...
+        </div>
+      ) : agendamentos.length === 0 ? (
+        /* Empty state */
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 0', gap: '12px' }}>
+          <CalendarIcon style={{ width: '48px', height: '48px', opacity: 0.2, color: 'var(--muted)' }} />
+          <p
+            className="font-display"
+            style={{ fontSize: '18px', fontStyle: 'italic', color: 'var(--muted)', fontWeight: 300 }}
+          >
+            Nenhum agendamento no período
+          </p>
+          <p style={{ fontSize: '12px', color: 'var(--muted)' }}>Tente ajustar os filtros acima</p>
+        </div>
+      ) : (
+        /* Grouped list */
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          {grouped.map(group => (
+            <div key={group.label}>
+              {/* Date divider */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+                <span
+                  style={{
+                    fontSize: '10px',
+                    fontWeight: 600,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.8px',
+                    color: 'var(--muted)',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {group.label}
+                </span>
+                <div style={{ flex: 1, height: '1px', background: 'var(--border)' }} />
+              </div>
+
+              {/* Cards */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {group.items.map(ag => {
+                  const stripeColor = ag.agendas?.cor || 'var(--sage)';
+                  const statusStyle = STATUS_BADGE[ag.status] || { background: '#F1F5F9', color: '#64748B' };
+                  const isOnline = ag.modalidade === 'online';
+
+                  return (
+                    <div
+                      key={ag.id}
+                      style={{
+                        background: 'var(--white)',
+                        border: '1px solid var(--border)',
+                        borderRadius: '10px',
+                        padding: '14px 16px 14px 20px',
+                        overflow: 'hidden',
+                        position: 'relative',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '14px',
+                      }}
+                    >
+                      {/* Left stripe */}
+                      <div
+                        style={{
+                          position: 'absolute',
+                          left: 0,
+                          top: 0,
+                          bottom: 0,
+                          width: '3px',
+                          background: stripeColor,
+                        }}
+                      />
+
+                      {/* Date section */}
+                      <div style={{ width: '44px', flexShrink: 0, textAlign: 'center' }}>
+                        <div
+                          className="font-display"
+                          style={{ fontSize: '24px', fontWeight: 400, fontStyle: 'italic', color: 'var(--ink)', lineHeight: 1 }}
+                        >
+                          {format(parseISO(ag.data_hora_inicio), 'dd')}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: '9.5px',
+                            fontWeight: 600,
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.6px',
+                            color: 'var(--muted)',
+                            marginTop: '2px',
+                          }}
+                        >
+                          {format(parseISO(ag.data_hora_inicio), 'MMM', { locale: ptBR })}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: '11px',
+                            color: 'var(--muted)',
+                            marginTop: '4px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '2px',
+                          }}
+                        >
+                          <Clock style={{ width: '9px', height: '9px' }} />
+                          {format(parseISO(ag.data_hora_inicio), 'HH:mm')}
+                        </div>
+                      </div>
+
+                      {/* Vertical divider */}
+                      <div style={{ width: '1px', height: '40px', background: 'var(--border)', flexShrink: 0 }} />
+
+                      {/* Avatar */}
+                      <div
+                        style={{
+                          width: '36px',
+                          height: '36px',
+                          borderRadius: '50%',
+                          background: 'var(--sage-xlight)',
+                          color: 'var(--sage-dark)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          flexShrink: 0,
+                        }}
+                      >
+                        {getInitials(ag.nome_lead || ag.leads?.nome_lead)}
+                      </div>
+
+                      {/* Main info */}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <button
+                          onClick={() => {
+                            if (ag.leads) {
+                              setSelectedLead(ag.leads);
+                              setOpenLeadDetails(true);
+                            }
+                          }}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            padding: 0,
+                            cursor: ag.leads ? 'pointer' : 'default',
+                            fontSize: '13.5px',
+                            fontWeight: 600,
+                            color: 'var(--ink)',
+                            fontFamily: 'inherit',
+                            textAlign: 'left',
+                          }}
+                        >
+                          {ag.nome_lead || ag.leads?.nome_lead || 'Cliente não informado'}
+                        </button>
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            flexWrap: 'wrap',
+                            gap: '6px',
+                            marginTop: '3px',
+                          }}
+                        >
+                          <span style={{ fontSize: '11.5px', color: 'var(--muted)' }}>
+                            {ag.procedimento_nome || ag.leads?.procedimento_interesse || 'Procedimento não especificado'}
+                          </span>
+                          {ag.modalidade && (
+                            <>
+                              <span style={{ fontSize: '11px', color: 'var(--border-md)' }}>·</span>
+                              <span style={{ fontSize: '11px', color: 'var(--muted)', textTransform: 'capitalize' }}>
+                                {ag.modalidade}
+                              </span>
+                            </>
+                          )}
+                          {ag.agendas?.nome && (
+                            <>
+                              <span style={{ fontSize: '11px', color: 'var(--border-md)' }}>·</span>
+                              <span style={{ fontSize: '11px', fontWeight: 500, color: ag.agendas.cor || 'var(--sage-dark)' }}>
+                                {ag.agendas.nome}
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Badges */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                        {ag.modalidade && (
+                          <span
+                            style={{
+                              fontSize: '10px',
+                              fontWeight: 600,
+                              padding: '3px 8px',
+                              borderRadius: '20px',
+                              background: isOnline ? '#EFF6FF' : 'var(--sage-xlight)',
+                              color: isOnline ? '#1D4ED8' : 'var(--sage-dark)',
+                              textTransform: 'capitalize',
+                            }}
+                          >
+                            {ag.modalidade}
+                          </span>
+                        )}
+                        <span
+                          style={{
+                            fontSize: '10px',
+                            fontWeight: 600,
+                            padding: '3px 8px',
+                            borderRadius: '20px',
+                            background: statusStyle.background,
+                            color: statusStyle.color,
+                          }}
+                        >
+                          {STATUS_LABELS[ag.status] || ag.status}
+                        </span>
+                      </div>
+
+                      {/* Actions */}
+                      <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
+                        <button
+                          onClick={() => {
+                            if (ag.leads) {
+                              setSelectedLead(ag.leads);
+                              setOpenLeadDetails(true);
+                            }
+                          }}
+                          style={{
+                            width: '28px',
+                            height: '28px',
+                            borderRadius: '6px',
+                            border: '1px solid var(--border-md)',
+                            background: 'transparent',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: 'var(--muted)',
+                          }}
+                          title="Ver perfil do lead"
+                        >
+                          <User style={{ width: '13px', height: '13px' }} />
+                        </button>
+                        <button
+                          onClick={() =>
+                            navigate('/inbox', { state: { lead_id: ag.leads?.id } })
+                          }
+                          style={{
+                            width: '28px',
+                            height: '28px',
+                            borderRadius: '6px',
+                            border: 'none',
+                            background: 'var(--sage-dark)',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: 'white',
+                          }}
+                          title="Abrir conversa no Inbox"
+                        >
+                          <MessageSquare style={{ width: '13px', height: '13px' }} />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
+          ))}
+        </div>
+      )}
 
-            <div className="flex gap-3 flex-wrap xl:ml-auto">
-              {/* Filtro por agenda */}
-              <select value={agendaFiltro} onChange={e => setAgendaFiltro(e.target.value)}
-                className="border border-[var(--border)] rounded-[8px] px-3 py-1.5 text-sm bg-[var(--bg)] text-[var(--ink)]">
-                <option value="todas">Todas as agendas</option>
-                {agendas.map(a => <option key={a.id} value={a.id}>{a.nome}</option>)}
-              </select>
-
-              {/* Filtro por status */}
-              <select value={statusFiltro} onChange={e => setStatusFiltro(e.target.value)}
-                className="border border-[var(--border)] rounded-[8px] px-3 py-1.5 text-sm bg-[var(--bg)] text-[var(--ink)]">
-                <option value="todos">Todos os status</option>
-                {Object.entries(STATUS_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-              </select>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Lista de agendamentos */}
-      <Card>
-        <CardContent className="p-0">
-          {loading ? (
-            <div className="flex items-center justify-center py-16 text-[var(--muted)]">Carregando...</div>
-          ) : agendamentos.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 gap-3 text-[var(--muted)]">
-              <CalendarIcon className="w-12 h-12 opacity-30" />
-              <p className="font-medium">Nenhum agendamento no período</p>
-              <p className="text-sm">Tente ajustar os filtros acima</p>
-            </div>
-          ) : (
-            <div className="divide-y divide-[var(--border)]">
-              {agendamentos.map(ag => (
-                <div key={ag.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-[var(--bg)] transition-colors">
-                  
-                  {/* Info Principal: Horário */}
-                  <div className="flex flex-col items-center justify-center gap-1 min-w-[100px] border-r pr-4 border-[var(--border)] shrink-0">
-                    <div className="font-bold text-lg leading-none">{format(parseISO(ag.data_hora_inicio), 'dd/MM')}</div>
-                    <div className="text-sm font-medium text-[var(--muted)] flex items-center gap-1">
-                      <Clock className="w-3.5 h-3.5" />
-                      {format(parseISO(ag.data_hora_inicio), 'HH:mm')}
-                    </div>
-                  </div>
-
-                  {/* Info do Cliente e Procedimento */}
-                  <div className="flex-1 min-w-0">
-                    <button 
-                      onClick={() => {
-                        if (ag.leads) {
-                          setSelectedLead(ag.leads);
-                          setOpenLeadDetails(true);
-                        }
-                      }}
-                      className="font-bold text-base hover:text-[var(--sage-dark)] transition-colors text-left group flex items-center gap-2"
-                    >
-                      {ag.nome_lead || 'Cliente não informado'}
-                      <ExternalLink className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                    </button>
-                    <div className="flex items-center gap-3 mt-1.5 flex-wrap">
-                      {/* Procedimento/Serviço */}
-                      <span className="text-sm font-medium text-[var(--ink)]">
-                        {ag.procedimento_nome && ag.procedimento_nome !== 'Consulta Jurídica' 
-                          ? ag.procedimento_nome 
-                          : ag.leads?.procedimento_interesse || 'Procedimento não especificado'}
-                      </span>
-                      
-                      {/* Modalidade */}
-                      {ag.modalidade && (
-                        <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium flex items-center gap-1 ${ag.modalidade === 'online' ? 'bg-blue-50 text-blue-600 border border-blue-100' : 'bg-orange-50 text-orange-600 border border-orange-100'}`}>
-                          {ag.modalidade === 'online' ? <Monitor className="w-3 h-3"/> : <MapPin className="w-3 h-3"/>}
-                          {ag.modalidade === 'online' ? 'Online' : 'Presencial'}
-                        </span>
-                      )}
-                      
-                      {/* Agenda */}
-                      {ag.agendas?.nome && (
-                        <span className="text-xs font-medium flex items-center gap-1.5" style={{ color: ag.agendas.cor }}>
-                           <span className="w-2 h-2 rounded-full" style={{ backgroundColor: ag.agendas.cor }}></span>
-                           {ag.agendas.nome}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Status */}
-                  <div className="flex items-center gap-4 shrink-0">
-                    {ag.status !== 'agendado' && (
-                      <span className={`text-xs font-semibold px-3 py-1.5 rounded-full border ${STATUS_COLORS[ag.status] || 'bg-gray-100 text-gray-600'}`}>
-                        {STATUS_LABELS[ag.status] || ag.status}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <LeadDetailsModal 
+      <LeadDetailsModal
         isOpen={openLeadDetails}
         onClose={() => setOpenLeadDetails(false)}
         leadId={selectedLead?.id}
