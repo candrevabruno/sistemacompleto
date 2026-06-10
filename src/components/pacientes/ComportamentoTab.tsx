@@ -2,20 +2,21 @@ import React, { useState, useEffect } from 'react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { supabase } from '../../lib/supabase';
-import { Loader2, Calendar, XCircle, RotateCcw, CheckCircle2, DollarSign } from 'lucide-react';
+import { Loader2, CalendarCheck, CalendarOff, CalendarClock, X, Timeline } from 'lucide-react';
 
 interface Props {
   leadId: string;
   pacienteId: string;
 }
 
-const EVENTO_CONFIG: Record<string, { label: string; dotColor: string; iconColor: string }> = {
-  agendado:   { label: 'Agendou',    dotColor: '#3b82f6', iconColor: '#2563eb' },
-  confirmado: { label: 'Confirmou',  dotColor: '#10b981', iconColor: '#059669' },
-  compareceu: { label: 'Compareceu', dotColor: '#0F6E56', iconColor: '#0F6E56' },
-  faltou:     { label: 'Faltou',     dotColor: '#f97316', iconColor: '#ea580c' },
-  cancelado:  { label: 'Cancelou',   dotColor: '#ef4444', iconColor: '#dc2626' },
-  reagendado: { label: 'Remarcou',   dotColor: '#f59e0b', iconColor: '#d97706' },
+const EVENTO_CONFIG: Record<string, { label: string; dotColor: string }> = {
+  agendado:              { label: 'Agendou',    dotColor: '#60A5FA' },
+  confirmado:            { label: 'Confirmou',  dotColor: '#3b82f6' },
+  compareceu:            { label: 'Compareceu', dotColor: 'var(--sage-dark)' },
+  faltou:                { label: 'Faltou',     dotColor: '#f97316' },
+  cancelado:             { label: 'Cancelou',   dotColor: '#ef4444' },
+  cancelou_agendamento:  { label: 'Cancelou',   dotColor: '#ef4444' },
+  reagendado:            { label: 'Remarcou',   dotColor: 'var(--champ)' },
 };
 
 export function ComportamentoTab({ leadId, pacienteId }: Props) {
@@ -31,7 +32,7 @@ export function ComportamentoTab({ leadId, pacienteId }: Props) {
   const carregarDados = async () => {
     setLoading(true);
     const [{ data: ags }, { data: procs }] = await Promise.all([
-      supabase.from('agendamentos').select('*, agendas(nome)').eq('lead_id', leadId).order('data_hora_inicio', { ascending: true }),
+      supabase.from('agendamentos').select('*, agendas(nome)').eq('lead_id', leadId).order('data_hora_inicio', { ascending: false }),
       supabase.from('procedimentos_paciente').select('valor').eq('paciente_id', pacienteId),
     ]);
     if (ags) setAgendamentos(ags);
@@ -46,104 +47,104 @@ export function ComportamentoTab({ leadId, pacienteId }: Props) {
   const totalCancelou = contar('cancelado') + contar('cancelou_agendamento');
   const fmtBRL = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
+  const ticketMedio = totalAgendamentos > 0 ? totalGasto / Math.max(agendamentos.filter(a => a.status === 'compareceu').length, 1) : 0;
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center p-12">
-        <Loader2 className="w-5 h-5 animate-spin text-[var(--muted)]" />
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px' }}>
+        <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--muted)' }} />
       </div>
     );
   }
 
-  const kpis = [
-    { label: 'Agendamentos',    value: totalAgendamentos, icon: <Calendar className="w-4 h-4" />, color: '#2563eb', bg: 'rgba(59,130,246,0.1)' },
-    { label: 'Faltas',          value: totalFaltou,        icon: <XCircle className="w-4 h-4" />, color: '#ea580c', bg: 'rgba(249,115,22,0.1)' },
-    { label: 'Remarcações',     value: totalRemarcou,      icon: <RotateCcw className="w-4 h-4" />, color: '#d97706', bg: 'rgba(245,158,11,0.1)' },
-    { label: 'Cancelamentos',   value: totalCancelou,      icon: <XCircle className="w-4 h-4" />, color: '#dc2626', bg: 'rgba(220,38,38,0.1)' },
-  ];
-
   return (
-    <div className="p-5 space-y-5">
+    <div style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
-      {/* ── KPI Cards ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {kpis.map(k => (
-          <div key={k.label}
-            className="rounded-[12px] border border-[var(--border)] bg-[var(--white)] shadow-[0_1px_4px_rgba(4,52,44,0.06)] p-4">
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-[10px] font-semibold uppercase tracking-[1px]" style={{ color: 'var(--muted)' }}>{k.label}</p>
-              <span className="p-1.5 rounded-[7px]" style={{ background: k.bg, color: k.color }}>{k.icon}</span>
+      {/* KPI Cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
+        {[
+          { label: 'Agendamentos',  value: totalAgendamentos, iconBg: 'var(--sage-xlight)', iconColor: 'var(--sage-dark)', icon: <CalendarCheck size={15} /> },
+          { label: 'Faltas (no-show)', value: totalFaltou,   iconBg: 'var(--rose-light)',  iconColor: 'var(--rose-text)', icon: <CalendarOff size={15} /> },
+          { label: 'Remarcações',   value: totalRemarcou,    iconBg: 'var(--champ-light)', iconColor: 'var(--champ-text)', icon: <CalendarClock size={15} /> },
+          { label: 'Cancelamentos', value: totalCancelou,    iconBg: '#EFF6FF',            iconColor: '#1D4ED8', icon: <X size={15} /> },
+        ].map(({ label, value, iconBg, iconColor, icon }) => (
+          <div key={label} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', padding: '13px' }}>
+            <div style={{ width: '30px', height: '30px', borderRadius: '8px', background: iconBg, color: iconColor, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '8px' }}>
+              {icon}
             </div>
-            <span className="text-[28px] font-bold leading-none" style={{ color: k.color }}>{k.value}</span>
+            <div style={{ fontSize: '10px', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.6px', fontWeight: 500 }}>{label}</div>
+            <div className="font-display" style={{ fontSize: '24px', fontWeight: 300, color: 'var(--ink)', lineHeight: 1, marginTop: '2px' }}>{value}</div>
           </div>
         ))}
       </div>
 
-      {/* ── Ticket Total ── */}
-      <div className="rounded-[12px] border border-[var(--border)] bg-[var(--white)] shadow-[0_1px_4px_rgba(4,52,44,0.06)] p-5 flex items-center gap-4">
-        <div className="w-12 h-12 rounded-[12px] flex items-center justify-center flex-shrink-0" style={{ background: 'var(--sage-xlight)' }}>
-          <DollarSign className="w-6 h-6" style={{ color: 'var(--sage-dark)' }} />
-        </div>
+      {/* Ticket Card */}
+      <div style={{ background: 'var(--sage-dark)', borderRadius: 'var(--r-sm)', padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[1px]" style={{ color: 'var(--muted)' }}>Ticket total na clínica</p>
-          <p className="text-[28px] font-bold leading-none mt-1" style={{ color: 'var(--sage-dark)' }}>{fmtBRL(totalGasto)}</p>
+          <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.8px', fontWeight: 600 }}>
+            Ticket total na clínica
+          </div>
+          <div className="font-display" style={{ fontSize: '28px', fontWeight: 300, color: 'white', letterSpacing: '-0.5px' }}>
+            {fmtBRL(totalGasto)}
+          </div>
+          <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)', marginTop: '2px' }}>
+            {agendamentos.filter(a => a.status === 'compareceu').length} consultas realizadas
+          </div>
+        </div>
+        <div style={{ textAlign: 'right' }}>
+          <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
+            Ticket médio
+          </div>
+          <div className="font-display" style={{ fontSize: '20px', color: 'white', fontWeight: 300 }}>
+            {fmtBRL(ticketMedio)}
+          </div>
         </div>
       </div>
 
-      {/* ── Linha do Tempo ── */}
-      <div className="rounded-[12px] border border-[var(--border)] bg-[var(--white)] shadow-[0_1px_4px_rgba(4,52,44,0.06)] overflow-hidden">
-        <div className="px-5 py-4 border-b border-[var(--border)]">
-          <p className="text-[11px] font-bold uppercase tracking-[1.2px]" style={{ color: 'var(--sage-dark)' }}>Linha do Tempo</p>
+      {/* Linha do Tempo */}
+      <div style={{ marginBottom: '0' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '7px', fontSize: '10px', fontWeight: 600, letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: '14px', paddingBottom: '8px', borderBottom: '1px solid var(--border)' }}>
+          <CalendarCheck size={13} style={{ color: 'var(--sage-dark)' }} /> Linha do tempo
         </div>
 
         {agendamentos.length === 0 ? (
-          <div className="flex flex-col items-center justify-center p-10 gap-2">
-            <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: 'var(--sage-xlight)' }}>
-              <CheckCircle2 className="w-4 h-4" style={{ color: 'var(--sage)' }} />
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '32px 16px', gap: '10px', textAlign: 'center' }}>
+            <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--sage-xlight)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <CalendarCheck size={16} style={{ color: 'var(--sage)' }} />
             </div>
-            <p className="text-sm" style={{ color: 'var(--muted)' }}>Nenhum evento registrado ainda</p>
+            <p style={{ fontSize: '12px', color: 'var(--muted)' }}>Nenhum evento registrado ainda</p>
           </div>
         ) : (
-          <div className="p-5 relative">
-            {/* Linha vertical */}
-            <div className="absolute left-[28px] top-5 bottom-5 w-px" style={{ background: 'var(--border)' }} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+            {agendamentos.map((ag, idx) => {
+              const cfg = EVENTO_CONFIG[ag.status] || EVENTO_CONFIG.agendado;
+              const data = ag.data_hora_inicio
+                ? format(parseISO(ag.data_hora_inicio), "dd/MM/yyyy '·' HH'h'mm", { locale: ptBR })
+                : '—';
+              const isLast = idx === agendamentos.length - 1;
 
-            <div className="space-y-5">
-              {agendamentos.map((ag) => {
-                const cfg = EVENTO_CONFIG[ag.status] || EVENTO_CONFIG.agendado;
-                const data = ag.data_hora_inicio
-                  ? format(parseISO(ag.data_hora_inicio), "dd 'de' MMM 'de' yyyy 'às' HH:mm", { locale: ptBR })
-                  : '—';
-
-                return (
-                  <div key={ag.id} className="flex gap-4 relative items-start">
-                    {/* Dot */}
-                    <div className="w-[22px] h-[22px] rounded-full flex-shrink-0 z-10 mt-1 flex items-center justify-center border-2 border-white"
-                      style={{ background: cfg.dotColor, boxShadow: `0 0 0 2px var(--border)` }} />
-
-                    {/* Content */}
-                    <div className="flex-1 rounded-[10px] border border-[var(--border)] bg-[var(--bg)] px-4 py-3">
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <p className="text-sm font-semibold" style={{ color: 'var(--ink)' }}>
-                            {cfg.label}
-                          </p>
-                          {ag.procedimento_nome && (
-                            <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>{ag.procedimento_nome}</p>
-                          )}
-                          {ag.agendas?.nome && (
-                            <p className="text-xs" style={{ color: 'var(--muted)' }}>{ag.agendas.nome}</p>
-                          )}
-                        </div>
-                        <p className="text-[11px] flex-shrink-0 mt-0.5" style={{ color: 'var(--muted)' }}>{data}</p>
-                      </div>
-                    </div>
+              return (
+                <div key={ag.id} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                  {/* Dot + line */}
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
+                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: cfg.dotColor, marginTop: '4px', flexShrink: 0 }} />
+                    {!isLast && <div style={{ width: '1px', background: 'var(--border)', flex: 1, minHeight: '24px', margin: '3px 0' }} />}
                   </div>
-                );
-              })}
-            </div>
+                  {/* Info */}
+                  <div style={{ flex: 1, paddingBottom: isLast ? 0 : '14px' }}>
+                    <div style={{ fontSize: '12.5px', fontWeight: 500, color: 'var(--ink)' }}>
+                      {cfg.label}
+                      {ag.procedimento_nome ? ` — ${ag.procedimento_nome}` : ''}
+                    </div>
+                    <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '1px' }}>{data}</div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
+
     </div>
   );
 }

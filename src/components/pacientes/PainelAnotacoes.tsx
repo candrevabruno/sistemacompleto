@@ -3,7 +3,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import { Loader2, Save, PenLine } from 'lucide-react';
+import { Loader2, Check, PenLine } from 'lucide-react';
 
 interface Props {
   pacienteId: string;
@@ -17,14 +17,6 @@ interface Anotacao {
   editado_em: string | null;
   created_at: string;
 }
-
-const cardCls = 'rounded-[12px] border border-[var(--border)] bg-[var(--white)] shadow-[0_1px_4px_rgba(4,52,44,0.06)]';
-const labelCls = 'text-[10px] font-semibold uppercase tracking-[1px] text-[var(--muted)] block mb-1.5';
-const inputStyle = {
-  border: '1px solid var(--border)',
-  background: 'var(--bg)',
-  color: 'var(--ink)',
-} as React.CSSProperties;
 
 export function PainelAnotacoes({ pacienteId, tipo }: Props) {
   const { user } = useAuth();
@@ -95,15 +87,15 @@ export function PainelAnotacoes({ pacienteId, tipo }: Props) {
   };
 
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-      {/* Coluna esquerda — Formulário */}
-      <div className={cardCls + ' p-4 flex flex-col gap-3'}>
-        <div className="flex items-center justify-between">
-          <label className={labelCls + ' mb-0'}>
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+      {/* Esquerda — formulário */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span style={{ fontSize: '9.5px', fontWeight: 600, letterSpacing: '0.8px', textTransform: 'uppercase', color: 'var(--muted)' }}>
             {editandoId ? 'Editar anotação' : 'Nova anotação'}
-          </label>
+          </span>
           {editandoId && (
-            <button onClick={cancelarEdicao} className="text-[10px] text-[var(--muted)] hover:text-[var(--ink)] underline">
+            <button onClick={cancelarEdicao} style={{ fontSize: '10px', color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', fontFamily: 'inherit' }}>
               cancelar edição
             </button>
           )}
@@ -112,57 +104,50 @@ export function PainelAnotacoes({ pacienteId, tipo }: Props) {
           ref={textareaRef}
           value={texto}
           onChange={e => setTexto(e.target.value)}
-          placeholder="Digite uma anotação..."
-          rows={6}
-          className="w-full text-sm rounded-[8px] px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-[var(--sage-dark)]"
-          style={inputStyle}
+          placeholder={tipo === 'profissional' ? 'Anotação clínica privada...' : 'Digite uma nova anotação...'}
+          rows={5}
+          style={{ padding: '10px 12px', border: '1px solid var(--border-md)', borderRadius: 'var(--r-sm)', fontSize: '12.5px', color: 'var(--ink)', fontFamily: 'inherit', resize: 'none', outline: 'none', background: 'var(--white)', lineHeight: 1.5 }}
         />
         <button
           onClick={salvar}
           disabled={!texto.trim() || salvando}
-          className="flex items-center justify-center gap-1.5 py-2 rounded-[8px] text-sm font-semibold text-white disabled:opacity-40 transition-opacity hover:opacity-90"
-          style={{ background: 'var(--sage-dark)' }}
-        >
-          {salvando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+          style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--sage-dark)', color: 'white', border: 'none', borderRadius: 'var(--r-xs)', padding: '7px 13px', fontSize: '12px', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit', alignSelf: 'flex-start', opacity: (!texto.trim() || salvando) ? 0.5 : 1 }}>
+          {salvando ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
           {editandoId ? 'Salvar alterações' : 'Salvar anotação'}
         </button>
       </div>
 
-      {/* Coluna direita — Lista */}
-      <div className="flex flex-col gap-2 max-h-[380px] overflow-y-auto pr-1">
+      {/* Direita — lista */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '280px', overflowY: 'auto' }}>
         {loading ? (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="w-5 h-5 animate-spin text-[var(--muted)]" />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '32px' }}>
+            <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--muted)' }} />
           </div>
         ) : anotacoes.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-8 gap-2">
-            <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: 'var(--sage-xlight)' }}>
-              <PenLine className="w-4 h-4" style={{ color: 'var(--sage)' }} />
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 16px', gap: '10px' }}>
+            <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--sage-xlight)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <PenLine size={16} style={{ color: 'var(--sage)' }} />
             </div>
-            <p className="text-sm text-[var(--muted)]">Nenhuma anotação ainda</p>
+            <p style={{ fontSize: '12px', color: 'var(--muted)' }}>Nenhuma anotação ainda</p>
           </div>
         ) : anotacoes.map(a => (
           <button
             key={a.id}
             onClick={() => editarAnotacao(a)}
-            className={cardCls + ' p-3 text-left w-full hover:border-[var(--sage)] transition-colors group'}
-            style={editandoId === a.id ? { borderColor: 'var(--sage-dark)' } : {}}
-          >
-            <p className="text-[13px] text-[var(--ink)] whitespace-pre-wrap line-clamp-4 mb-2">
+            style={{ background: 'var(--bg)', border: `1px solid ${editandoId === a.id ? 'var(--sage-dark)' : 'var(--border)'}`, borderRadius: 'var(--r-xs)', padding: '10px 12px', cursor: 'pointer', textAlign: 'left', width: '100%', fontFamily: 'inherit' }}>
+            <div style={{ fontSize: '12px', color: 'var(--ink)', lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
               {a.conteudo}
-            </p>
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-[10px] text-[var(--muted)] font-medium">{a.autor_nome}</span>
-              <div className="text-right">
-                <span className="text-[10px] text-[var(--muted)]">
-                  {format(new Date(a.created_at), "dd/MM/yy 'às' HH:mm", { locale: ptBR })}
-                </span>
+            </div>
+            <div style={{ fontSize: '10px', color: 'var(--muted)', marginTop: '5px', display: 'flex', justifyContent: 'space-between', gap: '8px' }}>
+              <span>{a.autor_nome}</span>
+              <span style={{ textAlign: 'right' }}>
+                {format(new Date(a.created_at), "dd/MM/yyyy '·' HH:mm", { locale: ptBR })}
                 {a.editado_em && (
-                  <span className="block text-[9px] text-[var(--muted)] opacity-70">
-                    editado {format(new Date(a.editado_em), "dd/MM HH:mm", { locale: ptBR })}
+                  <span style={{ display: 'block', fontSize: '9px', opacity: 0.7 }}>
+                    editado {format(new Date(a.editado_em), 'dd/MM HH:mm', { locale: ptBR })}
                   </span>
                 )}
-              </div>
+              </span>
             </div>
           </button>
         ))}

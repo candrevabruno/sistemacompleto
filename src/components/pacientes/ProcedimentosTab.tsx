@@ -3,15 +3,27 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import { Loader2, Stethoscope, Plus } from 'lucide-react';
+import { Loader2, Stethoscope, Plus, History } from 'lucide-react';
 
 interface Props {
   pacienteId: string;
 }
 
-const labelCls = 'text-[10px] font-semibold uppercase tracking-[1px] text-[var(--muted)] block mb-1.5';
-const inputCls = 'w-full rounded-[8px] px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--sage-dark)]';
-const inputStyle: React.CSSProperties = { border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)' };
+const labelStyle: React.CSSProperties = {
+  fontSize: '9.5px', fontWeight: 600, letterSpacing: '0.8px',
+  textTransform: 'uppercase', color: 'var(--muted)', display: 'block', marginBottom: '5px',
+};
+const inputStyle: React.CSSProperties = {
+  width: '100%', padding: '8px 11px', border: '1px solid var(--border-md)',
+  borderRadius: 'var(--r-xs)', fontSize: '12.5px', color: 'var(--ink)',
+  fontFamily: 'inherit', background: 'var(--white)', outline: 'none',
+};
+const sectionHeaderStyle: React.CSSProperties = {
+  display: 'flex', alignItems: 'center', gap: '7px',
+  fontSize: '10px', fontWeight: 600, letterSpacing: '1px', textTransform: 'uppercase',
+  color: 'var(--muted)', marginBottom: '14px', paddingBottom: '8px',
+  borderBottom: '1px solid var(--border)',
+};
 
 export function ProcedimentosTab({ pacienteId }: Props) {
   const { user } = useAuth();
@@ -70,97 +82,106 @@ export function ProcedimentosTab({ pacienteId }: Props) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center p-12">
-        <Loader2 className="w-5 h-5 animate-spin text-[var(--muted)]" />
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px' }}>
+        <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--muted)' }} />
       </div>
     );
   }
 
   return (
-    <div className="p-5">
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+    <div style={{ padding: '20px 22px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
 
         {/* Coluna Esquerda — Formulário */}
-        <div className="rounded-[12px] border border-[var(--border)] bg-[var(--white)] shadow-[0_1px_4px_rgba(4,52,44,0.06)] p-5 flex flex-col gap-4">
-          <p className="text-[11px] font-bold uppercase tracking-[1.2px] flex items-center gap-2" style={{ color: 'var(--sage-dark)' }}>
-            <span className="w-1.5 h-4 rounded-full inline-block" style={{ background: 'var(--sage-dark)' }} />
-            Adicionar Procedimento
-          </p>
-
-          <div>
-            <label className={labelCls}>Serviço</label>
-            <select value={servicoId} onChange={onServicoChange} className={inputCls} style={inputStyle}>
-              <option value="">Selecionar serviço...</option>
-              {servicos.map(s => <option key={s.id} value={s.id}>{s.nome}</option>)}
-            </select>
+        <div>
+          <div style={sectionHeaderStyle}>
+            <Plus size={13} style={{ color: 'var(--sage-dark)' }} /> Adicionar procedimento
           </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div>
+              <label style={labelStyle}>Serviço</label>
+              <select value={servicoId} onChange={onServicoChange} style={inputStyle}>
+                <option value="">Selecionar serviço...</option>
+                {servicos.map(s => (
+                  <option key={s.id} value={s.id}>
+                    {s.nome}{s.valor != null ? ` — ${fmtBRL(parseFloat(s.valor))}` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-          <div>
-            <label className={labelCls}>Valor (R$)</label>
-            <input
-              type="number"
-              step="0.01"
-              min="0"
-              value={valor}
-              onChange={e => setValor(e.target.value)}
-              placeholder="0,00"
-              className={inputCls}
-              style={inputStyle}
-            />
+            <div>
+              <label style={labelStyle}>Valor (editável)</label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={valor}
+                onChange={e => setValor(e.target.value)}
+                placeholder="0,00"
+                style={inputStyle}
+              />
+            </div>
+
+            <button
+              onClick={adicionar}
+              disabled={!servicoId || !valor || adicionando}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '6px', alignSelf: 'flex-start',
+                background: 'var(--sage-dark)', color: 'white', border: 'none',
+                borderRadius: 'var(--r-xs)', padding: '8px 14px',
+                fontSize: '12px', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
+                opacity: (!servicoId || !valor || adicionando) ? 0.4 : 1,
+              }}
+            >
+              {adicionando ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}
+              Adicionar
+            </button>
           </div>
-
-          <button
-            onClick={adicionar}
-            disabled={!servicoId || !valor || adicionando}
-            className="flex items-center justify-center gap-1.5 py-2.5 rounded-[8px] text-sm font-semibold text-white disabled:opacity-40 transition-opacity hover:opacity-90 mt-auto"
-            style={{ background: 'var(--sage-dark)' }}>
-            {adicionando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-            Adicionar procedimento
-          </button>
         </div>
 
         {/* Coluna Direita — Histórico */}
-        <div className="rounded-[12px] border border-[var(--border)] bg-[var(--white)] shadow-[0_1px_4px_rgba(4,52,44,0.06)] flex flex-col overflow-hidden">
-          <div className="px-5 py-4 border-b border-[var(--border)]">
-            <p className="text-[11px] font-bold uppercase tracking-[1.2px]" style={{ color: 'var(--sage-dark)' }}>
-              Histórico de Procedimentos
-            </p>
+        <div>
+          <div style={sectionHeaderStyle}>
+            <History size={13} style={{ color: 'var(--sage-dark)' }} /> Histórico
           </div>
 
           {procedimentos.length === 0 ? (
-            <div className="flex flex-col items-center justify-center flex-1 p-8 gap-2">
-              <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: 'var(--sage-xlight)' }}>
-                <Stethoscope className="w-4 h-4" style={{ color: 'var(--sage)' }} />
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 16px', gap: '10px', textAlign: 'center' }}>
+              <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--sage-xlight)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Stethoscope size={16} style={{ color: 'var(--sage)' }} />
               </div>
-              <p className="text-sm" style={{ color: 'var(--muted)' }}>Nenhum procedimento adicionado</p>
+              <p style={{ fontSize: '12px', color: 'var(--muted)' }}>Nenhum procedimento adicionado</p>
             </div>
           ) : (
-            <>
-              <div className="flex-1 overflow-y-auto divide-y divide-[var(--border)]">
-                {procedimentos.map(p => (
-                  <div key={p.id} className="flex items-center gap-3 px-5 py-3 hover:bg-[var(--sage-xlight)] transition-colors">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate" style={{ color: 'var(--ink)' }}>{p.nome_servico}</p>
-                      <p className="text-[11px]" style={{ color: 'var(--muted)' }}>
-                        {p.adicionado_por_nome} · {format(new Date(p.created_at), "dd/MM/yyyy", { locale: ptBR })}
-                      </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {procedimentos.map(p => (
+                <div key={p.id} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-xs)', padding: '10px 13px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: '12.5px', fontWeight: 500, color: 'var(--ink)' }}>{p.nome_servico}</div>
+                    <div style={{ fontSize: '10.5px', color: 'var(--muted)', marginTop: '2px' }}>
+                      {format(new Date(p.created_at), 'dd/MM/yyyy', { locale: ptBR })} · {p.adicionado_por_nome}
                     </div>
-                    <span className="text-sm font-semibold flex-shrink-0" style={{ color: 'var(--sage-dark)' }}>
-                      {fmtBRL(parseFloat(p.valor))}
-                    </span>
                   </div>
-                ))}
-              </div>
+                  <span style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--sage-dark)', flexShrink: 0 }}>
+                    {fmtBRL(parseFloat(p.valor))}
+                  </span>
+                </div>
+              ))}
 
               {/* Total */}
-              <div className="px-5 py-4 border-t border-[var(--border)] flex items-center justify-between"
-                style={{ background: 'var(--sage-xlight)' }}>
-                <span className="text-sm font-semibold" style={{ color: 'var(--muted)' }}>Total acumulado</span>
-                <span className="text-[18px] font-bold" style={{ color: 'var(--sage-dark)' }}>{fmtBRL(total)}</span>
+              <div style={{ background: 'var(--sage-dark)', borderRadius: 'var(--r-xs)', padding: '10px 13px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '4px' }}>
+                <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
+                  Total gasto
+                </span>
+                <span className="font-display" style={{ fontSize: '20px', fontWeight: 300, color: 'white' }}>
+                  {fmtBRL(total)}
+                </span>
               </div>
-            </>
+            </div>
           )}
         </div>
+
       </div>
     </div>
   );

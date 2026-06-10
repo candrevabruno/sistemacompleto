@@ -1,4 +1,5 @@
 import React from 'react';
+import { ShieldCheck, Lock } from 'lucide-react';
 import { PainelAnotacoes } from './PainelAnotacoes';
 
 interface Props {
@@ -7,26 +8,17 @@ interface Props {
 
 export function AnotacoesProfissionalTab({ pacienteId }: Props) {
   return (
-    <div className="p-5">
-      <div className="rounded-[12px] border border-[var(--border)] bg-[var(--white)] shadow-[0_1px_4px_rgba(4,52,44,0.06)] overflow-hidden">
-        <div className="px-5 py-4 border-b border-[var(--border)] flex items-center gap-3">
-          <div>
-            <p className="text-[11px] font-bold uppercase tracking-[1.2px]" style={{ color: 'var(--sage-dark)' }}>
-              Anotações do Profissional
-            </p>
-            <p className="text-[11px] mt-0.5" style={{ color: 'var(--muted)' }}>
-              Visível apenas para administradores e profissionais
-            </p>
-          </div>
-          <span className="ml-auto text-[10px] font-bold px-2.5 py-1 rounded-full flex-shrink-0"
-            style={{ background: 'rgba(15,110,86,0.1)', color: 'var(--sage-dark)' }}>
-            Restrito
-          </span>
-        </div>
-        <div className="p-5">
-          <PainelAnotacoes pacienteId={pacienteId} tipo="profissional" />
-        </div>
+    <div style={{ padding: '20px 22px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '7px', fontSize: '10px', fontWeight: 600, letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: '14px', paddingBottom: '8px', borderBottom: '1px solid var(--border)' }}>
+        <Lock size={13} style={{ color: 'var(--sage-dark)' }} /> Anotações do profissional — acesso restrito
       </div>
+
+      <div style={{ background: 'var(--rose-light)', borderRadius: 'var(--r-xs)', padding: '9px 13px', fontSize: '12px', color: 'var(--rose-text)', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '7px' }}>
+        <ShieldCheck size={14} style={{ flexShrink: 0 }} />
+        Visível apenas para Administrador e Médico. Secretaria não visualiza esta aba.
+      </div>
+
+      <PainelAnotacoes pacienteId={pacienteId} tipo="profissional" />
     </div>
   );
 }
