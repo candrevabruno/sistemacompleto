@@ -116,8 +116,8 @@ Deno.serve(async (req: Request) => {
             } else {
               const { data: lead } = await db
                 .from('leads')
-                .select('id, nome')
-                .or(`whatsapp.eq.${phone},whatsapp.ilike.%${phone}%`)
+                .select('id, nome_lead')
+                .or(`whatsapp_lead.eq.${phone},whatsapp_lead.ilike.%${phone}%`)
                 .limit(1)
                 .single();
 
@@ -125,7 +125,7 @@ Deno.serve(async (req: Request) => {
                 .from('conversas')
                 .insert({
                   whatsapp_number: phone,
-                  nome_contato: pushName || lead?.nome || phone,
+                  nome_contato: pushName || lead?.nome_lead || phone,
                   provider: 'meta',
                   status: 'aberta',
                   is_human: false,
