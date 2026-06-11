@@ -66,20 +66,25 @@ function AbaGeral() {
   }, []);
 
   const loadHours = async () => {
-    const order = ['domingo', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado'];
-    const { data } = await supabase.from('clinic_hours').select('*');
-    if (data) {
-      if (data.length === 0) {
-        const defaults = order.map(dia => ({ dia, aberto: dia !== 'domingo' && dia !== 'sabado', hora_inicio: '08:00', hora_fim: '18:00' }));
-        const { data: inserted } = await supabase.from('clinic_hours').insert(defaults).select('*');
-        if (inserted) {
-          inserted.sort((a: any, b: any) => order.indexOf(a.dia) - order.indexOf(b.dia));
-          setHours(inserted);
+    setLoadingHours(true);
+    try {
+      const order = ['domingo', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado'];
+      const { data } = await supabase.from('clinic_hours').select('*');
+      if (data) {
+        if (data.length === 0) {
+          const defaults = order.map(dia => ({ dia, aberto: dia !== 'domingo' && dia !== 'sabado', hora_inicio: '08:00', hora_fim: '18:00' }));
+          const { data: inserted } = await supabase.from('clinic_hours').insert(defaults).select('*');
+          if (inserted) {
+            inserted.sort((a: any, b: any) => order.indexOf(a.dia) - order.indexOf(b.dia));
+            setHours(inserted);
+          }
+        } else {
+          data.sort((a,b) => order.indexOf(a.dia) - order.indexOf(b.dia));
+          setHours(data);
         }
-      } else {
-        data.sort((a,b) => order.indexOf(a.dia) - order.indexOf(b.dia));
-        setHours(data);
       }
+    } finally {
+      setLoadingHours(false);
     }
   };
 
@@ -189,7 +194,7 @@ function AbaGeral() {
       <Card>
         <CardHeader><CardTitle>Horário de Funcionamento</CardTitle></CardHeader>
         <CardContent>
-          {hours.length === 0 ? (
+          {loadingHours ? (
             <p className="text-sm text-[var(--muted)] py-4">Carregando horários...</p>
           ) : (
             <div className="divide-y divide-[var(--border)]">
@@ -571,21 +576,37 @@ function AbaServicos() {
   );
 }
 
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+
 function AbaWhatsApp() {
   const { config, refreshConfig } = useClinic();
   const [provider, setProvider] = useState<'meta' | 'evolution'>(
     (config?.whatsapp_provider as 'meta' | 'evolution') || 'meta'
   );
 
+  const [sensitiveConfig, setSensitiveConfig] = useState<{
+    meta_access_token: string;
+    meta_webhook_verify_token: string;
+    evolution_api_key: string;
+  } | null>(null);
+
+  const fetchSensitiveConfig = async () => {
+    const { data } = await supabase
+      .from('clinic_config')
+      .select('meta_access_token, meta_webhook_verify_token, evolution_api_key')
+      .single();
+    if (data) setSensitiveConfig(data);
+  };
+
   // Meta Cloud API
   const [metaPhoneId, setMetaPhoneId] = useState(config?.meta_phone_number_id || '');
-  const [metaToken, setMetaToken] = useState(config?.meta_access_token || '');
-  const [metaVerifyToken, setMetaVerifyToken] = useState(config?.meta_webhook_verify_token || '');
+  const [metaToken, setMetaToken] = useState('');
+  const [metaVerifyToken, setMetaVerifyToken] = useState('');
   const [metaBusinessId, setMetaBusinessId] = useState(config?.meta_business_account_id || '');
 
   // Evolution API
   const [evoServerUrl, setEvoServerUrl] = useState(config?.evolution_server_url || '');
-  const [evoApiKey, setEvoApiKey] = useState(config?.evolution_api_key || '');
+  const [evoApiKey, setEvoApiKey] = useState('');
   const [evoInstance, setEvoInstance] = useState(config?.evolution_instance_name || '');
 
   // Webhook de nota (IA)
@@ -601,15 +622,20 @@ function AbaWhatsApp() {
   const [generatingQr, setGeneratingQr] = useState(false);
 
   async function verificarStatus() {
-    if (!evoServerUrl || !evoApiKey || !evoInstance) return;
+    if (!evoServerUrl || !evoInstance) return;
     setCheckingStatus(true);
     setQrCode(null);
     try {
-      const res = await fetch(
-        `${evoServerUrl.replace(/\/+$/, '')}/instance/connectionState/${evoInstance}`,
-        { headers: { apikey: evoApiKey } }
-      );
-      const data = await res.json();
+      const { data: { session } } = await supabase.auth.getSession();
+      const resp = await fetch(`${SUPABASE_URL}/functions/v1/evolution-proxy`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session?.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ action: 'connectionState' }),
+      });
+      const data = await resp.json();
       const state = data?.instance?.state ?? data?.state ?? 'close';
       setConnectionState(state === 'open' ? 'open' : state === 'connecting' ? 'connecting' : 'close');
     } catch {
@@ -620,18 +646,22 @@ function AbaWhatsApp() {
   }
 
   async function gerarQrCode() {
-    if (!evoServerUrl || !evoApiKey || !evoInstance) return;
+    if (!evoServerUrl || !evoInstance) return;
     setGeneratingQr(true);
     setQrCode(null);
     try {
-      const res = await fetch(
-        `${evoServerUrl.replace(/\/+$/, '')}/instance/connect/${evoInstance}`,
-        { headers: { apikey: evoApiKey } }
-      );
-      const data = await res.json();
+      const { data: { session } } = await supabase.auth.getSession();
+      const resp = await fetch(`${SUPABASE_URL}/functions/v1/evolution-proxy`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session?.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ action: 'connect' }),
+      });
+      const data = await resp.json();
       const base64 = data?.base64 ?? data?.qrcode?.base64 ?? null;
       setQrCode(base64);
-      // Verificar status automaticamente após 20s (tempo para escanear)
       setTimeout(verificarStatus, 20000);
     } catch {
       alert('Erro ao gerar QR Code. Verifique a URL e a API Key.');
@@ -641,18 +671,27 @@ function AbaWhatsApp() {
   }
 
   useEffect(() => {
+    fetchSensitiveConfig();
+  }, []);
+
+  useEffect(() => {
     if (config) {
       setProvider((config.whatsapp_provider as 'meta' | 'evolution') || 'meta');
       setMetaPhoneId(config.meta_phone_number_id || '');
-      setMetaToken(config.meta_access_token || '');
-      setMetaVerifyToken(config.meta_webhook_verify_token || '');
       setMetaBusinessId(config.meta_business_account_id || '');
       setEvoServerUrl(config.evolution_server_url || '');
-      setEvoApiKey(config.evolution_api_key || '');
       setEvoInstance(config.evolution_instance_name || '');
       setNotaWebhook(config.nota_webhook_url || '');
     }
   }, [config]);
+
+  useEffect(() => {
+    if (sensitiveConfig) {
+      setMetaToken(sensitiveConfig.meta_access_token || '');
+      setMetaVerifyToken(sensitiveConfig.meta_webhook_verify_token || '');
+      setEvoApiKey(sensitiveConfig.evolution_api_key || '');
+    }
+  }, [sensitiveConfig]);
 
   const save = async () => {
     setLoading(true);
@@ -746,12 +785,14 @@ function AbaWhatsApp() {
             <Input
               label="Access Token (permanente)"
               placeholder="EAABsb..."
+              type="password"
               value={metaToken}
               onChange={e => setMetaToken(e.target.value)}
             />
             <Input
               label="Webhook Verify Token"
               placeholder="Token que você criou para verificar o webhook"
+              type="password"
               value={metaVerifyToken}
               onChange={e => setMetaVerifyToken(e.target.value)}
             />
@@ -789,6 +830,7 @@ function AbaWhatsApp() {
             <Input
               label="API Key"
               placeholder="Chave de autenticação da Evolution API"
+              type="password"
               value={evoApiKey}
               onChange={e => setEvoApiKey(e.target.value)}
             />

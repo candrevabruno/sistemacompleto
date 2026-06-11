@@ -113,6 +113,11 @@ export function Sidebar() {
             >
               {config?.nome || 'Heroic Leap'}
             </div>
+            {config?.subtitulo && (
+              <div style={{ fontSize: '9px', color: 'var(--muted)', letterSpacing: '0.3px', marginTop: '1px' }}>
+                {config.subtitulo}
+              </div>
+            )}
             <div
               className="text-[10px] uppercase tracking-[1.4px] mt-[2px] font-medium truncate"
               style={{ color: 'var(--muted)' }}
