@@ -32,7 +32,7 @@ export function Modal({ isOpen, onClose, title, children, className, bare }: Mod
       />
       <div
         className={cn(
-          'relative z-50 w-full max-w-lg rounded-[16px] border border-[var(--border)] bg-[var(--white)] shadow-[var(--shadow-modal)] animate-in fade-in zoom-in-95 duration-200',
+          'relative z-50 w-full max-w-lg overflow-hidden rounded-[16px] border border-[var(--border)] bg-[var(--white)] shadow-[var(--shadow-modal)] animate-in fade-in zoom-in-95 duration-200',
           !bare && 'p-6',
           className
         )}

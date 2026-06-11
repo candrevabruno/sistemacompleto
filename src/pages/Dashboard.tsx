@@ -158,9 +158,10 @@ export function Dashboard() {
     const startIso = dateRange.start.toISOString();
     const endIso   = dateRange.end.toISOString();
 
-    const [aReq, lReq] = await Promise.all([
+    const [aReq, lReq, pReq] = await Promise.all([
       supabase.from('agendamentos').select('*').gte('created_at', startIso).lte('created_at', endIso),
       supabase.from('leads').select('*').gte('inicio_atendimento', startIso).lte('inicio_atendimento', endIso),
+      supabase.from('procedimentos_paciente').select('valor, created_at').gte('created_at', startIso).lte('created_at', endIso),
     ]);
 
     const leadsArr = lReq.data || [];
@@ -174,10 +175,10 @@ export function Dashboard() {
     setMetricsAgendamentos(agendamentosArr.length);
     const convertidos = leadsArr.filter(l => l.status === 'converteu').length;
     setMetricsConversao(leadsArr.length > 0 ? Math.round((convertidos / leadsArr.length) * 100) : 0);
-    const fat = leadsArr
-      .filter(l => l.status === 'converteu')
-      .reduce((s, l) => s + (parseFloat(l.valor_pago) || 0), 0);
-    setMetricsFaturamento(fat);
+    const faturamento = (pReq.data || []).reduce(
+      (acc, p) => acc + (parseFloat(p.valor) || 0), 0
+    );
+    setMetricsFaturamento(faturamento);
 
     setLoading(false);
   };

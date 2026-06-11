@@ -116,7 +116,23 @@ export function CentralAgendamentos() {
       if (error) {
         console.error('Erro ao buscar agendamentos:', error);
       } else {
-        setAgendamentos(data || []);
+        const agendamentosData = data || [];
+        const porLead = new Map<string, any>();
+        agendamentosData.forEach((ag: any) => {
+          if (!ag.lead_id) return;
+          const existente = porLead.get(ag.lead_id);
+          if (!existente) {
+            porLead.set(ag.lead_id, ag);
+          } else {
+            const dtNovo = new Date(ag.data_hora_inicio || ag.created_at).getTime();
+            const dtExistente = new Date(existente.data_hora_inicio || existente.created_at).getTime();
+            if (dtNovo > dtExistente) porLead.set(ag.lead_id, ag);
+          }
+        });
+        const deduplicado = agendamentosData.filter((ag: any) =>
+          !ag.lead_id || porLead.get(ag.lead_id)?.id === ag.id
+        );
+        setAgendamentos(deduplicado);
       }
     } catch (err) {
       console.error('Falha de rede ao buscar agendamentos:', err);
@@ -304,28 +320,29 @@ export function CentralAgendamentos() {
         </select>
 
         {/* Atualizar button */}
-        <button
-          onClick={fetchAgendamentos}
-          style={{
-            marginLeft: 'auto',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '5px 12px',
-            fontSize: '12px',
-            fontWeight: 500,
-            color: 'var(--muted)',
-            background: 'transparent',
-            border: '1px solid var(--border-md)',
-            borderRadius: '8px',
-            cursor: 'pointer',
-            fontFamily: 'inherit',
-            transition: 'color 0.12s',
-          }}
-        >
-          <RefreshCw style={{ width: '13px', height: '13px' }} />
-          Atualizar
-        </button>
+        <div style={{ marginLeft: 'auto', flexShrink: 0 }}>
+          <button
+            onClick={fetchAgendamentos}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '5px 12px',
+              fontSize: '12px',
+              fontWeight: 500,
+              color: 'var(--muted)',
+              background: 'transparent',
+              border: '1px solid var(--border-md)',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              transition: 'color 0.12s',
+            }}
+          >
+            <RefreshCw style={{ width: '13px', height: '13px' }} />
+            Atualizar
+          </button>
+        </div>
       </div>
 
       {/* Content */}

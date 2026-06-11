@@ -8,6 +8,7 @@ import { PainelAnotacoes } from './PainelAnotacoes';
 interface Props {
   lead: any;
   pacienteId: string | null;
+  proximaConsulta?: any | null;
 }
 
 const COMO_CONHECEU_OPTS = [
@@ -116,7 +117,7 @@ function SectionHeader({ icon, label }: { icon: React.ReactNode; label: string }
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export function DadosTab({ lead, pacienteId }: Props) {
+export function DadosTab({ lead, pacienteId, proximaConsulta: proximaConsultaProp }: Props) {
   // ── Dados pessoais (leads) ─────────────────────────────────────
   const [nome, setNome] = useState('');
   const [telefone, setTelefone] = useState('');
@@ -153,7 +154,7 @@ export function DadosTab({ lead, pacienteId }: Props) {
   const [nfCep, setNfCep] = useState('');
 
   // ── Próxima consulta + Resumo IA ───────────────────────────────
-  const [proximaConsulta, setProximaConsulta] = useState<any | null>(null);
+  const proximaConsulta = proximaConsultaProp ?? null;
   const [resumoIA, setResumoIA] = useState('');
   const [resumoIAAt, setResumoIAAt] = useState<string | null>(null);
   const [loadingPac, setLoadingPac] = useState(false);
@@ -206,17 +207,6 @@ export function DadosTab({ lead, pacienteId }: Props) {
         if (ind) setIndicadoPorBusca(ind.nome_lead || '');
       }
     }
-
-    const { data: ag } = await supabase
-      .from('agendamentos')
-      .select('*, agendas(nome)')
-      .eq('lead_id', lead.id)
-      .gte('data_hora_inicio', new Date().toISOString())
-      .not('status', 'in', '("cancelado","faltou")')
-      .order('data_hora_inicio', { ascending: true })
-      .limit(1)
-      .maybeSingle();
-    setProximaConsulta(ag || null);
 
     setLoadingPac(false);
   };
@@ -285,6 +275,15 @@ export function DadosTab({ lead, pacienteId }: Props) {
     }).eq('id', pacienteId);
     setSalvandoNF(false); flash(setSavedNF);
   };
+
+  if (!pacienteId) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px', gap: '8px', color: 'var(--muted)' }}>
+        <Loader2 size={16} className="animate-spin" />
+        <span style={{ fontSize: '13px' }}>Carregando...</span>
+      </div>
+    );
+  }
 
   const pcStatus = proximaConsulta ? STATUS_PROXIMO[proximaConsulta.status] || STATUS_PROXIMO.agendado : null;
 

@@ -514,7 +514,7 @@ export function Pacientes() {
             ) : (
               <>
                 {activeTab === 'dados' && (
-                  <DadosTab lead={leadSelecionado} pacienteId={pacienteId} />
+                  <DadosTab lead={leadSelecionado} pacienteId={pacienteId} proximaConsulta={proximaConsulta} />
                 )}
                 {activeTab === 'consultas' && (
                   <ConsultasTab leadId={leadSelecionado.id} />
@@ -526,7 +526,11 @@ export function Pacientes() {
                   <ComportamentoTab leadId={leadSelecionado.id} pacienteId={pacienteId} />
                 )}
                 {activeTab === 'profissional' && pacienteId && isAdmin && (
-                  <AnotacoesProfissionalTab pacienteId={pacienteId} />
+                  <AnotacoesProfissionalTab
+                    pacienteId={pacienteId}
+                    leadId={leadSelecionado?.id}
+                    nomePaciente={leadSelecionado?.nome_lead}
+                  />
                 )}
               </>
             )}
