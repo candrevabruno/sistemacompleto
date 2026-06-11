@@ -255,18 +255,34 @@ function AbaGeral() {
   );
 }
 
+const ROLE_LABEL: Record<string, string> = {
+  admin: 'Administrador',
+  atendente: 'Atendente',
+  profissional: 'Profissional',
+  user: 'Atendente',
+};
+
+const ROLE_STYLE: Record<string, React.CSSProperties> = {
+  admin:        { background: 'var(--rose-light)',  color: 'var(--rose-text)',  border: '1px solid rgba(139,68,68,0.15)' },
+  profissional: { background: 'var(--sage-xlight)', color: 'var(--sage-dark)',  border: '1px solid rgba(86,112,95,0.15)' },
+  atendente:    { background: 'var(--champ-light)', color: 'var(--champ-text)', border: '1px solid rgba(122,96,64,0.15)' },
+  user:         { background: 'var(--champ-light)', color: 'var(--champ-text)', border: '1px solid rgba(122,96,64,0.15)' },
+};
+
+function getIniciais(nome: string | null, email: string) {
+  const str = nome || email;
+  return str.split(/[\s@]/).map((p: string) => p[0]).slice(0, 2).join('').toUpperCase();
+}
+
 function AbaUsuarios() {
   const [users, setUsers] = useState<any[]>([]);
-  const [open, setOpen] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(true);
 
   const loadUsers = async () => {
-    // Note: Due to RLS, a standard user might not see auth.users. 
-    // Usually, we fetch from public.users and wait for Supabase Edge Functions for full auth sync.
-    // Assuming backend triggers work, we just list public.users for now. 
-    // Real implementation requires joining auth.users which might not be accessible from frontend directly without RPC.
-    // We will just fetch public.users and show ID. In a real app we need a secure RPC for emails.
+    setLoading(true);
+    const { data } = await supabase.rpc('get_team_members');
+    if (data) setUsers(data);
+    setLoading(false);
   };
 
   useEffect(() => { loadUsers(); }, []);
@@ -275,19 +291,55 @@ function AbaUsuarios() {
     <Card>
       <CardHeader>
         <div className="flex justify-between items-center">
-          <CardTitle>Usuários</CardTitle>
-          <Button onClick={() => setOpen(true)} size="sm"><Plus className="w-4 h-4 mr-2"/> Adicionar usuário</Button>
+          <div>
+            <CardTitle>Usuários da equipe</CardTitle>
+            <p className="text-sm text-[var(--muted)] mt-1">Membros com acesso ao sistema.</p>
+          </div>
+          <a href="/equipe">
+            <Button size="sm"><Plus className="w-4 h-4 mr-2"/> Gerenciar equipe</Button>
+          </a>
         </div>
       </CardHeader>
       <CardContent>
-        <p className="text-sm text-[var(--muted)]">Nesta versão MVP a gestão de usuários por interface administrativa depende do Auth Admin e será expandida posteriormente.</p>
-        <Modal isOpen={open} onClose={() => setOpen(false)} title="Adicionar usuário">
-          <div className="space-y-4">
-            <Input label="E-mail" value={email} onChange={e=>setEmail(e.target.value)}/>
-            <Input label="Senha" type="password" value={password} onChange={e=>setPassword(e.target.value)}/>
-            <Button className="w-full">Adicionar</Button>
+        {loading ? (
+          <p className="text-sm text-[var(--muted)] py-4">Carregando usuários...</p>
+        ) : users.length === 0 ? (
+          <p className="text-sm text-[var(--muted)] py-4">Nenhum usuário encontrado.</p>
+        ) : (
+          <div className="divide-y divide-[var(--border)]">
+            {users.map((u: any) => {
+              const roleStyle = ROLE_STYLE[u.role] || ROLE_STYLE.atendente;
+              return (
+                <div key={u.id} className="flex items-center gap-3 py-3">
+                  <div
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0"
+                    style={{ background: roleStyle.background, color: roleStyle.color }}
+                  >
+                    {getIniciais(u.nome, u.email)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-[var(--ink)] truncate">{u.nome || u.email}</p>
+                    {u.nome && <p className="text-xs text-[var(--muted)] truncate">{u.email}</p>}
+                  </div>
+                  <span
+                    className="text-[11px] font-medium px-2.5 py-0.5 rounded-full flex-shrink-0"
+                    style={roleStyle}
+                  >
+                    {ROLE_LABEL[u.role] || u.role}
+                  </span>
+                </div>
+              );
+            })}
           </div>
-        </Modal>
+        )}
+        <div className="pt-4 border-t border-[var(--border)] mt-2">
+          <p className="text-xs text-[var(--muted)]">
+            Para convidar novos membros ou alterar permissões, acesse a{' '}
+            <a href="/equipe" className="text-[var(--sage-dark)] underline font-medium">
+              página Equipe
+            </a>.
+          </p>
+        </div>
       </CardContent>
     </Card>
   );
