@@ -77,6 +77,17 @@ export interface LeadDetalhes extends Lead {
   motivo_perda: string | null;
   servicos_contratados: string[] | null;
   agendamento_criado_em: string | null;
+  // Prontuário comercial — ETAPA 4
+  score_temperatura: string | null;
+  score_sonho: string | null;
+  score_contexto: string | null;
+  score_obstaculo: string | null;
+  score_rota: string | null;
+  score_gatilho: string | null;
+  anotacoes_secretaria: string | null;
+  tentativas: number | null;
+  proximo_contato: string | null;
+  motivo: string | null;
 }
 
 export interface Agendamento {
