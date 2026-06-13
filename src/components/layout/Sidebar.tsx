@@ -146,13 +146,15 @@ export function Sidebar() {
                 className={({ isActive }) =>
                   cn(
                     'relative flex items-center gap-[9px] px-3 py-[9px] rounded-[var(--r-xs)] text-[13px] font-normal transition-all duration-100 cursor-pointer',
-                    isActive ? 'font-medium' : '',
+                    isActive
+                      ? 'font-medium'
+                      : 'text-[var(--muted)] hover:bg-[var(--sage-xlight)] hover:text-[var(--ink)]',
                   )
                 }
                 style={({ isActive }) =>
                   isActive
                     ? { background: 'var(--sage-xlight)', color: 'var(--sage-dark)' }
-                    : { color: 'var(--muted)' }
+                    : {}
                 }
               >
                 {({ isActive }) => (

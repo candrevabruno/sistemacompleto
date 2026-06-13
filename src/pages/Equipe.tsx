@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Plus, Copy, Check, Link2, Users, X, Shield, UserCog, User } from 'lucide-react';
+import { Modal } from '../components/ui/Modal';
 
 interface Membro {
   id: string;
@@ -315,8 +316,8 @@ export function Equipe() {
                 style={{ borderColor: 'var(--border)', background: 'var(--bg)' }}
               >
                 <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
-                  style={{ background: 'rgba(100,116,139,0.1)' }}>
-                  <Link2 className="w-4 h-4" style={{ color: 'var(--muted)' }} />
+                  style={{ background: 'var(--champ-light)' }}>
+                  <Link2 className="w-4 h-4" style={{ color: 'var(--champ-text)' }} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm truncate" style={{ color: 'var(--ink)' }}>{c.email}</p>
@@ -397,129 +398,108 @@ export function Equipe() {
       </div>
 
       {/* ── Invite modal ─────────────────────────────────── */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="w-full max-w-md mx-4 rounded-[16px] border"
-            style={{ background: 'var(--white)', borderColor: 'var(--border)', boxShadow: '0 20px 60px rgba(30,41,59,0.18)' }}>
+      <Modal isOpen={showModal} onClose={fecharModal} bare className="max-w-md mx-4">
+        <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: 'var(--border)' }}>
+          <h3 className="font-display" style={{ fontSize: '20px', fontStyle: 'italic', fontWeight: 300, color: 'var(--ink)' }}>
+            Convidar membro
+          </h3>
+          <button onClick={fecharModal} className="hover:opacity-70 transition-opacity" style={{ color: 'var(--muted)' }}>
+            <X className="w-5 h-5" />
+          </button>
+        </div>
 
-            <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: 'var(--border)' }}>
-              <div>
-                <h3 className="font-display" style={{ fontSize: '20px', fontStyle: 'italic', fontWeight: 300, color: 'var(--ink)' }}>
-                  Convidar membro
-                </h3>
-              </div>
-              <button onClick={fecharModal} style={{ color: 'var(--muted)' }}
-                className="hover:opacity-70 transition-opacity">
-                <X className="w-5 h-5" />
+        {!linkGerado ? (
+          <div className="p-6 space-y-4">
+            <div>
+              <label className="block text-[10px] font-semibold uppercase tracking-[1.1px] mb-1.5" style={{ color: 'var(--muted)' }}>
+                E-mail
+              </label>
+              <input
+                autoFocus
+                type="email"
+                value={inviteEmail}
+                onChange={e => setInviteEmail(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && criarConvite()}
+                placeholder="nome@email.com"
+                className="w-full rounded-[var(--r-xs)] px-3 py-2 text-sm focus:outline-none"
+                style={{ border: '1px solid var(--border-md)', background: 'var(--bg)', color: 'var(--ink)' }}
+              />
+            </div>
+            <div>
+              <label className="block text-[10px] font-semibold uppercase tracking-[1.1px] mb-1.5" style={{ color: 'var(--muted)' }}>
+                Cargo
+              </label>
+              <select
+                value={inviteRole}
+                onChange={e => setInviteRole(e.target.value)}
+                className="w-full rounded-[var(--r-xs)] px-3 py-2 text-sm focus:outline-none"
+                style={{ border: '1px solid var(--border-md)', background: 'var(--bg)', color: 'var(--ink)' }}
+              >
+                {ROLES.map(r => (
+                  <option key={r.value} value={r.value}>{r.label}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={fecharModal}
+                className="flex-1 text-sm font-medium px-4 py-2.5 rounded-[var(--r-xs)] transition-colors hover:opacity-80"
+                style={{ border: '1px solid var(--border-md)', color: 'var(--ink)', background: 'transparent' }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={criarConvite}
+                disabled={!inviteEmail.trim() || criandoConvite}
+                className="flex-1 text-sm font-medium px-4 py-2.5 rounded-[var(--r-xs)] hover:opacity-90 disabled:opacity-40 transition-opacity"
+                style={{ background: 'var(--sage-dark)', color: '#fff' }}
+              >
+                {criandoConvite ? 'Criando...' : 'Criar convite'}
               </button>
             </div>
-
-            {!linkGerado ? (
-              <div className="p-6 space-y-4">
-                <div>
-                  <label className="block text-[10px] font-semibold uppercase tracking-[1.1px] mb-1.5" style={{ color: 'var(--muted)' }}>
-                    E-mail
-                  </label>
-                  <input
-                    autoFocus
-                    type="email"
-                    value={inviteEmail}
-                    onChange={e => setInviteEmail(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && criarConvite()}
-                    placeholder="nome@email.com"
-                    className="w-full rounded-[8px] px-3 py-2 text-sm focus:outline-none focus:ring-2"
-                    style={{
-                      border: '1px solid var(--border)',
-                      background: 'var(--bg)',
-                      color: 'var(--ink)',
-                    }}
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-semibold uppercase tracking-[1.1px] mb-1.5" style={{ color: 'var(--muted)' }}>
-                    Cargo
-                  </label>
-                  <select
-                    value={inviteRole}
-                    onChange={e => setInviteRole(e.target.value)}
-                    className="w-full rounded-[8px] px-3 py-2 text-sm focus:outline-none focus:ring-2"
-                    style={{
-                      border: '1px solid var(--border)',
-                      background: 'var(--bg)',
-                      color: 'var(--ink)',
-                    }}
-                  >
-                    {ROLES.map(r => (
-                      <option key={r.value} value={r.value}>{r.label}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="flex gap-3 pt-2">
-                  <button
-                    onClick={fecharModal}
-                    className="flex-1 text-sm font-medium px-4 py-2.5 rounded-[8px] transition-colors"
-                    style={{ border: '1px solid var(--border)', color: 'var(--ink)' }}
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    onClick={criarConvite}
-                    disabled={!inviteEmail.trim() || criandoConvite}
-                    className="flex-1 text-sm font-medium px-4 py-2.5 rounded-[8px] hover:opacity-90 disabled:opacity-40 transition-opacity"
-                    style={{ background: 'var(--sage-dark)', color: '#fff' }}
-                  >
-                    {criandoConvite ? 'Criando...' : 'Criar convite'}
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="p-6 space-y-4">
-                <div className="flex items-center gap-3 p-3 rounded-[10px]"
-                  style={{ background: 'rgba(16,185,129,0.07)', border: '1px solid rgba(16,185,129,0.2)' }}>
-                  <Check className="w-5 h-5 flex-shrink-0" style={{ color: '#059669' }} />
-                  <p className="text-sm font-semibold" style={{ color: '#065f46' }}>Convite criado com sucesso!</p>
-                </div>
-                <div>
-                  <p className="text-sm mb-2" style={{ color: 'var(--muted)' }}>
-                    Compartilhe este link com <strong style={{ color: 'var(--ink)' }}>{inviteEmail}</strong>:
-                  </p>
-                  <div className="flex gap-2">
-                    <input
-                      readOnly
-                      value={linkGerado}
-                      className="flex-1 min-w-0 rounded-[8px] px-3 py-2 text-xs focus:outline-none select-all"
-                      style={{
-                        border: '1px solid var(--border)',
-                        background: 'var(--bg)',
-                        color: 'var(--muted)',
-                      }}
-                      onFocus={e => e.target.select()}
-                    />
-                    <button
-                      onClick={() => copiarLink(linkGerado)}
-                      className="flex-shrink-0 flex items-center gap-1.5 text-sm font-medium px-3 py-2 rounded-[8px] transition-all"
-                      style={copiado
-                        ? { background: 'rgba(16,185,129,0.1)', color: '#059669' }
-                        : { background: 'var(--sage-dark)', color: '#fff' }
-                      }
-                    >
-                      {copiado ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                      {copiado ? 'Copiado' : 'Copiar'}
-                    </button>
-                  </div>
-                </div>
+          </div>
+        ) : (
+          <div className="p-6 space-y-4">
+            <div className="flex items-center gap-3 p-3 rounded-[var(--r-xs)]"
+              style={{ background: 'var(--sage-xlight)', border: '1px solid var(--border)' }}>
+              <Check className="w-5 h-5 flex-shrink-0" style={{ color: 'var(--sage-dark)' }} />
+              <p className="text-sm font-semibold" style={{ color: 'var(--sage-dark)' }}>Convite criado com sucesso!</p>
+            </div>
+            <div>
+              <p className="text-sm mb-2" style={{ color: 'var(--muted)' }}>
+                Compartilhe este link com <strong style={{ color: 'var(--ink)' }}>{inviteEmail}</strong>:
+              </p>
+              <div className="flex gap-2">
+                <input
+                  readOnly
+                  value={linkGerado}
+                  className="flex-1 min-w-0 rounded-[var(--r-xs)] px-3 py-2 text-xs focus:outline-none"
+                  style={{ border: '1px solid var(--border-md)', background: 'var(--bg)', color: 'var(--muted)' }}
+                  onFocus={e => e.target.select()}
+                />
                 <button
-                  onClick={fecharModal}
-                  className="w-full text-sm font-medium px-4 py-2.5 rounded-[8px] transition-colors"
-                  style={{ border: '1px solid var(--border)', color: 'var(--ink)' }}
+                  onClick={() => copiarLink(linkGerado)}
+                  className="flex-shrink-0 flex items-center gap-1.5 text-sm font-medium px-3 py-2 rounded-[var(--r-xs)] transition-all"
+                  style={copiado
+                    ? { background: 'var(--sage-xlight)', color: 'var(--sage-dark)' }
+                    : { background: 'var(--sage-dark)', color: '#fff' }
+                  }
                 >
-                  Fechar
+                  {copiado ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                  {copiado ? 'Copiado' : 'Copiar'}
                 </button>
               </div>
-            )}
+            </div>
+            <button
+              onClick={fecharModal}
+              className="w-full text-sm font-medium px-4 py-2.5 rounded-[var(--r-xs)] transition-colors hover:opacity-80"
+              style={{ border: '1px solid var(--border-md)', color: 'var(--ink)', background: 'transparent' }}
+            >
+              Fechar
+            </button>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
     </div>
   );
 }

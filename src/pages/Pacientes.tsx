@@ -385,8 +385,8 @@ export function Pacientes() {
                     fontWeight: 500,
                     padding: '3px 9px',
                     borderRadius: '20px',
-                    background: tipoConvenio === 'convenio' ? '#EFF6FF' : 'var(--champ-light)',
-                    color: tipoConvenio === 'convenio' ? '#1D4ED8' : 'var(--champ-text)',
+                    background: tipoConvenio === 'convenio' ? 'var(--sage-xlight)' : 'var(--champ-light)',
+                    color: tipoConvenio === 'convenio' ? 'var(--sage-dark)' : 'var(--champ-text)',
                   }}
                 >
                   {tipoConvenio === 'convenio' ? 'Convênio' : 'Particular'}

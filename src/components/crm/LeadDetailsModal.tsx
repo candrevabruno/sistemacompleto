@@ -325,7 +325,7 @@ export function LeadDetailsModal({ isOpen, onClose, leadId, onUpdate }: LeadDeta
       {editInput ?? (
         <div style={{
           fontSize: '13px', fontWeight: 400,
-          color: value ? 'var(--ink)' : '#C4C9D4',
+          color: value ? 'var(--ink)' : 'var(--muted)',
           fontStyle: value ? 'normal' : 'italic',
         }}>
           {value || 'Não informado'}
@@ -697,7 +697,7 @@ export function LeadDetailsModal({ isOpen, onClose, leadId, onUpdate }: LeadDeta
       {/* 4. Não Converteu */}
       <Modal isOpen={confirmNaoConverteu} onClose={() => setConfirmNaoConverteu(false)} title="Lead Não Converteu">
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          <div style={{ padding: '10px 12px', background: 'var(--rose-light)', border: '1px solid #E9C0C0', borderRadius: 'var(--r-xs)', fontSize: '12px', fontWeight: 500, color: 'var(--rose-text)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ padding: '10px 12px', background: 'var(--rose-light)', border: '1px solid rgba(139,68,68,0.2)', borderRadius: 'var(--r-xs)', fontSize: '12px', fontWeight: 500, color: 'var(--rose-text)', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <ShieldAlert size={14} /> Entenda o motivo para melhorar seu funil.
           </div>
 

@@ -8,11 +8,12 @@ export interface ModalProps {
   onClose: () => void;
   title?: string;
   children: React.ReactNode;
+  footer?: React.ReactNode;
   className?: string;
   bare?: boolean;
 }
 
-export function Modal({ isOpen, onClose, title, children, className, bare }: ModalProps) {
+export function Modal({ isOpen, onClose, title, children, footer, className, bare }: ModalProps) {
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
@@ -49,6 +50,11 @@ export function Modal({ isOpen, onClose, title, children, className, bare }: Mod
           </div>
         )}
         <div>{children}</div>
+        {!bare && footer && (
+          <div className="flex justify-end gap-3 mt-5 pt-4 border-t border-[var(--border)]">
+            {footer}
+          </div>
+        )}
       </div>
     </div>,
     document.body

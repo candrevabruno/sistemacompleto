@@ -320,29 +320,29 @@ export function CentralAgendamentos() {
         </select>
 
         {/* Atualizar button */}
-        <div style={{ marginLeft: 'auto', flexShrink: 0 }}>
-          <button
-            onClick={fetchAgendamentos}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '5px 12px',
-              fontSize: '12px',
-              fontWeight: 500,
-              color: 'var(--muted)',
-              background: 'transparent',
-              border: '1px solid var(--border-md)',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-              transition: 'color 0.12s',
-            }}
-          >
-            <RefreshCw style={{ width: '13px', height: '13px' }} />
-            Atualizar
-          </button>
-        </div>
+        <button
+          onClick={fetchAgendamentos}
+          style={{
+            marginLeft: 'auto',
+            flexShrink: 0,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '5px 12px',
+            fontSize: '12px',
+            fontWeight: 500,
+            color: 'var(--muted)',
+            background: 'transparent',
+            border: '1px solid var(--border-md)',
+            borderRadius: 'var(--r-xs)',
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+            transition: 'color 0.12s',
+          }}
+        >
+          <RefreshCw style={{ width: '13px', height: '13px' }} />
+          Atualizar
+        </button>
       </div>
 
       {/* Content */}

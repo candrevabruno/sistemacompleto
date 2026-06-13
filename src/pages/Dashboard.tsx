@@ -260,7 +260,7 @@ export function Dashboard() {
     { label: 'Leads',        value: String(metricsLeads),        sub: periodSub,          iconBg: 'var(--sage-xlight)', iconColor: 'var(--sage-dark)', icon: <IconUsers /> },
     { label: 'Agendamentos', value: String(metricsAgendamentos), sub: periodSub,          iconBg: 'var(--champ-light)', iconColor: '#7A6040',          icon: <IconCalCheck /> },
     { label: 'Conversão',    value: `${metricsConversao}%`,      sub: 'leads → paciente', iconBg: 'var(--sage-xlight)', iconColor: 'var(--sage-dark)', icon: <IconRepeat /> },
-    { label: 'Faturamento',  value: fmtBRL(metricsFaturamento),  sub: periodSub,          iconBg: '#EFF6FF',            iconColor: '#2563EB',          icon: <IconReceipt /> },
+    { label: 'Faturamento',  value: fmtBRL(metricsFaturamento),  sub: periodSub,          iconBg: 'var(--champ-light)', iconColor: 'var(--champ-text)', icon: <IconReceipt /> },
   ];
 
   const tooltipStyle = {

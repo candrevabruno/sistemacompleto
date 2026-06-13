@@ -299,16 +299,12 @@ export function DadosTab({ lead, pacienteId, proximaConsulta: proximaConsultaPro
   const SaveBar = ({ salvando, saved, onSave }: { salvando: boolean; saved: boolean; onSave: () => void }) => (
     <div
       style={{
-        position: 'sticky',
-        bottom: 0,
-        background: 'var(--white)',
-        borderTop: '1px solid var(--border)',
-        padding: '10px 22px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'flex-end',
-        gap: '8px',
-        marginTop: '18px',
+        marginTop: '16px',
+        paddingTop: '14px',
+        borderTop: '1px solid var(--border)',
       }}
     >
       <SaveButton salvando={salvando} saved={saved} onClick={onSave} />
