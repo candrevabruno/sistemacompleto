@@ -11,7 +11,7 @@ export function Login() {
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, status, deniedEmail, signInWithGoogle, signOut } = useAuth();
 
   useEffect(() => {
     if (user) {
@@ -40,6 +40,54 @@ export function Login() {
     // O onAuthStateChange no AuthContext vai preencher o "user"
     // e o useEffect que colocamos lá em cima fará o redirect blindado.
   };
+
+  // ── Acesso negado (autenticou no Google mas não foi convidado) ──────────────
+  if (status === 'denied') {
+    return (
+      <div style={{
+        minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: '#F7F5F2', fontFamily: "'DM Sans', sans-serif", padding: 24,
+      }}>
+        <style>{`@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;1,400&family=DM+Sans:wght@300;400;500&display=swap');`}</style>
+        <div style={{
+          maxWidth: 420, width: '100%', textAlign: 'center', background: '#fff',
+          border: '1px solid #E8E2D9', borderRadius: 16, padding: '40px 32px',
+          boxShadow: '0 8px 30px rgba(26,43,74,0.08)',
+        }}>
+          <div style={{
+            width: 56, height: 56, borderRadius: '50%', margin: '0 auto 20px',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: 'rgba(26,43,74,0.06)',
+          }}>
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+              <rect x="4" y="10" width="16" height="10" rx="2" stroke="#1A2B4A" strokeWidth="1.5"/>
+              <path d="M8 10V7a4 4 0 018 0v3" stroke="#1A2B4A" strokeWidth="1.5"/>
+            </svg>
+          </div>
+          <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 24, color: '#1A2B4A', margin: '0 0 10px' }}>
+            Acesso restrito
+          </h1>
+          <p style={{ fontSize: 14, color: '#9A9088', lineHeight: 1.6, margin: '0 0 6px' }}>
+            A conta{deniedEmail ? <strong style={{ color: '#2E3F5C' }}> {deniedEmail}</strong> : ''} ainda
+            não foi convidada para este sistema.
+          </p>
+          <p style={{ fontSize: 13, color: '#BFB5B1', lineHeight: 1.6, margin: '0 0 28px' }}>
+            Solicite um convite ao administrador da clínica e tente novamente.
+          </p>
+          <button
+            onClick={signOut}
+            style={{
+              width: '100%', height: 48, background: '#1A2B4A', color: '#E8C97A', border: 'none',
+              borderRadius: 10, fontSize: 13, fontWeight: 500, letterSpacing: 1.5,
+              textTransform: 'uppercase', cursor: 'pointer',
+            }}
+          >
+            Voltar ao login
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -289,6 +337,27 @@ export function Login() {
           text-transform: uppercase;
         }
 
+        /* Google button */
+        .hl-google-btn {
+          width: 100%;
+          height: 50px;
+          margin-top: 20px;
+          background: #fff;
+          border: 1px solid #E8E2D9;
+          border-radius: 10px;
+          font-family: 'DM Sans', sans-serif;
+          font-size: 14px;
+          font-weight: 500;
+          color: #2E3F5C;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+          transition: border-color 0.2s, background 0.2s;
+        }
+        .hl-google-btn:hover { border-color: #1A2B4A; background: #FCFBF9; }
+
         /* ─── MOBILE ──────────────────────────── */
         @media (max-width: 768px) {
           .hl-login-wrap {
@@ -416,6 +485,23 @@ export function Login() {
             </button>
           </form>
 
+          {/* Divisor */}
+          <div className="hl-divider">
+            <div className="hl-divider-line" />
+            <span className="hl-divider-text">ou</span>
+            <div className="hl-divider-line" />
+          </div>
+
+          {/* Entrar com Google */}
+          <button type="button" className="hl-google-btn" onClick={() => signInWithGoogle()}>
+            <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden>
+              <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 01-1.8 2.72v2.26h2.92c1.7-1.57 2.68-3.88 2.68-6.62z"/>
+              <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.8.54-1.84.86-3.04.86-2.34 0-4.32-1.58-5.02-3.7H.96v2.34A9 9 0 009 18z"/>
+              <path fill="#FBBC05" d="M3.98 10.72a5.4 5.4 0 010-3.44V4.94H.96a9 9 0 000 8.12l3.02-2.34z"/>
+              <path fill="#EA4335" d="M9 3.58c1.32 0 2.5.46 3.44 1.35l2.58-2.58A9 9 0 00.96 4.94l3.02 2.34C4.68 5.16 6.66 3.58 9 3.58z"/>
+            </svg>
+            Entrar com Google
+          </button>
 
         </div>
       </div>

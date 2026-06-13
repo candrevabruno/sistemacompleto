@@ -1,12 +1,16 @@
 import type { User } from '@supabase/supabase-js';
+import type { PermissionMap } from '../lib/permissions';
 
-export type UserRole = 'admin' | 'atendente' | 'profissional' | 'user';
+// ETAPA 5 — hierarquia em 3 níveis. Cargos antigos (atendente/profissional/user)
+// foram consolidados em 'membro' na migração.
+export type UserRole = 'super_admin' | 'admin' | 'membro';
 
 export interface AppUser {
   id: string;
   email: string | undefined;
   role: UserRole;
   nome: string | null;
+  permissions: PermissionMap;
 }
 
 export interface ClinicConfig {
@@ -20,6 +24,9 @@ export interface ClinicConfig {
   evolution_server_url?: string | null;
   evolution_instance_name?: string | null;
   nota_webhook_url?: string | null;
+  // ETAPA 5 — feature flags liberadas pela Heroic Leap (super_admin)
+  premium_enabled?: boolean;
+  eventos_enabled?: boolean;
 }
 
 export interface Conversa {

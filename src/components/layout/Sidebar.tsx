@@ -21,28 +21,27 @@ const NAV_SECTIONS = [
   {
     label: 'Visão Geral',
     links: [
-      { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-      { to: '/central-agendamentos', label: 'Agenda', icon: CalendarCheck },
+      { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, perm: 'modulo:dashboard' },
+      { to: '/central-agendamentos', label: 'Agenda', icon: CalendarCheck, perm: 'modulo:agenda' },
     ],
   },
   {
     label: 'Pacientes',
     links: [
-      { to: '/leads', label: 'Leads', icon: Users },
-      { to: '/pacientes', label: 'Pacientes', icon: ClipboardList },
-      { to: '/crm', label: 'CRM Kanban', icon: Kanban },
-      { to: '/inbox', label: 'Inbox', icon: MessageSquare },
+      { to: '/leads', label: 'Leads', icon: Users, perm: 'modulo:leads' },
+      { to: '/pacientes', label: 'Pacientes', icon: ClipboardList, perm: 'modulo:pacientes' },
+      { to: '/crm', label: 'CRM Kanban', icon: Kanban, perm: 'modulo:crm' },
+      { to: '/inbox', label: 'Inbox', icon: MessageSquare, perm: 'modulo:inbox' },
+    ],
+  },
+  {
+    label: 'Sistema',
+    links: [
+      { to: '/equipe', label: 'Equipe', icon: UsersRound, perm: 'modulo:equipe' },
+      { to: '/configuracoes', label: 'Configurações', icon: Settings, perm: 'modulo:configuracoes' },
     ],
   },
 ];
-
-const ADMIN_SECTION = {
-  label: 'Sistema',
-  links: [
-    { to: '/equipe', label: 'Equipe', icon: UsersRound },
-    { to: '/configuracoes', label: 'Configurações', icon: Settings },
-  ],
-};
 
 function getIniciais(nome: string | null | undefined): string {
   if (!nome) return '?';
@@ -51,10 +50,9 @@ function getIniciais(nome: string | null | undefined): string {
 
 function getRoleLabel(role: string | undefined): string {
   switch (role) {
+    case 'super_admin': return 'Heroic Leap';
     case 'admin': return 'Administrador';
-    case 'profissional': return 'Profissional';
-    case 'atendente': return 'Atendente';
-    default: return 'Usuário';
+    default: return 'Membro';
   }
 }
 
@@ -71,12 +69,13 @@ function GemIcon() {
 
 export function Sidebar() {
   const { config } = useClinic();
-  const { user, signOut } = useAuth();
+  const { user, signOut, can } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const sections = user?.role === 'admin'
-    ? [...NAV_SECTIONS, ADMIN_SECTION]
-    : NAV_SECTIONS;
+  // Gateia cada link pela permissão; remove seções que ficaram vazias.
+  const sections = NAV_SECTIONS
+    .map(section => ({ ...section, links: section.links.filter(link => can(link.perm)) }))
+    .filter(section => section.links.length > 0);
 
   const userIniciais = getIniciais(user?.nome || user?.email);
   const userRole = getRoleLabel(user?.role);

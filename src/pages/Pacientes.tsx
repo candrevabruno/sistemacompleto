@@ -3,6 +3,7 @@ import { useVisibilityRefresh } from '../hooks/useVisibilityRefresh';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { useClinic } from '../contexts/ClinicContext';
 import { Search, Users, MessageSquare, CalendarPlus, ClipboardList, ExternalLink, Check, X, Clock, Loader2, Upload } from 'lucide-react';
 import { DadosTab } from '../components/pacientes/DadosTab';
 import { ConsultasTab } from '../components/pacientes/ConsultasTab';
@@ -21,8 +22,12 @@ function getIniciais(nome: string | null | undefined): string {
 
 export function Pacientes() {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const isAdmin = user?.role === 'admin' || user?.role === 'profissional';
+  const { can, canEdit } = useAuth();
+  const { config } = useClinic();
+  // Importação de pacientes exige poder editar o módulo.
+  const canImport = canEdit('modulo:pacientes');
+  const canProfissional = can('paciente_tab:profissional');
+  const canPremium = Boolean(config?.premium_enabled) && can('feature:premium');
 
   const [leads, setLeads] = useState<any[]>([]);
   const [leadSelecionado, setLeadSelecionado] = useState<any | null>(null);
@@ -41,13 +46,20 @@ export function Pacientes() {
   const [showImportar, setShowImportar] = useState(false);
 
   const TABS: { id: Tab; label: string }[] = [
-    { id: 'dados',          label: 'Dados' },
-    { id: 'consultas',      label: 'Consultas' },
-    { id: 'procedimentos',  label: 'Procedimentos' },
-    { id: 'comportamento',  label: 'Comportamento' },
-    ...(isAdmin ? [{ id: 'profissional' as Tab, label: 'Anotações do Profissional' }] : []),
-    ...(isAdmin ? [{ id: 'premium' as Tab, label: '✦ Experiência Premium' }] : []),
-  ];
+    can('paciente_tab:dados')         && { id: 'dados' as Tab,         label: 'Dados' },
+    can('paciente_tab:consultas')     && { id: 'consultas' as Tab,     label: 'Consultas' },
+    can('paciente_tab:procedimentos') && { id: 'procedimentos' as Tab, label: 'Procedimentos' },
+    can('paciente_tab:comportamento') && { id: 'comportamento' as Tab, label: 'Comportamento' },
+    canProfissional                   && { id: 'profissional' as Tab,  label: 'Anotações do Profissional' },
+    canPremium                        && { id: 'premium' as Tab,       label: '✦ Experiência Premium' },
+  ].filter(Boolean) as { id: Tab; label: string }[];
+
+  // Garante que a aba ativa é uma permitida.
+  useEffect(() => {
+    if (TABS.length > 0 && !TABS.some(t => t.id === activeTab)) {
+      setActiveTab(TABS[0].id);
+    }
+  }, [TABS.map(t => t.id).join(','), activeTab]);
 
   // Carrega lista de pacientes (leads convertidos)
   const loadPacientes = async () => {
@@ -190,7 +202,7 @@ export function Pacientes() {
               <span style={{ fontSize: '10.5px', fontWeight: 600, padding: '2px 8px', borderRadius: '20px', background: 'var(--sage-xlight)', color: 'var(--sage-dark)' }}>
                 {viewMode === 'hoje' ? agendamentosHoje.length : leads.length}
               </span>
-              {isAdmin && (
+              {canImport && (
                 <button
                   onClick={() => setShowImportar(true)}
                   title="Importar pacientes (CSV)"
@@ -593,10 +605,10 @@ export function Pacientes() {
                 {activeTab === 'comportamento' && pacienteId && (
                   <ComportamentoTab leadId={leadSelecionado.id} pacienteId={pacienteId} />
                 )}
-                {activeTab === 'profissional' && pacienteId && isAdmin && (
+                {activeTab === 'profissional' && pacienteId && canProfissional && (
                   <AnotacoesProfissionalTab pacienteId={pacienteId} />
                 )}
-                {activeTab === 'premium' && pacienteId && isAdmin && (
+                {activeTab === 'premium' && pacienteId && canPremium && (
                   <ExperienciaPremiumTab
                     pacienteId={pacienteId}
                     leadId={leadSelecionado?.id}

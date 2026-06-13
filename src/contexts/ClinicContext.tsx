@@ -22,7 +22,7 @@ export const ClinicProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       let { data, error } = await supabase
         .from('clinic_config')
-        .select('nome, subtitulo, logo_url, chatwoot_url, whatsapp_provider, meta_phone_number_id, meta_business_account_id, evolution_server_url, evolution_instance_name, nota_webhook_url')
+        .select('nome, subtitulo, logo_url, chatwoot_url, whatsapp_provider, meta_phone_number_id, meta_business_account_id, evolution_server_url, evolution_instance_name, nota_webhook_url, premium_enabled, eventos_enabled')
         .eq('id', 1)
         .single();
 
@@ -44,6 +44,8 @@ export const ClinicProvider = ({ children }: { children: React.ReactNode }) => {
             evolution_server_url: null,
             evolution_instance_name: null,
             nota_webhook_url: null,
+            premium_enabled: false,
+            eventos_enabled: false,
           };
           error = null;
         }
