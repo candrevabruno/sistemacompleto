@@ -88,11 +88,9 @@ export function Inbox() {
 
   const isConfigured =
     (config?.whatsapp_provider === 'meta' &&
-      !!config?.meta_phone_number_id &&
-      !!config?.meta_access_token) ||
+      !!config?.meta_phone_number_id) ||
     (config?.whatsapp_provider === 'evolution' &&
-      !!config?.evolution_server_url &&
-      !!config?.evolution_api_key);
+      !!config?.evolution_server_url);
 
   // ── Load conversations ──────────────────────────────────────────
   useEffect(() => {
