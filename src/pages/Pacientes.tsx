@@ -3,14 +3,16 @@ import { useVisibilityRefresh } from '../hooks/useVisibilityRefresh';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { Search, Users, MessageSquare, CalendarPlus, ClipboardList, ExternalLink } from 'lucide-react';
+import { Search, Users, MessageSquare, CalendarPlus, ClipboardList, ExternalLink, Check, X, Clock, Loader2, Upload } from 'lucide-react';
 import { DadosTab } from '../components/pacientes/DadosTab';
 import { ConsultasTab } from '../components/pacientes/ConsultasTab';
 import { ProcedimentosTab } from '../components/pacientes/ProcedimentosTab';
 import { ComportamentoTab } from '../components/pacientes/ComportamentoTab';
 import { AnotacoesProfissionalTab } from '../components/pacientes/AnotacoesProfissionalTab';
+import { ExperienciaPremiumTab } from '../components/pacientes/ExperienciaPremiumTab';
+import { ImportarPacientesModal } from '../components/pacientes/ImportarPacientesModal';
 
-type Tab = 'dados' | 'consultas' | 'procedimentos' | 'comportamento' | 'profissional';
+type Tab = 'dados' | 'consultas' | 'procedimentos' | 'comportamento' | 'profissional' | 'premium';
 
 function getIniciais(nome: string | null | undefined): string {
   if (!nome) return '?';
@@ -32,6 +34,11 @@ export function Pacientes() {
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState<Tab>('dados');
+  const [viewMode, setViewMode] = useState<'todos' | 'hoje'>('todos');
+  const [agendamentosHoje, setAgendamentosHoje] = useState<any[]>([]);
+  const [loadingHoje, setLoadingHoje] = useState(false);
+  const [marcandoId, setMarcandoId] = useState<string | null>(null);
+  const [showImportar, setShowImportar] = useState(false);
 
   const TABS: { id: Tab; label: string }[] = [
     { id: 'dados',          label: 'Dados' },
@@ -39,6 +46,7 @@ export function Pacientes() {
     { id: 'procedimentos',  label: 'Procedimentos' },
     { id: 'comportamento',  label: 'Comportamento' },
     ...(isAdmin ? [{ id: 'profissional' as Tab, label: 'Anotações do Profissional' }] : []),
+    ...(isAdmin ? [{ id: 'premium' as Tab, label: '✦ Experiência Premium' }] : []),
   ];
 
   // Carrega lista de pacientes (leads convertidos)
@@ -57,6 +65,38 @@ export function Pacientes() {
 
   // Refresh ao voltar ao tab ou reconectar rede
   useVisibilityRefresh(loadPacientes);
+
+  const loadAgendamentosHoje = async () => {
+    setLoadingHoje(true);
+    const start = new Date(); start.setHours(0, 0, 0, 0);
+    const end   = new Date(); end.setHours(23, 59, 59, 999);
+    const { data } = await supabase
+      .from('agendamentos')
+      .select('id, status, data_hora_inicio, procedimento_nome, lead_id, agendas(nome), leads:lead_id(id, nome_lead, whatsapp_lead, procedimento_interesse, status, email)')
+      .gte('data_hora_inicio', start.toISOString())
+      .lte('data_hora_inicio', end.toISOString())
+      .not('status', 'in', '("cancelado","cancelou_agendamento")')
+      .order('data_hora_inicio', { ascending: true });
+    if (data) setAgendamentosHoje(data);
+    setLoadingHoje(false);
+  };
+
+  useEffect(() => {
+    if (viewMode === 'hoje') loadAgendamentosHoje();
+  }, [viewMode]);
+
+  const marcarPresenca = async (agId: string, novoStatus: 'compareceu' | 'faltou', lead: any) => {
+    setMarcandoId(agId);
+    await supabase.from('agendamentos').update({ status: novoStatus }).eq('id', agId);
+    if (novoStatus === 'compareceu' && lead?.status !== 'converteu') {
+      await supabase.from('leads').update({
+        status: 'converteu',
+        converteu_em: new Date().toISOString(),
+      }).eq('id', lead.id);
+    }
+    await loadAgendamentosHoje();
+    setMarcandoId(null);
+  };
 
   // Carrega link Cal.com (primeiro agenda ativo com link)
   useEffect(() => {
@@ -141,161 +181,189 @@ export function Pacientes() {
         }}
       >
         {/* Header da lista */}
-        <div
-          style={{
-            padding: '18px 16px 14px',
-            borderBottom: '1px solid var(--border)',
-            flexShrink: 0,
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-            <h2
-              className="font-display"
-              style={{ fontSize: '18px', fontWeight: 300, fontStyle: 'italic', color: 'var(--ink)', letterSpacing: '-0.2px' }}
-            >
+        <div style={{ padding: '14px 12px 10px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+            <h2 className="font-display" style={{ fontSize: '18px', fontWeight: 300, fontStyle: 'italic', color: 'var(--ink)', letterSpacing: '-0.2px' }}>
               Pacientes
             </h2>
-            <span
-              style={{
-                fontSize: '10.5px',
-                fontWeight: 600,
-                padding: '2px 8px',
-                borderRadius: '20px',
-                background: 'var(--sage-xlight)',
-                color: 'var(--sage-dark)',
-              }}
-            >
-              {leads.length}
-            </span>
-          </div>
-
-          {/* Search */}
-          <div style={{ position: 'relative' }}>
-            <Search
-              style={{
-                position: 'absolute',
-                left: '9px',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                width: '13px',
-                height: '13px',
-                color: 'var(--muted)',
-                pointerEvents: 'none',
-              }}
-            />
-            <input
-              type="text"
-              placeholder="Buscar paciente..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              style={{
-                width: '100%',
-                background: 'var(--bg)',
-                border: '1px solid var(--border)',
-                borderRadius: 'var(--r-xs)',
-                padding: '6px 10px 6px 28px',
-                fontSize: '12.5px',
-                color: 'var(--ink)',
-                fontFamily: 'inherit',
-                outline: 'none',
-                boxSizing: 'border-box',
-              }}
-            />
-          </div>
-        </div>
-
-        {/* Lista de pacientes */}
-        <div style={{ flex: 1, overflowY: 'auto' }}>
-          {loading ? (
-            <div style={{ padding: '20px', textAlign: 'center', fontSize: '12.5px', color: 'var(--muted)' }}>
-              Carregando...
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <span style={{ fontSize: '10.5px', fontWeight: 600, padding: '2px 8px', borderRadius: '20px', background: 'var(--sage-xlight)', color: 'var(--sage-dark)' }}>
+                {viewMode === 'hoje' ? agendamentosHoje.length : leads.length}
+              </span>
+              {isAdmin && (
+                <button
+                  onClick={() => setShowImportar(true)}
+                  title="Importar pacientes (CSV)"
+                  style={{ display: 'flex', alignItems: 'center', padding: '3px 7px', fontSize: '10.5px', fontWeight: 500, background: 'var(--champ-light)', color: 'var(--champ-text)', border: 'none', borderRadius: 'var(--r-xs)', cursor: 'pointer', fontFamily: 'inherit', gap: '3px' }}
+                >
+                  <Upload style={{ width: '10px', height: '10px' }} />
+                  CSV
+                </button>
+              )}
             </div>
-          ) : leadsFiltrados.length === 0 ? (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', padding: '24px', gap: '10px' }}>
-              <div
+          </div>
+
+          {/* Toggle Todos / Hoje */}
+          <div style={{ display: 'flex', background: 'var(--bg)', borderRadius: 'var(--r-xs)', border: '1px solid var(--border)', overflow: 'hidden', marginBottom: '8px' }}>
+            {(['todos', 'hoje'] as const).map(mode => (
+              <button
+                key={mode}
+                onClick={() => setViewMode(mode)}
                 style={{
-                  width: '44px',
-                  height: '44px',
-                  borderRadius: '50%',
+                  flex: 1,
+                  padding: '5px 0',
+                  fontSize: '11.5px',
+                  fontWeight: 500,
+                  fontFamily: 'inherit',
+                  cursor: 'pointer',
+                  border: 'none',
+                  background: viewMode === mode ? 'var(--sage-dark)' : 'transparent',
+                  color: viewMode === mode ? 'white' : 'var(--muted)',
+                  transition: 'background 0.12s',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  background: 'var(--sage-xlight)',
+                  gap: '4px',
                 }}
               >
-                <Users style={{ width: '18px', height: '18px', color: 'var(--sage)' }} />
-              </div>
-              <p style={{ fontSize: '12px', textAlign: 'center', color: 'var(--muted)', fontStyle: 'italic' }}>
-                {search ? 'Nenhum paciente encontrado' : 'Nenhum paciente ainda'}
-              </p>
+                {mode === 'hoje' && <Clock style={{ width: '10px', height: '10px' }} />}
+                {mode === 'todos' ? 'Todos' : 'Hoje'}
+              </button>
+            ))}
+          </div>
+
+          {/* Search — apenas no modo Todos */}
+          {viewMode === 'todos' && (
+            <div style={{ position: 'relative' }}>
+              <Search style={{ position: 'absolute', left: '9px', top: '50%', transform: 'translateY(-50%)', width: '13px', height: '13px', color: 'var(--muted)', pointerEvents: 'none' }} />
+              <input
+                type="text"
+                placeholder="Buscar paciente..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                style={{ width: '100%', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r-xs)', padding: '6px 10px 6px 28px', fontSize: '12.5px', color: 'var(--ink)', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }}
+              />
             </div>
-          ) : (
-            leadsFiltrados.map(lead => {
-              const isSelected = leadSelecionado?.id === lead.id;
-              return (
-                <button
-                  key={lead.id}
-                  onClick={() => selecionarLead(lead)}
-                  className="w-full text-left"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '9px',
-                    padding: '10px 12px',
-                    borderBottom: '1px solid var(--border)',
-                    cursor: 'pointer',
-                    background: isSelected ? 'var(--sage-xlight)' : 'transparent',
-                    borderLeft: isSelected ? '3px solid var(--sage-dark)' : '3px solid transparent',
-                  }}
-                  onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = 'var(--sage-xlight)'; }}
-                  onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = 'transparent'; }}
-                >
-                  <div
-                    style={{
-                      width: '34px',
-                      height: '34px',
-                      borderRadius: '50%',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '11px',
-                      fontWeight: 700,
-                      flexShrink: 0,
-                      background: 'var(--sage-xlight)',
-                      color: 'var(--sage-dark)',
-                    }}
+          )}
+        </div>
+
+        {/* Lista */}
+        <div style={{ flex: 1, overflowY: 'auto' }}>
+          {viewMode === 'todos' ? (
+            /* ── Lista de pacientes (Todos) ── */
+            loading ? (
+              <div style={{ padding: '20px', textAlign: 'center', fontSize: '12.5px', color: 'var(--muted)' }}>Carregando...</div>
+            ) : leadsFiltrados.length === 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', padding: '24px', gap: '10px' }}>
+                <div style={{ width: '44px', height: '44px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--sage-xlight)' }}>
+                  <Users style={{ width: '18px', height: '18px', color: 'var(--sage-dark)' }} />
+                </div>
+                <p style={{ fontSize: '12px', textAlign: 'center', color: 'var(--muted)', fontStyle: 'italic' }}>
+                  {search ? 'Nenhum paciente encontrado' : 'Nenhum paciente ainda'}
+                </p>
+              </div>
+            ) : (
+              leadsFiltrados.map(lead => {
+                const isSelected = leadSelecionado?.id === lead.id;
+                return (
+                  <button
+                    key={lead.id}
+                    onClick={() => selecionarLead(lead)}
+                    className="w-full text-left"
+                    style={{ display: 'flex', alignItems: 'center', gap: '9px', padding: '10px 12px', borderBottom: '1px solid var(--border)', cursor: 'pointer', background: isSelected ? 'var(--sage-xlight)' : 'transparent', borderLeft: isSelected ? '3px solid var(--sage-dark)' : '3px solid transparent' }}
+                    onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = 'var(--sage-xlight)'; }}
+                    onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = 'transparent'; }}
                   >
-                    {getIniciais(lead.nome_lead)}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div
-                      style={{
-                        fontSize: '12.5px',
-                        fontWeight: 500,
-                        color: 'var(--ink)',
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                      }}
-                    >
-                      {lead.nome_lead || 'Sem nome'}
+                    <div style={{ width: '34px', height: '34px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 700, flexShrink: 0, background: 'var(--sage-xlight)', color: 'var(--sage-dark)' }}>
+                      {getIniciais(lead.nome_lead)}
                     </div>
-                    <div
-                      style={{
-                        fontSize: '11px',
-                        color: 'var(--muted)',
-                        marginTop: '1px',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {lead.procedimento_interesse || lead.whatsapp_lead || '—'}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: '12.5px', fontWeight: 500, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {lead.nome_lead || 'Sem nome'}
+                      </div>
+                      <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '1px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {lead.procedimento_interesse || lead.whatsapp_lead || '—'}
+                      </div>
                     </div>
+                  </button>
+                );
+              })
+            )
+          ) : (
+            /* ── Pacientes do Dia (Hoje) ── */
+            loadingHoje ? (
+              <div style={{ display: 'flex', justifyContent: 'center', padding: '32px' }}>
+                <Loader2 size={18} className="animate-spin" style={{ color: 'var(--muted)' }} />
+              </div>
+            ) : agendamentosHoje.length === 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', padding: '24px', gap: '10px' }}>
+                <div style={{ width: '44px', height: '44px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--sage-xlight)' }}>
+                  <Clock style={{ width: '18px', height: '18px', color: 'var(--sage-dark)' }} />
+                </div>
+                <p style={{ fontSize: '12px', textAlign: 'center', color: 'var(--muted)', fontStyle: 'italic' }}>Nenhum agendamento hoje</p>
+              </div>
+            ) : (
+              agendamentosHoje.map(ag => {
+                const lead = ag.leads;
+                const isSelected = leadSelecionado?.id === lead?.id;
+                const hora = ag.data_hora_inicio
+                  ? new Date(ag.data_hora_inicio).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+                  : '—';
+                const isPending = ['agendado', 'confirmado', 'reagendado'].includes(ag.status);
+                const isMarcando = marcandoId === ag.id;
+
+                const statusCfg: Record<string, { label: string; bg: string; color: string }> = {
+                  compareceu: { label: '✓ Compareceu', bg: 'var(--sage-xlight)',  color: 'var(--sage-dark)'  },
+                  faltou:     { label: '✗ Faltou',      bg: 'var(--rose-light)',  color: 'var(--rose-text)'  },
+                  agendado:   { label: 'Agendado',       bg: 'var(--champ-light)', color: 'var(--champ-text)' },
+                  confirmado: { label: 'Confirmado',     bg: 'var(--sage-xlight)', color: 'var(--sage-dark)'  },
+                  reagendado: { label: 'Reagendado',     bg: 'var(--champ-light)', color: 'var(--champ-text)' },
+                };
+                const badge = statusCfg[ag.status] || statusCfg.agendado;
+
+                return (
+                  <div
+                    key={ag.id}
+                    style={{ padding: '10px 12px', borderBottom: '1px solid var(--border)', background: isSelected ? 'var(--sage-xlight)' : 'transparent', borderLeft: isSelected ? '3px solid var(--sage-dark)' : '3px solid transparent', cursor: 'pointer' }}
+                    onClick={() => lead && selecionarLead(lead)}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '5px' }}>
+                      <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--sage-dark)', flexShrink: 0 }}>{hora}</span>
+                      <span style={{ fontSize: '12.5px', fontWeight: 500, color: 'var(--ink)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {lead?.nome_lead || 'Paciente'}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '10.5px', color: 'var(--muted)', marginBottom: '6px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {ag.procedimento_nome || ag.agendas?.nome || '—'}
+                    </div>
+                    {isPending ? (
+                      <div style={{ display: 'flex', gap: '5px' }} onClick={e => e.stopPropagation()}>
+                        <button
+                          disabled={isMarcando}
+                          onClick={() => marcarPresenca(ag.id, 'compareceu', lead)}
+                          style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px', padding: '4px 0', fontSize: '10.5px', fontWeight: 600, border: 'none', borderRadius: 'var(--r-xs)', background: 'var(--sage-xlight)', color: 'var(--sage-dark)', cursor: 'pointer', fontFamily: 'inherit', opacity: isMarcando ? 0.5 : 1 }}
+                        >
+                          {isMarcando ? <Loader2 size={10} className="animate-spin" /> : <Check style={{ width: '10px', height: '10px' }} />}
+                          Compareceu
+                        </button>
+                        <button
+                          disabled={isMarcando}
+                          onClick={() => marcarPresenca(ag.id, 'faltou', lead)}
+                          style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px', padding: '4px 0', fontSize: '10.5px', fontWeight: 600, border: 'none', borderRadius: 'var(--r-xs)', background: 'var(--rose-light)', color: 'var(--rose-text)', cursor: 'pointer', fontFamily: 'inherit', opacity: isMarcando ? 0.5 : 1 }}
+                        >
+                          <X style={{ width: '10px', height: '10px' }} />
+                          Faltou
+                        </button>
+                      </div>
+                    ) : (
+                      <span style={{ display: 'inline-flex', padding: '2px 8px', borderRadius: '20px', fontSize: '10px', fontWeight: 500, background: badge.bg, color: badge.color }}>
+                        {badge.label}
+                      </span>
+                    )}
                   </div>
-                </button>
-              );
-            })
+                );
+              })
+            )
           )}
         </div>
       </div>
@@ -526,7 +594,10 @@ export function Pacientes() {
                   <ComportamentoTab leadId={leadSelecionado.id} pacienteId={pacienteId} />
                 )}
                 {activeTab === 'profissional' && pacienteId && isAdmin && (
-                  <AnotacoesProfissionalTab
+                  <AnotacoesProfissionalTab pacienteId={pacienteId} />
+                )}
+                {activeTab === 'premium' && pacienteId && isAdmin && (
+                  <ExperienciaPremiumTab
                     pacienteId={pacienteId}
                     leadId={leadSelecionado?.id}
                     nomePaciente={leadSelecionado?.nome_lead}
@@ -536,6 +607,14 @@ export function Pacientes() {
             )}
           </div>
         </div>
+      )}
+
+      {showImportar && (
+        <ImportarPacientesModal
+          isOpen={showImportar}
+          onClose={() => setShowImportar(false)}
+          onSuccess={() => { setShowImportar(false); loadPacientes(); }}
+        />
       )}
     </div>
   );

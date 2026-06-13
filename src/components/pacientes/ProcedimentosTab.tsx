@@ -34,6 +34,9 @@ export function ProcedimentosTab({ pacienteId }: Props) {
 
   const [servicoId, setServicoId] = useState('');
   const [valor, setValor] = useState('');
+  const [descontoTipo, setDescontoTipo] = useState<'valor' | 'porcentagem'>('valor');
+  const [descontoValor, setDescontoValor] = useState('');
+  const [anotacao, setAnotacao] = useState('');
 
   useEffect(() => {
     if (!pacienteId) return;
@@ -59,26 +62,46 @@ export function ProcedimentosTab({ pacienteId }: Props) {
     else setValor('');
   };
 
+  const calcValorLiquido = () => {
+    const v = parseFloat(valor.replace(',', '.')) || 0;
+    const d = parseFloat(descontoValor.replace(',', '.')) || 0;
+    if (!descontoValor || d === 0) return v;
+    return descontoTipo === 'porcentagem' ? v * (1 - d / 100) : Math.max(0, v - d);
+  };
+
   const adicionar = async () => {
     if (!servicoId || !valor || !user) return;
     setAdicionando(true);
     const svc = servicos.find(s => s.id === servicoId);
+    const d = parseFloat(descontoValor.replace(',', '.')) || 0;
     await supabase.from('procedimentos_paciente').insert({
       paciente_id: pacienteId,
       servico_id: servicoId,
       nome_servico: svc?.nome || '',
       valor: parseFloat(valor.replace(',', '.')) || 0,
+      desconto_tipo: d > 0 ? descontoTipo : null,
+      desconto_valor: d > 0 ? d : null,
+      anotacao: anotacao.trim() || null,
       adicionado_por: user.id,
       adicionado_por_nome: user.nome || user.email || 'Usuário',
     });
     setServicoId('');
     setValor('');
+    setDescontoValor('');
+    setAnotacao('');
     setAdicionando(false);
     carregarDados();
   };
 
-  const total = procedimentos.reduce((acc, p) => acc + (parseFloat(p.valor) || 0), 0);
+  const valorLiquidoPreview = calcValorLiquido();
   const fmtBRL = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+  const totalLiquido = procedimentos.reduce((acc, p) => {
+    const v = parseFloat(p.valor) || 0;
+    const d = parseFloat(p.desconto_valor) || 0;
+    if (!d) return acc + v;
+    return acc + (p.desconto_tipo === 'porcentagem' ? v * (1 - d / 100) : Math.max(0, v - d));
+  }, 0);
 
   if (loading) {
     return (
@@ -123,6 +146,61 @@ export function ProcedimentosTab({ pacienteId }: Props) {
               />
             </div>
 
+            {/* Desconto */}
+            <div>
+              <label style={labelStyle}>Desconto (opcional)</label>
+              <div style={{ display: 'flex', gap: '6px' }}>
+                {/* Toggle tipo */}
+                <div style={{ display: 'flex', borderRadius: 'var(--r-xs)', border: '1px solid var(--border-md)', overflow: 'hidden', flexShrink: 0 }}>
+                  {(['valor', 'porcentagem'] as const).map(t => (
+                    <button
+                      key={t}
+                      onClick={() => setDescontoTipo(t)}
+                      style={{
+                        padding: '7px 10px',
+                        fontSize: '11px',
+                        fontWeight: 500,
+                        fontFamily: 'inherit',
+                        cursor: 'pointer',
+                        border: 'none',
+                        background: descontoTipo === t ? 'var(--sage-dark)' : 'transparent',
+                        color: descontoTipo === t ? 'white' : 'var(--muted)',
+                        transition: 'background 0.12s',
+                      }}
+                    >
+                      {t === 'valor' ? 'R$' : '%'}
+                    </button>
+                  ))}
+                </div>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={descontoValor}
+                  onChange={e => setDescontoValor(e.target.value)}
+                  placeholder={descontoTipo === 'porcentagem' ? 'Ex: 10' : 'Ex: 50,00'}
+                  style={{ ...inputStyle, flex: 1 }}
+                />
+              </div>
+              {/* Preview do valor líquido */}
+              {valor && descontoValor && parseFloat(descontoValor) > 0 && (
+                <div style={{ marginTop: '4px', fontSize: '11px', color: 'var(--sage-dark)', fontWeight: 500 }}>
+                  Valor líquido: {fmtBRL(valorLiquidoPreview)}
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label style={labelStyle}>Anotação (opcional)</label>
+              <textarea
+                value={anotacao}
+                onChange={e => setAnotacao(e.target.value)}
+                placeholder="Descreva o procedimento realizado..."
+                rows={3}
+                style={{ ...inputStyle, resize: 'none', lineHeight: 1.5 }}
+              />
+            </div>
+
             <button
               onClick={adicionar}
               disabled={!servicoId || !valor || adicionando}
@@ -149,33 +227,65 @@ export function ProcedimentosTab({ pacienteId }: Props) {
           {procedimentos.length === 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 16px', gap: '10px', textAlign: 'center' }}>
               <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--sage-xlight)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Stethoscope size={16} style={{ color: 'var(--sage)' }} />
+                <Stethoscope size={16} style={{ color: 'var(--sage-dark)' }} />
               </div>
               <p style={{ fontSize: '12px', color: 'var(--muted)' }}>Nenhum procedimento adicionado</p>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {procedimentos.map(p => (
-                <div key={p.id} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-xs)', padding: '10px 13px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '12.5px', fontWeight: 500, color: 'var(--ink)' }}>{p.nome_servico}</div>
-                    <div style={{ fontSize: '10.5px', color: 'var(--muted)', marginTop: '2px' }}>
-                      {format(new Date(p.created_at), 'dd/MM/yyyy', { locale: ptBR })} · {p.adicionado_por_nome}
+              {procedimentos.map(p => {
+                const v = parseFloat(p.valor) || 0;
+                const d = parseFloat(p.desconto_valor) || 0;
+                const liquido = d > 0
+                  ? (p.desconto_tipo === 'porcentagem' ? v * (1 - d / 100) : Math.max(0, v - d))
+                  : v;
+                const temDesconto = d > 0;
+
+                return (
+                  <div key={p.id} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-xs)', padding: '10px 13px' }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '12.5px', fontWeight: 500, color: 'var(--ink)' }}>{p.nome_servico}</div>
+                        <div style={{ fontSize: '10.5px', color: 'var(--muted)', marginTop: '2px' }}>
+                          {format(new Date(p.created_at), 'dd/MM/yyyy', { locale: ptBR })} · {p.adicionado_por_nome}
+                        </div>
+                        {p.anotacao && (
+                          <div style={{ fontSize: '11.5px', color: 'var(--ink)', marginTop: '5px', lineHeight: 1.5, borderTop: '1px solid var(--border)', paddingTop: '5px' }}>
+                            {p.anotacao}
+                          </div>
+                        )}
+                      </div>
+                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                        {temDesconto ? (
+                          <>
+                            <div style={{ fontSize: '10.5px', color: 'var(--muted)', textDecoration: 'line-through' }}>
+                              {fmtBRL(v)}
+                            </div>
+                            <div style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--sage-dark)' }}>
+                              {fmtBRL(liquido)}
+                            </div>
+                            <div style={{ fontSize: '9.5px', color: 'var(--champ-text)', background: 'var(--champ-light)', padding: '1px 6px', borderRadius: '10px', marginTop: '2px' }}>
+                              {p.desconto_tipo === 'porcentagem' ? `${d}% off` : `- ${fmtBRL(d)}`}
+                            </div>
+                          </>
+                        ) : (
+                          <div style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--sage-dark)' }}>
+                            {fmtBRL(v)}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
-                  <span style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--sage-dark)', flexShrink: 0 }}>
-                    {fmtBRL(parseFloat(p.valor))}
-                  </span>
-                </div>
-              ))}
+                );
+              })}
 
               {/* Total */}
               <div style={{ background: 'var(--sage-dark)', borderRadius: 'var(--r-xs)', padding: '10px 13px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '4px' }}>
                 <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
-                  Total gasto
+                  Total líquido
                 </span>
                 <span className="font-display" style={{ fontSize: '20px', fontWeight: 300, color: 'white' }}>
-                  {fmtBRL(total)}
+                  {fmtBRL(totalLiquido)}
                 </span>
               </div>
             </div>

@@ -29,17 +29,6 @@
 
 ## SUPABASE (requer acesso ao painel)
 
-- [ ] **RLS em `clinic_config`: bloquear colunas sensíveis para roles não-admin**
-  - Colunas: `meta_access_token`, `evolution_api_key`, `meta_webhook_verify_token`
-  - Usuários com role `atendente` não devem conseguir ler essas colunas mesmo via anon key
-
-- [ ] **RLS em `anotacoes_paciente`: bloquear `tipo='profissional'` para role `atendente`**
-  - Anotações profissionais devem ser visíveis apenas para `admin` e `medico`
-  - Atualmente a restrição existe apenas na UI, não no banco
-
-- [ ] **Verificar constraint em `anotacoes_paciente.tipo`**
-  - Se houver `CHECK constraint` nos valores aceitos pelo campo `tipo`, adicionar `'resumo_consulta'` como valor válido
-  - Sem isso, a feature "Resumo da Consulta" pode falhar silenciosamente no insert
 
 ---
 
@@ -74,6 +63,8 @@
 
 ## CONCLUÍDO (referência)
 
+- [x] RLS em `clinic_config`: apenas admin pode ler/escrever (bloqueia `meta_access_token`, `evolution_api_key`, `meta_webhook_verify_token` para outros roles)
+- [x] Tabela `anotacoes_paciente` criada no Supabase com RLS completo (SELECT/INSERT/UPDATE/DELETE) e CHECK constraint para tipos `geral`, `profissional`, `resumo_consulta`
 - [x] Aba Usuários em Configurações: `loadUsers()` implementada via RPC `get_team_members`, lista membros com badge de role e link para Equipe
 - [x] Dashboard faturamento: filtro de período já aplicado corretamente na query `procedimentos_paciente`
 - [x] Edge Function `agendamentos` restaurada (arquivo estava acidentalmente na raiz do projeto)
