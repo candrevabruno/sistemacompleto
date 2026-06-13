@@ -6,7 +6,7 @@ import { Input } from '../components/ui/Input';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Modal } from '../components/ui/Modal';
-import { Copy, Plus, Trash2, PowerOff, Pencil, CheckCircle, AlertCircle } from 'lucide-react';
+import { Copy, Plus, Trash2, PowerOff, Pencil, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 
 // For simplicity in this giant file, we will put everything here.
 export function Configuracoes() {
@@ -19,6 +19,7 @@ export function Configuracoes() {
     { id: 'usuarios', label: 'Usuários' },
     { id: 'kanban', label: 'Kanban' },
     { id: 'whatsapp', label: 'WhatsApp' },
+    { id: 'kpis', label: 'KPIs & Marketing' },
   ];
 
   return (
@@ -41,6 +42,7 @@ export function Configuracoes() {
         {activeTab === 'usuarios' && <AbaUsuarios />}
         {activeTab === 'kanban' && <AbaKanban />}
         {activeTab === 'whatsapp' && <AbaWhatsApp />}
+        {activeTab === 'kpis' && <AbaKpis />}
       </div>
     </div>
   );
@@ -1003,6 +1005,267 @@ function AbaWhatsApp() {
           </span>
         )}
       </div>
+    </div>
+  );
+}
+
+// ── AbaKpis ───────────────────────────────────────────────────────────────────
+
+const PILAR_LABEL: Record<string, string> = {
+  operacional: 'Pilar Operacional',
+  comercial:   'Pilar Comercial',
+  experiencia: 'Pilar Experiência',
+};
+
+function KpiToggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onChange(!on)}
+      style={{
+        width: '34px', height: '18px', borderRadius: '9px',
+        background: on ? 'var(--sage-dark)' : 'var(--border-md)',
+        border: 'none', cursor: 'pointer', position: 'relative', flexShrink: 0,
+        transition: 'background 0.15s',
+      }}
+    >
+      <div style={{
+        position: 'absolute', top: '2px', left: on ? '18px' : '2px',
+        width: '14px', height: '14px', borderRadius: '50%', background: 'white',
+        transition: 'left 0.15s', boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
+      }} />
+    </button>
+  );
+}
+
+function AbaKpis() {
+  const [loadingKpis, setLoadingKpis]   = useState(true);
+  const [catalog, setCatalog]           = useState<any[]>([]);
+  const [selection, setSelection]       = useState<Record<string, boolean>>({});
+  const [investimentos, setInvestimentos] = useState<any[]>([]);
+  const [novInv, setNovInv]             = useState({ inicio: '', fim: '', valor: '', canal: '' });
+  const [salvandoInv, setSalvandoInv]   = useState(false);
+
+  useEffect(() => {
+    carregarKpis();
+    carregarInvestimentos();
+  }, []);
+
+  const carregarKpis = async () => {
+    setLoadingKpis(true);
+    const [catReq, selReq] = await Promise.all([
+      supabase.from('kpi_catalog').select('*').order('ordem'),
+      supabase.from('clinic_kpi_selection').select('*'),
+    ]);
+    if (catReq.data) setCatalog(catReq.data);
+    const sel: Record<string, boolean> = {};
+    (selReq.data || []).forEach((r: any) => { sel[r.kpi_codigo] = r.ativo; });
+    setSelection(sel);
+    setLoadingKpis(false);
+  };
+
+  const carregarInvestimentos = async () => {
+    const { data } = await supabase
+      .from('marketing_investimento')
+      .select('*')
+      .order('periodo_inicio', { ascending: false });
+    if (data) setInvestimentos(data);
+  };
+
+  const toggleKpi = async (codigo: string, ativo: boolean) => {
+    setSelection(prev => ({ ...prev, [codigo]: ativo }));
+    await supabase
+      .from('clinic_kpi_selection')
+      .upsert({ kpi_codigo: codigo, ativo, updated_at: new Date().toISOString() }, { onConflict: 'kpi_codigo' });
+  };
+
+  const adicionarInvestimento = async () => {
+    if (!novInv.inicio || !novInv.fim || !novInv.valor) return;
+    setSalvandoInv(true);
+    const { data } = await supabase
+      .from('marketing_investimento')
+      .insert({ periodo_inicio: novInv.inicio, periodo_fim: novInv.fim, valor: parseFloat(novInv.valor), canal: novInv.canal || null })
+      .select()
+      .single();
+    if (data) setInvestimentos(prev => [data, ...prev]);
+    setNovInv({ inicio: '', fim: '', valor: '', canal: '' });
+    setSalvandoInv(false);
+  };
+
+  const excluirInvestimento = async (id: string) => {
+    await supabase.from('marketing_investimento').delete().eq('id', id);
+    setInvestimentos(prev => prev.filter(i => i.id !== id));
+  };
+
+  if (loadingKpis) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--muted)' }} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* ── Seleção de KPIs ── */}
+      <Card>
+        <CardHeader>
+          <CardTitle>KPIs ativos no dashboard</CardTitle>
+          <p className="text-sm mt-1" style={{ color: 'var(--muted)' }}>
+            Ligue/desligue cada métrica. KPIs "aguardando dados" aparecem no dashboard mas sem valor até a fonte estar disponível.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {['operacional', 'comercial', 'experiencia'].map(pilar => {
+            const kpis = catalog.filter((k: any) => k.pilar === pilar);
+            return (
+              <div key={pilar}>
+                <div style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.7px', color: 'var(--muted)', paddingBottom: '8px', borderBottom: '1px solid var(--border)', marginBottom: '4px' }}>
+                  {PILAR_LABEL[pilar]}
+                </div>
+                {kpis.map((kpi: any) => (
+                  <div
+                    key={kpi.codigo}
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      padding: '8px 10px', borderRadius: 'var(--r-xs)', gap: '12px',
+                      background: selection[kpi.codigo] ? 'var(--sage-xlight)' : 'transparent',
+                    }}
+                  >
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '7px', flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--ink)' }}>{kpi.nome}</span>
+                        {kpi.fonte === 'aguardando' && (
+                          <span style={{ fontSize: '9.5px', padding: '1px 6px', background: 'var(--champ-light)', color: 'var(--champ-text)', borderRadius: '4px', fontWeight: 600 }}>
+                            aguardando dados
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '1px' }}>{kpi.descricao}</div>
+                    </div>
+                    <KpiToggle on={!!selection[kpi.codigo]} onChange={v => toggleKpi(kpi.codigo, v)} />
+                  </div>
+                ))}
+              </div>
+            );
+          })}
+        </CardContent>
+      </Card>
+
+      {/* ── Investimento em Marketing ── */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Investimento em Marketing</CardTitle>
+          <p className="text-sm mt-1" style={{ color: 'var(--muted)' }}>
+            Registre o investimento por período para calcular CAC, CPL e ROAS quando os dados de conversão estiverem disponíveis.
+          </p>
+        </CardHeader>
+        <CardContent>
+          {/* Formulário */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '10px', marginBottom: '14px', alignItems: 'end' }}>
+            <div>
+              <label style={{ fontSize: '11px', fontWeight: 500, color: 'var(--muted)', display: 'block', marginBottom: '4px' }}>Início do período</label>
+              <input
+                type="date"
+                value={novInv.inicio}
+                onChange={e => setNovInv(p => ({ ...p, inicio: e.target.value }))}
+                style={{ width: '100%', padding: '7px 10px', fontSize: '12.5px', border: '1px solid var(--border-md)', borderRadius: 'var(--r-xs)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'inherit' }}
+              />
+            </div>
+            <div>
+              <label style={{ fontSize: '11px', fontWeight: 500, color: 'var(--muted)', display: 'block', marginBottom: '4px' }}>Fim do período</label>
+              <input
+                type="date"
+                value={novInv.fim}
+                onChange={e => setNovInv(p => ({ ...p, fim: e.target.value }))}
+                style={{ width: '100%', padding: '7px 10px', fontSize: '12.5px', border: '1px solid var(--border-md)', borderRadius: 'var(--r-xs)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'inherit' }}
+              />
+            </div>
+            <div>
+              <label style={{ fontSize: '11px', fontWeight: 500, color: 'var(--muted)', display: 'block', marginBottom: '4px' }}>Valor (R$)</label>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="0,00"
+                value={novInv.valor}
+                onChange={e => setNovInv(p => ({ ...p, valor: e.target.value }))}
+                style={{ width: '100%', padding: '7px 10px', fontSize: '12.5px', border: '1px solid var(--border-md)', borderRadius: 'var(--r-xs)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'inherit' }}
+              />
+            </div>
+            <div>
+              <label style={{ fontSize: '11px', fontWeight: 500, color: 'var(--muted)', display: 'block', marginBottom: '4px' }}>Canal (opcional)</label>
+              <input
+                type="text"
+                placeholder="Ex: Meta Ads"
+                value={novInv.canal}
+                onChange={e => setNovInv(p => ({ ...p, canal: e.target.value }))}
+                style={{ width: '100%', padding: '7px 10px', fontSize: '12.5px', border: '1px solid var(--border-md)', borderRadius: 'var(--r-xs)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'inherit' }}
+              />
+            </div>
+            <button
+              onClick={adicionarInvestimento}
+              disabled={salvandoInv || !novInv.inicio || !novInv.fim || !novInv.valor}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                padding: '7px 14px', fontSize: '12.5px', fontWeight: 600,
+                background: 'var(--sage-dark)', color: 'white', border: 'none',
+                borderRadius: 'var(--r-xs)', cursor: 'pointer', fontFamily: 'inherit',
+                opacity: (salvandoInv || !novInv.inicio || !novInv.fim || !novInv.valor) ? 0.5 : 1,
+              }}
+            >
+              {salvandoInv ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}
+              Adicionar
+            </button>
+          </div>
+
+          {/* Tabela de registros */}
+          {investimentos.length > 0 && (
+            <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--r-xs)', overflow: 'hidden' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ background: 'var(--bg)' }}>
+                    {['Período', 'Valor', 'Canal', ''].map(h => (
+                      <th key={h} style={{ padding: '8px 12px', fontSize: '9.5px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--muted)', textAlign: 'left', borderBottom: '1px solid var(--border)' }}>
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {investimentos.map((inv: any) => (
+                    <tr key={inv.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                      <td style={{ padding: '8px 12px', fontSize: '12px', color: 'var(--ink)' }}>
+                        {inv.periodo_inicio} → {inv.periodo_fim}
+                      </td>
+                      <td style={{ padding: '8px 12px', fontSize: '12px', fontWeight: 600, color: 'var(--ink)' }}>
+                        {parseFloat(inv.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                      </td>
+                      <td style={{ padding: '8px 12px', fontSize: '12px', color: 'var(--muted)' }}>
+                        {inv.canal || '—'}
+                      </td>
+                      <td style={{ padding: '8px 12px', textAlign: 'right' }}>
+                        <button
+                          onClick={() => excluirInvestimento(inv.id)}
+                          style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--muted)', padding: '2px', lineHeight: 1 }}
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {investimentos.length === 0 && (
+            <div style={{ padding: '24px', textAlign: 'center', color: 'var(--muted)', fontSize: '12.5px', fontStyle: 'italic' }}>
+              Nenhum investimento registrado ainda.
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

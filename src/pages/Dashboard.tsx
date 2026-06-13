@@ -15,6 +15,7 @@ import {
 import { toPng } from 'html-to-image';
 import { jsPDF } from 'jspdf';
 import { Clock, FileDown, Loader2 } from 'lucide-react';
+import { KpiPainel } from '../components/dashboard/KpiPainel';
 
 type DateFilter = 'ontem' | 'hoje' | '7dias' | '14dias' | 'mes' | 'ano' | 'custom';
 
@@ -536,6 +537,9 @@ export function Dashboard() {
           </div>
         </>
       )}
+
+      {/* ── KPIs Clínicos ── */}
+      <KpiPainel dateRange={dateRange} />
     </div>
   );
 }
