@@ -1,31 +1,23 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import { Loader2, Check, PenLine } from 'lucide-react';
+import { Loader2, Check, PenLine, History } from 'lucide-react';
+import { HistoricoModal, type HistItem } from './HistoricoModal';
 
 interface Props {
   pacienteId: string;
   tipo: 'geral' | 'profissional';
 }
 
-interface Anotacao {
-  id: string;
-  conteudo: string;
-  autor_nome: string;
-  editado_em: string | null;
-  created_at: string;
-}
-
 export function PainelAnotacoes({ pacienteId, tipo }: Props) {
   const { user } = useAuth();
-  const [anotacoes, setAnotacoes] = useState<Anotacao[]>([]);
+  const [anotacoes, setAnotacoes] = useState<HistItem[]>([]);
   const [texto, setTexto] = useState('');
-  const [editandoId, setEditandoId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [salvando, setSalvando] = useState(false);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [showHist, setShowHist] = useState(false);
 
   useEffect(() => {
     if (!pacienteId) return;
@@ -44,64 +36,59 @@ export function PainelAnotacoes({ pacienteId, tipo }: Props) {
     setLoading(false);
   };
 
+  // Cada save vira SEMPRE um item novo (nunca sobrescreve).
   const salvar = async () => {
     if (!texto.trim() || !user) return;
     setSalvando(true);
-
-    if (editandoId) {
-      await supabase
-        .from('anotacoes_paciente')
-        .update({
-          conteudo: texto.trim(),
-          editado_em: new Date().toISOString(),
-          editado_por: user.id,
-        })
-        .eq('id', editandoId);
-    } else {
-      await supabase
-        .from('anotacoes_paciente')
-        .insert({
-          paciente_id: pacienteId,
-          autor_id: user.id,
-          autor_nome: user.nome || user.email || 'Usuário',
-          tipo,
-          conteudo: texto.trim(),
-        });
-    }
-
+    await supabase.from('anotacoes_paciente').insert({
+      paciente_id: pacienteId,
+      autor_id: user.id,
+      autor_nome: user.nome || user.email || 'Usuário',
+      tipo,
+      conteudo: texto.trim(),
+    });
     setTexto('');
-    setEditandoId(null);
     setSalvando(false);
     carregarAnotacoes();
   };
 
-  const editarAnotacao = (a: Anotacao) => {
-    setTexto(a.conteudo);
-    setEditandoId(a.id);
-    setTimeout(() => textareaRef.current?.focus(), 50);
+  // Log de auditoria só para anotações do profissional (peso clínico/legal).
+  const registrarAudit = async (action: string, detalhes: Record<string, unknown>) => {
+    if (tipo !== 'profissional' || !user) return;
+    await supabase.from('audit_log').insert({
+      user_id: user.id,
+      action,
+      record_id: pacienteId,
+      detalhes,
+    });
   };
 
-  const cancelarEdicao = () => {
-    setTexto('');
-    setEditandoId(null);
+  const onEditar = async (id: string, conteudo: string) => {
+    const anterior = anotacoes.find(a => a.id === id)?.conteudo ?? null;
+    await supabase.from('anotacoes_paciente').update({
+      conteudo,
+      editado_em: new Date().toISOString(),
+      editado_por: user?.id,
+    }).eq('id', id);
+    await registrarAudit('anotacao_profissional_editada', { anotacao_id: id, valor_anterior: anterior, valor_novo: conteudo });
+    await carregarAnotacoes();
+  };
+
+  const onApagar = async (id: string) => {
+    const anterior = anotacoes.find(a => a.id === id)?.conteudo ?? null;
+    await supabase.from('anotacoes_paciente').delete().eq('id', id);
+    await registrarAudit('anotacao_profissional_apagada', { anotacao_id: id, valor_anterior: anterior });
+    await carregarAnotacoes();
   };
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-      {/* Esquerda — formulário */}
+      {/* Esquerda — nova anotação */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: '9.5px', fontWeight: 600, letterSpacing: '0.8px', textTransform: 'uppercase', color: 'var(--muted)' }}>
-            {editandoId ? 'Editar anotação' : 'Nova anotação'}
-          </span>
-          {editandoId && (
-            <button onClick={cancelarEdicao} style={{ fontSize: '10px', color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', fontFamily: 'inherit' }}>
-              cancelar edição
-            </button>
-          )}
-        </div>
+        <span style={{ fontSize: '9.5px', fontWeight: 600, letterSpacing: '0.8px', textTransform: 'uppercase', color: 'var(--muted)' }}>
+          Nova anotação
+        </span>
         <textarea
-          ref={textareaRef}
           value={texto}
           onChange={e => setTexto(e.target.value)}
           placeholder={tipo === 'profissional' ? 'Anotação clínica privada...' : 'Digite uma nova anotação...'}
@@ -113,45 +100,65 @@ export function PainelAnotacoes({ pacienteId, tipo }: Props) {
           disabled={!texto.trim() || salvando}
           style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--sage-dark)', color: 'white', border: 'none', borderRadius: 'var(--r-xs)', padding: '7px 13px', fontSize: '12px', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit', alignSelf: 'flex-start', opacity: (!texto.trim() || salvando) ? 0.5 : 1 }}>
           {salvando ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
-          {editandoId ? 'Salvar alterações' : 'Salvar anotação'}
+          Salvar anotação
         </button>
       </div>
 
-      {/* Direita — lista */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '280px', overflowY: 'auto' }}>
-        {loading ? (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '32px' }}>
-            <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--muted)' }} />
-          </div>
-        ) : anotacoes.length === 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 16px', gap: '10px' }}>
-            <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--sage-xlight)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <PenLine size={16} style={{ color: 'var(--sage)' }} />
+      {/* Direita — registros recentes + ver histórico */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span style={{ fontSize: '9.5px', fontWeight: 600, letterSpacing: '0.8px', textTransform: 'uppercase', color: 'var(--muted)' }}>
+            Registros ({anotacoes.length})
+          </span>
+          {anotacoes.length > 0 && (
+            <button
+              onClick={() => setShowHist(true)}
+              style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11px', fontWeight: 500, color: 'var(--sage-dark)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+            >
+              <History size={13} /> Ver histórico
+            </button>
+          )}
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '280px', overflowY: 'auto' }}>
+          {loading ? (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '32px' }}>
+              <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--muted)' }} />
             </div>
-            <p style={{ fontSize: '12px', color: 'var(--muted)' }}>Nenhuma anotação ainda</p>
-          </div>
-        ) : anotacoes.map(a => (
-          <button
-            key={a.id}
-            onClick={() => editarAnotacao(a)}
-            style={{ background: 'var(--bg)', border: `1px solid ${editandoId === a.id ? 'var(--sage-dark)' : 'var(--border)'}`, borderRadius: 'var(--r-xs)', padding: '10px 12px', cursor: 'pointer', textAlign: 'left', width: '100%', fontFamily: 'inherit' }}>
-            <div style={{ fontSize: '12px', color: 'var(--ink)', lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-              {a.conteudo}
+          ) : anotacoes.length === 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 16px', gap: '10px' }}>
+              <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--sage-xlight)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <PenLine size={16} style={{ color: 'var(--sage)' }} />
+              </div>
+              <p style={{ fontSize: '12px', color: 'var(--muted)' }}>Nenhuma anotação ainda</p>
             </div>
-            <div style={{ fontSize: '10px', color: 'var(--muted)', marginTop: '5px', display: 'flex', justifyContent: 'space-between', gap: '8px' }}>
-              <span>{a.autor_nome}</span>
-              <span style={{ textAlign: 'right' }}>
-                {format(new Date(a.created_at), "dd/MM/yyyy '·' HH:mm", { locale: ptBR })}
-                {a.editado_em && (
-                  <span style={{ display: 'block', fontSize: '9px', opacity: 0.7 }}>
-                    editado {format(new Date(a.editado_em), 'dd/MM HH:mm', { locale: ptBR })}
-                  </span>
-                )}
-              </span>
+          ) : anotacoes.map(a => (
+            <div
+              key={a.id}
+              style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r-xs)', padding: '10px 12px' }}>
+              <div style={{ fontSize: '12px', color: 'var(--ink)', lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                {a.conteudo}
+              </div>
+              <div style={{ fontSize: '10px', color: 'var(--muted)', marginTop: '5px', display: 'flex', justifyContent: 'space-between', gap: '8px' }}>
+                <span>{a.autor_nome}</span>
+                <span style={{ textAlign: 'right' }}>
+                  {format(new Date(a.created_at), "dd/MM/yyyy '·' HH:mm", { locale: ptBR })}
+                  {a.editado_em && <span style={{ display: 'block', fontSize: '9px', opacity: 0.7 }}>editado</span>}
+                </span>
+              </div>
             </div>
-          </button>
-        ))}
+          ))}
+        </div>
       </div>
+
+      <HistoricoModal
+        open={showHist}
+        onClose={() => setShowHist(false)}
+        titulo={tipo === 'profissional' ? 'Histórico — Anotações do profissional' : 'Histórico de anotações'}
+        itens={anotacoes}
+        onEditar={onEditar}
+        onApagar={onApagar}
+      />
     </div>
   );
 }

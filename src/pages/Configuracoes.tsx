@@ -949,7 +949,7 @@ function AbaWhatsApp() {
             </button>
           </div>
           <p className="text-sm text-[var(--muted)] mt-1">
-            Quando a médica salvar o resumo pós-consulta no perfil do paciente, este webhook é disparado para o n8n. A IA lê o resumo e envia a mensagem ao paciente via WhatsApp.
+            Quando o profissional autorizado salvar o resumo pós-consulta no perfil do paciente, este webhook é disparado para o n8n. A IA lê o resumo e envia a mensagem ao paciente via WhatsApp.
           </p>
         </CardHeader>
         <CardContent>

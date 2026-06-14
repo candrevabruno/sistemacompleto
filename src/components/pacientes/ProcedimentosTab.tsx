@@ -3,7 +3,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import { Loader2, Stethoscope, Plus, History } from 'lucide-react';
+import { Loader2, Stethoscope, Plus, History, Pencil, Trash2, X } from 'lucide-react';
 
 interface Props {
   pacienteId: string;
@@ -37,6 +37,8 @@ export function ProcedimentosTab({ pacienteId }: Props) {
   const [descontoTipo, setDescontoTipo] = useState<'valor' | 'porcentagem'>('valor');
   const [descontoValor, setDescontoValor] = useState('');
   const [anotacao, setAnotacao] = useState('');
+  const [editId, setEditId] = useState<string | null>(null);
+  const [confirmDel, setConfirmDel] = useState<string | null>(null);
 
   useEffect(() => {
     if (!pacienteId) return;
@@ -69,27 +71,52 @@ export function ProcedimentosTab({ pacienteId }: Props) {
     return descontoTipo === 'porcentagem' ? v * (1 - d / 100) : Math.max(0, v - d);
   };
 
+  const limparForm = () => {
+    setServicoId(''); setValor(''); setDescontoValor(''); setAnotacao(''); setEditId(null);
+  };
+
   const adicionar = async () => {
     if (!servicoId || !valor || !user) return;
     setAdicionando(true);
     const svc = servicos.find(s => s.id === servicoId);
     const d = parseFloat(descontoValor.replace(',', '.')) || 0;
-    await supabase.from('procedimentos_paciente').insert({
-      paciente_id: pacienteId,
+    const payload = {
       servico_id: servicoId,
       nome_servico: svc?.nome || '',
       valor: parseFloat(valor.replace(',', '.')) || 0,
       desconto_tipo: d > 0 ? descontoTipo : null,
       desconto_valor: d > 0 ? d : null,
       anotacao: anotacao.trim() || null,
-      adicionado_por: user.id,
-      adicionado_por_nome: user.nome || user.email || 'Usuário',
-    });
-    setServicoId('');
-    setValor('');
-    setDescontoValor('');
-    setAnotacao('');
+    };
+    if (editId) {
+      await supabase.from('procedimentos_paciente').update(payload).eq('id', editId);
+    } else {
+      await supabase.from('procedimentos_paciente').insert({
+        ...payload,
+        paciente_id: pacienteId,
+        adicionado_por: user.id,
+        adicionado_por_nome: user.nome || user.email || 'Usuário',
+      });
+    }
+    limparForm();
     setAdicionando(false);
+    carregarDados();
+  };
+
+  const editarProc = (p: any) => {
+    setEditId(p.id);
+    setServicoId(p.servico_id || '');
+    setValor(p.valor != null ? String(p.valor) : '');
+    setDescontoTipo(p.desconto_tipo === 'porcentagem' ? 'porcentagem' : 'valor');
+    setDescontoValor(p.desconto_valor != null ? String(p.desconto_valor) : '');
+    setAnotacao(p.anotacao || '');
+    setConfirmDel(null);
+  };
+
+  const apagarProc = async (id: string) => {
+    await supabase.from('procedimentos_paciente').delete().eq('id', id);
+    if (editId === id) limparForm();
+    setConfirmDel(null);
     carregarDados();
   };
 
@@ -201,20 +228,30 @@ export function ProcedimentosTab({ pacienteId }: Props) {
               />
             </div>
 
-            <button
-              onClick={adicionar}
-              disabled={!servicoId || !valor || adicionando}
-              style={{
-                display: 'flex', alignItems: 'center', gap: '6px', alignSelf: 'flex-start',
-                background: 'var(--sage-dark)', color: 'white', border: 'none',
-                borderRadius: 'var(--r-xs)', padding: '8px 14px',
-                fontSize: '12px', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
-                opacity: (!servicoId || !valor || adicionando) ? 0.4 : 1,
-              }}
-            >
-              {adicionando ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}
-              Adicionar
-            </button>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <button
+                onClick={adicionar}
+                disabled={!servicoId || !valor || adicionando}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '6px',
+                  background: 'var(--sage-dark)', color: 'white', border: 'none',
+                  borderRadius: 'var(--r-xs)', padding: '8px 14px',
+                  fontSize: '12px', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
+                  opacity: (!servicoId || !valor || adicionando) ? 0.4 : 1,
+                }}
+              >
+                {adicionando ? <Loader2 size={13} className="animate-spin" /> : editId ? <Pencil size={13} /> : <Plus size={13} />}
+                {editId ? 'Salvar alterações' : 'Adicionar'}
+              </button>
+              {editId && (
+                <button
+                  onClick={limparForm}
+                  style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '11px', color: 'var(--muted)' }}
+                >
+                  <X size={13} /> cancelar edição
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -274,6 +311,21 @@ export function ProcedimentosTab({ pacienteId }: Props) {
                           </div>
                         )}
                       </div>
+                    </div>
+                    {/* Ações: editar / apagar */}
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '4px', marginTop: '8px', borderTop: '1px solid var(--border)', paddingTop: '7px' }}>
+                      {confirmDel === p.id ? (
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span style={{ fontSize: '11px', color: 'var(--rose-text)' }}>Apagar este procedimento?</span>
+                          <button onClick={() => apagarProc(p.id)} style={{ fontSize: '11px', fontWeight: 500, padding: '2px 8px', borderRadius: '5px', border: 'none', cursor: 'pointer', background: 'var(--rose-light)', color: 'var(--rose-text)', fontFamily: 'inherit' }}>Sim</button>
+                          <button onClick={() => setConfirmDel(null)} style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '5px', border: 'none', cursor: 'pointer', background: 'none', color: 'var(--muted)', fontFamily: 'inherit' }}>Não</button>
+                        </span>
+                      ) : (
+                        <>
+                          <button onClick={() => editarProc(p)} title="Editar" style={{ padding: '3px', border: 'none', background: 'none', cursor: 'pointer', color: 'var(--muted)' }}><Pencil size={13} /></button>
+                          <button onClick={() => setConfirmDel(p.id)} title="Apagar" style={{ padding: '3px', border: 'none', background: 'none', cursor: 'pointer', color: 'var(--muted)' }}><Trash2 size={13} /></button>
+                        </>
+                      )}
                     </div>
                   </div>
                 );
