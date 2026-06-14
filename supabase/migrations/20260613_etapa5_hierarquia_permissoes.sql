@@ -136,3 +136,19 @@ AS $$
 $$;
 
 GRANT EXECUTE ON FUNCTION public.get_team_members() TO authenticated;
+
+-- ── 7. Remove o trigger de auto-criação de usuário ────────────────────────────
+-- O trigger handle_new_user inseria role='user' (cargo antigo) em public.users a
+-- cada novo auth.user, o que: (a) viola o novo CHECK e dá rollback no signup
+-- OAuth, e (b) conflita com o provisionamento por convite feito no app
+-- (AuthContext.tryProvisionFromInvite). O app passa a controlar 100% da criação
+-- da linha em public.users (cargo + permissões vêm do convite).
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+
+-- Default da coluna alinhado ao novo modelo (caso algo ainda insira sem role).
+ALTER TABLE public.users ALTER COLUMN role SET DEFAULT 'membro';
+
+-- NOTA: com login Google + provisionamento por convite, o "Disable public
+-- signups" do Supabase NÃO pode ficar ligado (ele bloquearia até os convidados,
+-- que só nascem no 1º login). O invite-only é garantido pelo app: quem não tem
+-- convite cai na tela de "acesso restrito".
