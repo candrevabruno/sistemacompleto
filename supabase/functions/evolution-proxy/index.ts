@@ -27,7 +27,7 @@ serve(async (req) => {
     // Ler config da Evolution do banco
     const { data: config } = await supabase
       .from('clinic_config')
-      .select('evolution_server_url, evolution_instance, evolution_api_key')
+      .select('evolution_server_url, evolution_instance_name, evolution_api_key')
       .single();
 
     if (!config?.evolution_server_url || !config?.evolution_api_key) {
@@ -40,9 +40,9 @@ serve(async (req) => {
     let method = 'GET';
 
     if (action === 'connectionState') {
-      evoUrl = `${config.evolution_server_url}/instance/connectionState/${config.evolution_instance}`;
+      evoUrl = `${config.evolution_server_url}/instance/connectionState/${config.evolution_instance_name}`;
     } else if (action === 'connect') {
-      evoUrl = `${config.evolution_server_url}/instance/connect/${config.evolution_instance}`;
+      evoUrl = `${config.evolution_server_url}/instance/connect/${config.evolution_instance_name}`;
     } else {
       return new Response(JSON.stringify({ error: 'Ação inválida' }), { status: 400, headers: corsHeaders });
     }

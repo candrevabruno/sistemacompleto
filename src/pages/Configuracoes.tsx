@@ -6,7 +6,7 @@ import { Input } from '../components/ui/Input';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Modal } from '../components/ui/Modal';
-import { Copy, Plus, Trash2, PowerOff, Pencil, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { Copy, Plus, Trash2, Pencil, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 
 // For simplicity in this giant file, we will put everything here.
 export function Configuracoes() {
@@ -16,7 +16,6 @@ export function Configuracoes() {
     { id: 'geral', label: 'Geral' },
     { id: 'agendas', label: 'Agendas (Cal.com)' },
     { id: 'servicos', label: 'Serviços' },
-    { id: 'usuarios', label: 'Usuários' },
     { id: 'kanban', label: 'Kanban' },
     { id: 'whatsapp', label: 'WhatsApp' },
     { id: 'kpis', label: 'KPIs & Marketing' },
@@ -39,7 +38,6 @@ export function Configuracoes() {
         {activeTab === 'geral' && <AbaGeral />}
         {activeTab === 'agendas' && <AbaAgendas />}
         {activeTab === 'servicos' && <AbaServicos />}
-        {activeTab === 'usuarios' && <AbaUsuarios />}
         {activeTab === 'kanban' && <AbaKanban />}
         {activeTab === 'whatsapp' && <AbaWhatsApp />}
         {activeTab === 'kpis' && <AbaKpis />}
@@ -257,144 +255,64 @@ function AbaGeral() {
   );
 }
 
-const ROLE_LABEL: Record<string, string> = {
-  admin: 'Administrador',
-  atendente: 'Atendente',
-  profissional: 'Profissional',
-  user: 'Atendente',
-};
-
-const ROLE_STYLE: Record<string, React.CSSProperties> = {
-  admin:        { background: 'var(--rose-light)',  color: 'var(--rose-text)',  border: '1px solid rgba(139,68,68,0.15)' },
-  profissional: { background: 'var(--sage-xlight)', color: 'var(--sage-dark)',  border: '1px solid rgba(86,112,95,0.15)' },
-  atendente:    { background: 'var(--champ-light)', color: 'var(--champ-text)', border: '1px solid rgba(122,96,64,0.15)' },
-  user:         { background: 'var(--champ-light)', color: 'var(--champ-text)', border: '1px solid rgba(122,96,64,0.15)' },
-};
-
-function getIniciais(nome: string | null, email: string) {
-  const str = nome || email;
-  return str.split(/[\s@]/).map((p: string) => p[0]).slice(0, 2).join('').toUpperCase();
-}
-
-function AbaUsuarios() {
-  const [users, setUsers] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const loadUsers = async () => {
-    setLoading(true);
-    const { data } = await supabase.rpc('get_team_members');
-    if (data) setUsers(data);
-    setLoading(false);
-  };
-
-  useEffect(() => { loadUsers(); }, []);
-
-  return (
-    <Card>
-      <CardHeader>
-        <div className="flex justify-between items-center">
-          <div>
-            <CardTitle>Usuários da equipe</CardTitle>
-            <p className="text-sm text-[var(--muted)] mt-1">Membros com acesso ao sistema.</p>
-          </div>
-          <a href="/equipe">
-            <Button size="sm"><Plus className="w-4 h-4 mr-2"/> Gerenciar equipe</Button>
-          </a>
-        </div>
-      </CardHeader>
-      <CardContent>
-        {loading ? (
-          <p className="text-sm text-[var(--muted)] py-4">Carregando usuários...</p>
-        ) : users.length === 0 ? (
-          <p className="text-sm text-[var(--muted)] py-4">Nenhum usuário encontrado.</p>
-        ) : (
-          <div className="divide-y divide-[var(--border)]">
-            {users.map((u: any) => {
-              const roleStyle = ROLE_STYLE[u.role] || ROLE_STYLE.atendente;
-              return (
-                <div key={u.id} className="flex items-center gap-3 py-3">
-                  <div
-                    className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0"
-                    style={{ background: roleStyle.background, color: roleStyle.color }}
-                  >
-                    {getIniciais(u.nome, u.email)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-[var(--ink)] truncate">{u.nome || u.email}</p>
-                    {u.nome && <p className="text-xs text-[var(--muted)] truncate">{u.email}</p>}
-                  </div>
-                  <span
-                    className="text-[11px] font-medium px-2.5 py-0.5 rounded-full flex-shrink-0"
-                    style={roleStyle}
-                  >
-                    {ROLE_LABEL[u.role] || u.role}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        )}
-        <div className="pt-4 border-t border-[var(--border)] mt-2">
-          <p className="text-xs text-[var(--muted)]">
-            Para convidar novos membros ou alterar permissões, acesse a{' '}
-            <a href="/equipe" className="text-[var(--sage-dark)] underline font-medium">
-              página Equipe
-            </a>.
-          </p>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-
 function AbaKanban() {
+  // Pipeline unificado com Leads e CRM Kanban (ETAPA 4). Edição via código.
   const status = [
     { kanban: 'Iniciou o Atendimento', db: 'iniciou_atendimento' },
     { kanban: 'Conversando', db: 'conversando' },
+    { kanban: 'Follow Up', db: 'follow_up' },
     { kanban: 'Agendado', db: 'agendado' },
     { kanban: 'Reagendado', db: 'reagendado' },
-    { kanban: 'Converteu', db: 'converteu' },
+    { kanban: 'Faltou', db: 'faltou' },
     { kanban: 'Cancelou o Agendamento', db: 'cancelou_agendamento' },
-    { kanban: 'Follow Up', db: 'follow_up' },
+    { kanban: 'Não Converteu', db: 'nao_converteu' },
     { kanban: 'Abandonou a Conversa', db: 'abandonou_conversa' },
+    { kanban: 'Converteu', db: 'converteu' },
   ];
+
+  const [copiado, setCopiado] = useState<string | null>(null);
+  const copiar = (v: string) => {
+    navigator.clipboard.writeText(v);
+    setCopiado(v);
+    setTimeout(() => setCopiado(null), 1500);
+  };
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Referência do CRM</CardTitle>
-        <p className="text-sm text-[var(--muted)] mt-1">Use os valores abaixo para atualizar o status dos leads via N8N ou agente de IA.</p>
+        <CardTitle>Referência do CRM Kanban</CardTitle>
+        <p className="text-sm text-[var(--muted)] mt-1">
+          As colunas do Kanban são definidas em código (mesmo pipeline de Leads e CRM). Use os valores
+          abaixo para atualizar o status dos leads via n8n ou agente de IA.
+        </p>
       </CardHeader>
       <CardContent>
-        <table className="w-full text-left text-sm border border-[var(--border)] rounded-lg overflow-hidden">
-          <thead className="bg-[#FAF0EE] dark:bg-black/20">
-            <tr>
-              <th className="p-3">Coluna do Kanban</th>
-              <th className="p-3">Valor no banco</th>
-            </tr>
-          </thead>
-          <tbody>
-            {status.map((item, i) => (
-              <tr key={i} className="border-t border-[var(--border)]">
-                <td className="p-3"><Badge variant={item.db as any}>{item.kanban}</Badge></td>
-                <td className="p-3 font-mono text-xs flex items-center justify-between group">
-                  <span>{item.db}</span>
-                  <button 
-                    onClick={() => navigator.clipboard.writeText(item.db)}
-                    className="p-1 rounded text-[var(--muted)] hover:bg-[var(--border)] hover:text-[var(--sage-dark)] transition-colors opacity-0 group-hover:opacity-100"
-                    title="Copiar"
-                  >
-                    <Copy className="w-4 h-4" />
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <div className="bg-blue-50 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 p-3 mt-4 rounded text-sm flex items-start gap-2">
-          <span className="font-bold text-lg mt-0.5">•</span>
-          <p>Para atualizar o status de um lead via N8N, envie uma requisição ao Supabase atualizando o campo <code>status</code> da tabela <code>leads</code> com um dos valores acima.</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {status.map((item) => (
+            <div
+              key={item.db}
+              className="border border-[var(--border)] rounded-[12px] p-3.5 bg-[var(--bg)] flex flex-col gap-2.5"
+            >
+              <Badge variant={item.db as any}>{item.kanban}</Badge>
+              <button
+                onClick={() => copiar(item.db)}
+                className="group flex items-center justify-between gap-2 w-full rounded-[8px] border border-[var(--border)] bg-white px-2.5 py-1.5 transition-colors hover:border-[var(--sage-dark)]"
+                title="Copiar valor do banco"
+              >
+                <span className="font-mono text-xs text-[var(--ink)] truncate">{item.db}</span>
+                {copiado === item.db
+                  ? <CheckCircle className="w-3.5 h-3.5 shrink-0 text-[var(--sage-dark)]" />
+                  : <Copy className="w-3.5 h-3.5 shrink-0 text-[var(--muted)] group-hover:text-[var(--sage-dark)]" />}
+              </button>
+            </div>
+          ))}
+        </div>
+        <div className="mt-4 rounded-[8px] border border-[var(--border)] bg-[var(--sage-xlight)] p-3 text-sm text-[var(--sage-dark)] flex items-start gap-2">
+          <span className="font-bold text-lg leading-none mt-0.5">•</span>
+          <p>
+            Para mover um lead no Kanban via n8n, atualize o campo <code className="font-mono">status</code> da
+            tabela <code className="font-mono">leads</code> com um dos valores acima.
+          </p>
         </div>
       </CardContent>
     </Card>
@@ -548,6 +466,7 @@ function AbaServicos() {
   const [servicos, setServicos] = useState<any[]>([]);
   const [openNew, setOpenNew] = useState(false);
   const [nome, setNome] = useState('');
+  const [valor, setValor] = useState('');
   const [loading, setLoading] = useState(false);
 
   const loadServicos = async () => {
@@ -557,20 +476,22 @@ function AbaServicos() {
 
   useEffect(() => { loadServicos(); }, []);
 
+  const fecharModal = () => { setOpenNew(false); setNome(''); setValor(''); };
+
   const saveServico = async () => {
     if (!nome) return;
     setLoading(true);
-    
-    const { error } = await supabase.from('servicos').insert({ nome });
-    
+
+    const valorNum = valor ? parseFloat(valor.replace(',', '.')) : null;
+    const { error } = await supabase.from('servicos').insert({ nome, valor: valorNum });
+
     setLoading(false);
     if (error) {
       alert(`Erro: ${error.message}`);
       return;
     }
-    
-    setNome('');
-    setOpenNew(false);
+
+    fecharModal();
     loadServicos();
   };
 
@@ -595,10 +516,17 @@ function AbaServicos() {
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           {servicos.map(srv => (
             <div key={srv.id} className="border border-[var(--border)] rounded-[12px] p-4 flex justify-between items-center bg-[var(--bg)] group">
-              <span className="font-medium text-[var(--ink)] truncate pr-2">{srv.nome}</span>
-              <button 
-                onClick={() => deleteServico(srv.id)} 
-                className="p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors rounded opacity-0 group-hover:opacity-100" 
+              <div className="min-w-0 pr-2">
+                <span className="block font-medium text-[var(--ink)] truncate">{srv.nome}</span>
+                <span className="block text-xs mt-0.5" style={{ color: srv.valor ? 'var(--sage-dark)' : 'var(--muted)' }}>
+                  {srv.valor != null
+                    ? Number(srv.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+                    : 'Sem valor'}
+                </span>
+              </div>
+              <button
+                onClick={() => deleteServico(srv.id)}
+                className="p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors rounded opacity-0 group-hover:opacity-100"
                 title="Excluir"
               >
                 <Trash2 className="w-4 h-4" />
@@ -612,7 +540,7 @@ function AbaServicos() {
           )}
         </div>
 
-        <Modal isOpen={openNew} onClose={() => { setOpenNew(false); setNome(''); }} title="Adicionar Serviço">
+        <Modal isOpen={openNew} onClose={fecharModal} title="Adicionar Serviço">
           <div className="space-y-4">
             <Input
               label="Nome do Serviço"
@@ -620,6 +548,16 @@ function AbaServicos() {
               value={nome}
               onChange={e => setNome(e.target.value)}
             />
+            <Input
+              label="Valor (R$)"
+              placeholder="Ex: 1500,00"
+              inputMode="decimal"
+              value={valor}
+              onChange={e => setValor(e.target.value)}
+            />
+            <p className="text-xs text-[var(--muted)] -mt-2">
+              Esse valor preenche automaticamente o procedimento do paciente ao selecionar o serviço.
+            </p>
             <Button className="w-full" disabled={!nome || loading} onClick={saveServico}>
               {loading ? 'Salvando...' : 'Salvar'}
             </Button>
@@ -631,6 +569,46 @@ function AbaServicos() {
 }
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+
+// Pequeno bloco de URL com botão copiar.
+function CopyableUrl({ url }: { url: string }) {
+  const [copied, setCopied] = useState(false);
+  const copiar = () => {
+    navigator.clipboard.writeText(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1800);
+  };
+  return (
+    <div className="flex items-center gap-2">
+      <input
+        readOnly
+        value={url}
+        onFocus={e => e.target.select()}
+        className="flex-1 min-w-0 rounded-[8px] px-3 py-2 text-xs font-mono bg-[var(--bg)] border border-[var(--border-md)] text-[var(--muted)] focus:outline-none"
+      />
+      <button
+        onClick={copiar}
+        className="flex-shrink-0 flex items-center gap-1.5 text-sm font-medium px-3 py-2 rounded-[8px] transition-colors"
+        style={copied ? { background: 'var(--sage-xlight)', color: 'var(--sage-dark)' } : { background: 'var(--sage-dark)', color: '#fff' }}
+      >
+        {copied ? <CheckCircle className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+        {copied ? 'Copiado' : 'Copiar'}
+      </button>
+    </div>
+  );
+}
+
+// Linha "label: ••••••" para credenciais salvas.
+function MaskedRow({ label, value }: { label: string; value?: string | null }) {
+  return (
+    <div className="flex items-center justify-between gap-3 py-1.5">
+      <span className="text-xs text-[var(--muted)]">{label}</span>
+      <span className="text-sm font-mono text-[var(--ink)]">
+        {value ? '•'.repeat(10) : <span className="text-[var(--muted)] italic">não informado</span>}
+      </span>
+    </div>
+  );
+}
 
 function AbaWhatsApp() {
   const { config, refreshConfig } = useClinic();
@@ -663,11 +641,15 @@ function AbaWhatsApp() {
   const [evoApiKey, setEvoApiKey] = useState('');
   const [evoInstance, setEvoInstance] = useState(config?.evolution_instance_name || '');
 
-  // Webhook de nota (IA)
+  // Webhook Resumo Pós-Consulta (antigo "Nota Médica")
   const [notaWebhook, setNotaWebhook] = useState(config?.nota_webhook_url || '');
+  const [notaModalOpen, setNotaModalOpen] = useState(false);
+  const [notaSaving, setNotaSaving] = useState(false);
 
+  // Modal de credenciais + URL gerada
+  const [credModalOpen, setCredModalOpen] = useState(false);
+  const [webhookGerada, setWebhookGerada] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [saved, setSaved] = useState(false);
 
   // Status e QR code da Evolution API
   const [connectionState, setConnectionState] = useState<'open' | 'close' | 'connecting' | null>(null);
@@ -675,18 +657,22 @@ function AbaWhatsApp() {
   const [checkingStatus, setCheckingStatus] = useState(false);
   const [generatingQr, setGeneratingQr] = useState(false);
 
+  // URLs de webhook geradas (Edge Functions deste projeto).
+  const metaWebhookUrl = `${SUPABASE_URL}/functions/v1/webhook-meta`;
+  const evoWebhookUrl = `${SUPABASE_URL}/functions/v1/webhook-evolution`;
+  const providerWebhookUrl = provider === 'meta' ? metaWebhookUrl : evoWebhookUrl;
+
+  const metaConfigured = !!(config?.meta_phone_number_id && sensitiveConfig?.meta_access_token);
+  const evoConfigured = !!(config?.evolution_server_url && sensitiveConfig?.evolution_api_key && config?.evolution_instance_name);
+  const activeConfigured = provider === 'meta' ? metaConfigured : evoConfigured;
+
   async function verificarStatus() {
-    if (!evoServerUrl || !evoInstance) return;
     setCheckingStatus(true);
-    setQrCode(null);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const resp = await fetch(`${SUPABASE_URL}/functions/v1/evolution-proxy`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session?.access_token}`,
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Authorization': `Bearer ${session?.access_token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'connectionState' }),
       });
       const data = await resp.json();
@@ -700,23 +686,18 @@ function AbaWhatsApp() {
   }
 
   async function gerarQrCode() {
-    if (!evoServerUrl || !evoInstance) return;
     setGeneratingQr(true);
     setQrCode(null);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const resp = await fetch(`${SUPABASE_URL}/functions/v1/evolution-proxy`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session?.access_token}`,
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Authorization': `Bearer ${session?.access_token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'connect' }),
       });
       const data = await resp.json();
       const base64 = data?.base64 ?? data?.qrcode?.base64 ?? null;
       setQrCode(base64);
-      setTimeout(verificarStatus, 20000);
     } catch {
       alert('Erro ao gerar QR Code. Verifique a URL e a API Key.');
     } finally {
@@ -724,9 +705,7 @@ function AbaWhatsApp() {
     }
   }
 
-  useEffect(() => {
-    fetchSensitiveConfig();
-  }, []);
+  useEffect(() => { fetchSensitiveConfig(); }, []);
 
   useEffect(() => {
     if (config) {
@@ -747,7 +726,33 @@ function AbaWhatsApp() {
     }
   }, [sensitiveConfig]);
 
-  const save = async () => {
+  // Polling do status (item 2): a cada 6s enquanto não estiver conectado.
+  useEffect(() => {
+    if (provider !== 'evolution' || !evoConfigured) return;
+    verificarStatus();
+    if (connectionState === 'open') return;
+    const id = setInterval(verificarStatus, 6000);
+    return () => clearInterval(id);
+  }, [provider, evoConfigured, connectionState]);
+
+  // Ao conectar, o QR some e o status fica verde (item 2).
+  useEffect(() => {
+    if (connectionState === 'open') setQrCode(null);
+  }, [connectionState]);
+
+  function abrirModalCredenciais(p: 'meta' | 'evolution') {
+    setProvider(p);
+    setWebhookGerada(false);
+    setCredModalOpen(true);
+  }
+
+  function selecionarProvedor(p: 'meta' | 'evolution') {
+    setProvider(p);
+    const configured = p === 'meta' ? metaConfigured : evoConfigured;
+    if (!configured) abrirModalCredenciais(p);
+  }
+
+  const salvarCredenciais = async () => {
     setLoading(true);
     const { error } = await supabase.from('clinic_config').update({
       whatsapp_provider: provider,
@@ -758,38 +763,39 @@ function AbaWhatsApp() {
       evolution_server_url: evoServerUrl || null,
       evolution_api_key: evoApiKey || null,
       evolution_instance_name: evoInstance || null,
-      nota_webhook_url: notaWebhook || null,
     }).eq('id', 1);
     setLoading(false);
-    if (error) {
-      alert('Erro ao salvar: ' + error.message);
-      return;
-    }
+    if (error) { alert('Erro ao salvar: ' + error.message); return; }
     await refreshConfig();
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+    await fetchSensitiveConfig();
+    setWebhookGerada(true); // mostra a URL de webhook para copiar
   };
 
-  const isConfigured = provider === 'meta'
-    ? !!(metaPhoneId && metaToken)
-    : !!(evoServerUrl && evoApiKey && evoInstance);
+  const salvarNota = async () => {
+    setNotaSaving(true);
+    const { error } = await supabase.from('clinic_config')
+      .update({ nota_webhook_url: notaWebhook || null }).eq('id', 1);
+    setNotaSaving(false);
+    if (error) { alert('Erro ao salvar: ' + error.message); return; }
+    await refreshConfig();
+    setNotaModalOpen(false);
+  };
 
   return (
     <div className="space-y-6">
-      {/* Status */}
-      <div className={`flex items-center gap-3 p-4 rounded-[12px] border ${isConfigured ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200'}`}>
-        {isConfigured
+      {/* Status geral */}
+      <div className={`flex items-center gap-3 p-4 rounded-[12px] border ${activeConfigured ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200'}`}>
+        {activeConfigured
           ? <CheckCircle className="w-5 h-5 text-green-600 shrink-0" />
-          : <AlertCircle className="w-5 h-5 text-amber-600 shrink-0" />
-        }
+          : <AlertCircle className="w-5 h-5 text-amber-600 shrink-0" />}
         <div>
-          <p className={`text-sm font-semibold ${isConfigured ? 'text-green-800' : 'text-amber-800'}`}>
-            {isConfigured ? 'Integração configurada' : 'Integração pendente'}
+          <p className={`text-sm font-semibold ${activeConfigured ? 'text-green-800' : 'text-amber-800'}`}>
+            {activeConfigured ? 'Integração configurada' : 'Integração pendente'}
           </p>
-          <p className={`text-xs mt-0.5 ${isConfigured ? 'text-green-700' : 'text-amber-700'}`}>
-            {isConfigured
+          <p className={`text-xs mt-0.5 ${activeConfigured ? 'text-green-700' : 'text-amber-700'}`}>
+            {activeConfigured
               ? `Provedor ativo: ${provider === 'meta' ? 'Meta Cloud API (oficial)' : 'Evolution API'}`
-              : 'Preencha as credenciais abaixo para ativar o Inbox de WhatsApp.'}
+              : 'Selecione um provedor e informe as credenciais para ativar o Inbox.'}
           </p>
         </div>
       </div>
@@ -802,7 +808,7 @@ function AbaWhatsApp() {
             {(['meta', 'evolution'] as const).map(p => (
               <button
                 key={p}
-                onClick={() => setProvider(p)}
+                onClick={() => selecionarProvedor(p)}
                 className={`flex flex-col items-start gap-1 p-4 rounded-[12px] border-2 text-left transition-colors ${provider === p ? 'border-[var(--sage-dark)] bg-[var(--sage-dark)]/5' : 'border-[var(--border)] hover:border-[var(--sage-dark)]/40'}`}
               >
                 <span className="font-semibold text-sm text-[var(--ink)]">
@@ -820,86 +826,54 @@ function AbaWhatsApp() {
         </CardContent>
       </Card>
 
-      {/* Credenciais Meta Cloud API */}
-      {provider === 'meta' && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Meta Cloud API — Credenciais</CardTitle>
-            <p className="text-sm text-[var(--muted)] mt-1">
-              Encontre esses dados em <span className="font-mono text-xs">developers.facebook.com → Seu App → WhatsApp</span>
-            </p>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Input
-              label="Phone Number ID"
-              placeholder="Ex: 123456789012345"
-              value={metaPhoneId}
-              onChange={e => setMetaPhoneId(e.target.value)}
-            />
-            <Input
-              label="Access Token (permanente)"
-              placeholder="EAABsb..."
-              type="password"
-              value={metaToken}
-              onChange={e => setMetaToken(e.target.value)}
-            />
-            <Input
-              label="Webhook Verify Token"
-              placeholder="Token que você criou para verificar o webhook"
-              type="password"
-              value={metaVerifyToken}
-              onChange={e => setMetaVerifyToken(e.target.value)}
-            />
-            <Input
-              label="Business Account ID (WABA ID)"
-              placeholder="Ex: 987654321098765"
-              value={metaBusinessId}
-              onChange={e => setMetaBusinessId(e.target.value)}
-            />
-            <div className="p-3 bg-blue-50 rounded-lg border border-blue-100 text-xs text-blue-800">
-              <p className="font-semibold mb-1">URL do Webhook (configure no Meta):</p>
-              <p className="font-mono break-all">{window.location.origin}/api/webhook/whatsapp</p>
-              <p className="mt-1 text-blue-600">Campos assinados: <span className="font-mono">messages</span></p>
+      {/* Credenciais — resumo mascarado + Editar (item 1) */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle>{provider === 'meta' ? 'Meta Cloud API — Credenciais' : 'Evolution API — Credenciais'}</CardTitle>
+            <button
+              onClick={() => abrirModalCredenciais(provider)}
+              className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-[8px] border border-[var(--border-md)] hover:bg-[var(--bg)] transition-colors text-[var(--ink)]"
+            >
+              <Pencil className="w-3.5 h-3.5" /> Editar
+            </button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {activeConfigured ? (
+            <div className="divide-y divide-[var(--border)]">
+              {provider === 'meta' ? (
+                <>
+                  <MaskedRow label="Phone Number ID" value={config?.meta_phone_number_id} />
+                  <MaskedRow label="Access Token" value={sensitiveConfig?.meta_access_token} />
+                  <MaskedRow label="Webhook Verify Token" value={sensitiveConfig?.meta_webhook_verify_token} />
+                  <MaskedRow label="Business Account ID" value={config?.meta_business_account_id} />
+                </>
+              ) : (
+                <>
+                  <MaskedRow label="URL do Servidor" value={config?.evolution_server_url} />
+                  <MaskedRow label="API Key" value={sensitiveConfig?.evolution_api_key} />
+                  <MaskedRow label="Instância" value={config?.evolution_instance_name} />
+                </>
+              )}
+              <div className="pt-3">
+                <p className="text-xs font-semibold text-[var(--muted)] mb-1.5">URL do Webhook (configure no provedor):</p>
+                <CopyableUrl url={providerWebhookUrl} />
+              </div>
             </div>
-          </CardContent>
-        </Card>
-      )}
+          ) : (
+            <div className="text-center py-6">
+              <p className="text-sm text-[var(--muted)] mb-3">Nenhuma credencial salva para este provedor.</p>
+              <Button size="sm" onClick={() => abrirModalCredenciais(provider)}>
+                <Pencil className="w-4 h-4 mr-2" /> Inserir credenciais
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
-      {/* Credenciais Evolution API */}
-      {provider === 'evolution' && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Evolution API — Credenciais</CardTitle>
-            <p className="text-sm text-[var(--muted)] mt-1">
-              Servidor self-hosted da Evolution API
-            </p>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Input
-              label="URL do Servidor"
-              placeholder="Ex: https://evolution.seudominio.com"
-              value={evoServerUrl}
-              onChange={e => setEvoServerUrl(e.target.value)}
-            />
-            <Input
-              label="API Key"
-              placeholder="Chave de autenticação da Evolution API"
-              type="password"
-              value={evoApiKey}
-              onChange={e => setEvoApiKey(e.target.value)}
-            />
-            <Input
-              label="Nome da Instância"
-              placeholder="Ex: clinica-principal"
-              value={evoInstance}
-              onChange={e => setEvoInstance(e.target.value)}
-            />
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Status da conexão Evolution API */}
-      {provider === 'evolution' && evoServerUrl && evoApiKey && evoInstance && (
+      {/* Status da conexão Evolution API (polling automático) */}
+      {provider === 'evolution' && evoConfigured && (
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -909,12 +883,11 @@ function AbaWhatsApp() {
                 disabled={checkingStatus}
                 className="text-xs text-[var(--sage-dark)] hover:underline disabled:opacity-50"
               >
-                {checkingStatus ? 'Verificando...' : 'Verificar status'}
+                {checkingStatus ? 'Verificando...' : 'Verificar agora'}
               </button>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Badge de status */}
             {connectionState !== null && (
               <div className={`flex items-center gap-2 px-3 py-2 rounded-[8px] border text-sm font-medium ${
                 connectionState === 'open'
@@ -930,15 +903,14 @@ function AbaWhatsApp() {
               </div>
             )}
 
-            {/* Botão e QR Code */}
-            {connectionState !== 'open' && (
+            {connectionState !== 'open' && connectionState !== null && (
               <div className="space-y-3">
                 <button
                   onClick={gerarQrCode}
                   disabled={generatingQr}
                   className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-[8px] bg-[var(--sage-dark)] text-white text-sm font-medium hover:opacity-90 disabled:opacity-50 transition-opacity"
                 >
-                  {generatingQr ? 'Gerando QR Code...' : 'Gerar QR Code para conectar'}
+                  {generatingQr ? 'Gerando QR Code...' : 'Gerar QR Code para reconectar'}
                 </button>
 
                 {qrCode && (
@@ -951,60 +923,100 @@ function AbaWhatsApp() {
                       <li>3. Toque em <strong>Conectar um aparelho</strong></li>
                       <li>4. Escaneie este QR code</li>
                     </ol>
-                    <button
-                      onClick={verificarStatus}
-                      disabled={checkingStatus}
-                      className="text-xs text-[var(--sage-dark)] hover:underline disabled:opacity-50"
-                    >
-                      {checkingStatus ? 'Verificando...' : 'Já escaneei — verificar conexão'}
-                    </button>
+                    <p className="text-xs text-[var(--muted)]">A conexão é detectada automaticamente.</p>
                   </div>
                 )}
               </div>
             )}
 
-            {/* Se ainda não verificou, mostrar botão inicial */}
             {connectionState === null && (
-              <button
-                onClick={verificarStatus}
-                disabled={checkingStatus}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-[8px] border border-[var(--border)] text-sm font-medium hover:bg-[var(--white)] disabled:opacity-50 transition-colors"
-              >
-                {checkingStatus ? 'Verificando...' : 'Verificar status da conexão'}
-              </button>
+              <p className="text-sm text-[var(--muted)]">Verificando status da conexão...</p>
             )}
           </CardContent>
         </Card>
       )}
 
-      {/* Webhook de nota da IA */}
+      {/* Webhook Resumo Pós-Consulta (item 3) — mascarado + Editar */}
       <Card>
         <CardHeader>
-          <CardTitle>Webhook — Nota da Médica (IA)</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle>Webhook — Resumo Pós-Consulta</CardTitle>
+            <button
+              onClick={() => setNotaModalOpen(true)}
+              className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-[8px] border border-[var(--border-md)] hover:bg-[var(--bg)] transition-colors text-[var(--ink)]"
+            >
+              <Pencil className="w-3.5 h-3.5" /> Editar
+            </button>
+          </div>
           <p className="text-sm text-[var(--muted)] mt-1">
-            Quando a médica salvar uma nota no perfil do paciente, este webhook será disparado para o n8n. A IA lerá a nota e enviará a mensagem ao paciente via WhatsApp.
+            Quando a médica salvar o resumo pós-consulta no perfil do paciente, este webhook é disparado para o n8n. A IA lê o resumo e envia a mensagem ao paciente via WhatsApp.
           </p>
         </CardHeader>
         <CardContent>
-          <Input
-            label="URL do Webhook (n8n)"
-            placeholder="Ex: https://n8n.seudominio.com/webhook/nota-paciente"
-            value={notaWebhook}
-            onChange={e => setNotaWebhook(e.target.value)}
-          />
+          <MaskedRow label="URL do Webhook (n8n)" value={notaWebhook} />
         </CardContent>
       </Card>
 
-      <div className="flex items-center gap-4">
-        <Button onClick={save} loading={loading}>
-          Salvar configurações
-        </Button>
-        {saved && (
-          <span className="flex items-center gap-1.5 text-sm text-green-700 font-medium">
-            <CheckCircle className="w-4 h-4" /> Salvo com sucesso
-          </span>
+      {/* ── Modal: credenciais do provedor ── */}
+      <Modal
+        isOpen={credModalOpen}
+        onClose={() => setCredModalOpen(false)}
+        title={provider === 'meta' ? 'Credenciais — Meta Cloud API' : 'Credenciais — Evolution API'}
+      >
+        {!webhookGerada ? (
+          <div className="space-y-4">
+            {provider === 'meta' ? (
+              <>
+                <Input label="Phone Number ID" placeholder="Ex: 123456789012345" value={metaPhoneId} onChange={e => setMetaPhoneId(e.target.value)} />
+                <Input label="Access Token (permanente)" placeholder="EAABsb..." type="password" value={metaToken} onChange={e => setMetaToken(e.target.value)} />
+                <Input label="Webhook Verify Token" placeholder="Token de verificação do webhook" type="password" value={metaVerifyToken} onChange={e => setMetaVerifyToken(e.target.value)} />
+                <Input label="Business Account ID (WABA ID)" placeholder="Ex: 987654321098765" value={metaBusinessId} onChange={e => setMetaBusinessId(e.target.value)} />
+              </>
+            ) : (
+              <>
+                <Input label="URL do Servidor" placeholder="Ex: https://evolution.seudominio.com" value={evoServerUrl} onChange={e => setEvoServerUrl(e.target.value)} />
+                <Input label="API Key" placeholder="Chave da Evolution API" type="password" value={evoApiKey} onChange={e => setEvoApiKey(e.target.value)} />
+                <Input label="Nome da Instância" placeholder="Ex: clinica-principal" value={evoInstance} onChange={e => setEvoInstance(e.target.value)} />
+              </>
+            )}
+            <Button className="w-full" loading={loading} onClick={salvarCredenciais}>
+              Salvar credenciais
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="flex items-center gap-3 p-3 rounded-[8px]" style={{ background: 'var(--sage-xlight)' }}>
+              <CheckCircle className="w-5 h-5 shrink-0" style={{ color: 'var(--sage-dark)' }} />
+              <p className="text-sm font-semibold" style={{ color: 'var(--sage-dark)' }}>Credenciais salvas com sucesso!</p>
+            </div>
+            <div>
+              <p className="text-sm text-[var(--muted)] mb-2">
+                Configure esta <strong className="text-[var(--ink)]">URL de webhook</strong> no
+                {provider === 'meta' ? ' painel do Meta' : ' painel da Evolution'}:
+              </p>
+              <CopyableUrl url={providerWebhookUrl} />
+            </div>
+            <Button className="w-full" variant="secondary" onClick={() => setCredModalOpen(false)}>
+              Concluir
+            </Button>
+          </div>
         )}
-      </div>
+      </Modal>
+
+      {/* ── Modal: webhook Resumo Pós-Consulta ── */}
+      <Modal isOpen={notaModalOpen} onClose={() => setNotaModalOpen(false)} title="Webhook — Resumo Pós-Consulta">
+        <div className="space-y-4">
+          <Input
+            label="URL do Webhook (n8n)"
+            placeholder="Ex: https://n8n.seudominio.com/webhook/resumo-paciente"
+            value={notaWebhook}
+            onChange={e => setNotaWebhook(e.target.value)}
+          />
+          <Button className="w-full" loading={notaSaving} onClick={salvarNota}>
+            Salvar webhook
+          </Button>
+        </div>
+      </Modal>
     </div>
   );
 }
