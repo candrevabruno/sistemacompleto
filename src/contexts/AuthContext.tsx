@@ -44,28 +44,33 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     let active = true;
+    let handled = false;
 
-    const init = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+    // IMPORTANTE: não chamar supabase.from/auth direto dentro do callback do
+    // onAuthStateChange — ele roda segurando o lock interno do GoTrue e gera
+    // deadlock (tela travada em "Carregando..."). Adiamos com setTimeout(0)
+    // para que as queries rodem depois que o lock for liberado.
+    const handle = (session: any) => {
       if (!active) return;
+      handled = true;
       if (session?.user) {
-        await loadUserProfile(session.user);
-      } else {
-        setStatus('anon');
-      }
-    };
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (session?.user) {
-        await loadUserProfile(session.user);
+        loadUserProfile(session.user);
       } else {
         setUser(null);
         setDeniedEmail(null);
         setStatus('anon');
       }
+    };
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setTimeout(() => handle(session), 0);
     });
 
-    init();
+    // Fallback caso o INITIAL_SESSION não dispare.
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setTimeout(() => { if (!handled) handle(session); }, 0);
+    });
+
     return () => { active = false; subscription.unsubscribe(); };
   }, []);
 
