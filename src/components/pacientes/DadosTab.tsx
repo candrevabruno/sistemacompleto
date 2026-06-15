@@ -342,21 +342,18 @@ export function DadosTab({ lead, pacienteId, proximaConsulta: proximaConsultaPro
           </Field>
 
           <Field label={isAniversarioHoje(dataNasc) ? '🎁 Data de nascimento' : 'Data de nascimento'}>
-            {isAniversarioHoje(dataNasc) ? (
-              <div style={{ position: 'relative' }}>
-                <input
-                  value={dataNasc}
-                  onChange={e => setDataNasc(e.target.value)}
-                  type="date"
-                  style={{ ...inputStyle, background: 'var(--champ-light)', border: '1px solid var(--champ-text)', color: 'var(--champ-text)', fontWeight: 600, paddingRight: '34px' }}
-                />
-                <Gift size={15} style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--champ-text)', pointerEvents: 'none' }} />
-                <div style={{ marginTop: '5px', display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '10.5px', fontWeight: 600, color: 'var(--champ-text)', background: 'var(--champ-light)', padding: '2px 8px', borderRadius: '20px' }}>
-                  <Gift size={11} /> Aniversário é hoje!
-                </div>
+            <input
+              value={dataNasc}
+              onChange={e => setDataNasc(e.target.value)}
+              type="date"
+              style={isAniversarioHoje(dataNasc)
+                ? { ...inputStyle, background: 'var(--champ-light)', border: '1px solid var(--champ-text)', color: 'var(--champ-text)', fontWeight: 600 }
+                : inputStyle}
+            />
+            {isAniversarioHoje(dataNasc) && (
+              <div style={{ marginTop: '6px', display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '10.5px', fontWeight: 600, color: 'var(--champ-text)', background: 'var(--champ-light)', padding: '3px 9px', borderRadius: '20px' }}>
+                <Gift size={11} /> Aniversário é hoje!
               </div>
-            ) : (
-              <input value={dataNasc} onChange={e => setDataNasc(e.target.value)} type="date" style={inputStyle} />
             )}
           </Field>
 
