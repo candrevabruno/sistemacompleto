@@ -6,7 +6,7 @@ import { Layout } from './components/layout/Layout';
 import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
 import { CRM } from './pages/CRM';
-import { CentralAgendamentos } from './pages/CentralAgendamentos';
+import { Agenda } from './pages/Agenda';
 import { LeadsClientes } from './pages/LeadsClientes';
 import { Configuracoes } from './pages/Configuracoes';
 import { Inbox } from './pages/Inbox';
@@ -54,7 +54,7 @@ export function App() {
                 <Route path="/crm" element={<PermRoute perm="modulo:crm"><CRM /></PermRoute>} />
                 <Route path="/leads" element={<PermRoute perm="modulo:leads"><LeadsClientes key="leads" mode="leads" /></PermRoute>} />
                 <Route path="/clientes" element={<PermRoute perm="modulo:leads"><LeadsClientes key="clientes" mode="clientes" /></PermRoute>} />
-                <Route path="/central-agendamentos" element={<PermRoute perm="modulo:agenda"><CentralAgendamentos /></PermRoute>} />
+                <Route path="/central-agendamentos" element={<PermRoute perm="modulo:agenda"><Agenda /></PermRoute>} />
                 <Route path="/inbox" element={<PermRoute perm="modulo:inbox"><Inbox /></PermRoute>} />
                 <Route path="/pacientes" element={<PermRoute perm="modulo:pacientes"><Pacientes /></PermRoute>} />
                 <Route path="/equipe" element={<PermRoute perm="modulo:equipe"><Equipe /></PermRoute>} />
