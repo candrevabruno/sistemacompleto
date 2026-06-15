@@ -66,7 +66,7 @@ export function Pacientes() {
     setLoading(true);
     const { data } = await supabase
       .from('leads')
-      .select('id, nome_lead, whatsapp_lead, procedimento_interesse, status, email')
+      .select('id, nome_lead, whatsapp_lead, procedimento_interesse, status, email, data_nascimento')
       .eq('status', 'converteu')
       .order('nome_lead', { ascending: true });
     if (data) setLeads(data);
@@ -84,7 +84,7 @@ export function Pacientes() {
     const end   = new Date(); end.setHours(23, 59, 59, 999);
     const { data } = await supabase
       .from('agendamentos')
-      .select('id, status, data_hora_inicio, procedimento_nome, lead_id, agendas(nome), leads:lead_id(id, nome_lead, whatsapp_lead, procedimento_interesse, status, email)')
+      .select('id, status, data_hora_inicio, procedimento_nome, lead_id, agendas(nome), leads:lead_id(id, nome_lead, whatsapp_lead, procedimento_interesse, status, email, data_nascimento)')
       .gte('data_hora_inicio', start.toISOString())
       .lte('data_hora_inicio', end.toISOString())
       .not('status', 'in', '("cancelado","cancelou_agendamento")')
