@@ -7,8 +7,15 @@ import {
   addMonths, addWeeks, addDays, eachDayOfInterval, getHours,
 } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, Plus, List, CalendarDays, Loader2, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, CalendarDays, Loader2, X, Ban, Clock, AlertTriangle } from 'lucide-react';
 import { LeadDetailsModal } from '../components/crm/LeadDetailsModal';
+
+const DIAS_SEMANA: { key: string; label: string }[] = [
+  { key: 'domingo', label: 'Domingo' }, { key: 'segunda', label: 'Segunda' },
+  { key: 'terca', label: 'Terça' }, { key: 'quarta', label: 'Quarta' },
+  { key: 'quinta', label: 'Quinta' }, { key: 'sexta', label: 'Sexta' },
+  { key: 'sabado', label: 'Sábado' },
+];
 
 type View = 'mes' | 'semana' | 'dia' | 'lista';
 
@@ -36,9 +43,12 @@ export function Agenda() {
   const [agendamentos, setAgendamentos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const [bloqueios, setBloqueios] = useState<any[]>([]);
   const [selectedLead, setSelectedLead] = useState<any>(null);
   const [openLead, setOpenLead] = useState(false);
   const [showNova, setShowNova] = useState(false);
+  const [showDisp, setShowDisp] = useState(false);
+  const [showBloqueio, setShowBloqueio] = useState(false);
 
   // Intervalo visível conforme a visão
   const range = useMemo(() => {
@@ -66,6 +76,17 @@ export function Agenda() {
     if (profFiltro !== 'todas') q = q.eq('agenda_id', profFiltro);
     const { data } = await q;
     setAgendamentos(data || []);
+
+    // Bloqueios que tocam o intervalo visível.
+    let qb = supabase
+      .from('bloqueios')
+      .select('*, agendas(nome, cor)')
+      .lte('inicio', end.toISOString())
+      .gte('fim', start.toISOString());
+    if (profFiltro !== 'todas') qb = qb.eq('agenda_id', profFiltro);
+    const { data: bloq } = await qb;
+    setBloqueios(bloq || []);
+
     setLoading(false);
   };
 
@@ -155,9 +176,17 @@ export function Agenda() {
           </select>
 
           {podeEditar && (
-            <button onClick={() => setShowNova(true)} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', fontSize: '12px', fontWeight: 600, background: 'var(--sage-dark)', color: 'white', border: 'none', borderRadius: 'var(--r-xs)', cursor: 'pointer', fontFamily: 'inherit' }}>
-              <Plus size={14} /> Nova agenda
-            </button>
+            <>
+              <button onClick={() => setShowDisp(true)} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', fontSize: '12px', fontWeight: 500, background: 'var(--white)', color: 'var(--ink)', border: '1px solid var(--border-md)', borderRadius: 'var(--r-xs)', cursor: 'pointer', fontFamily: 'inherit' }}>
+                <Clock size={14} /> Disponibilidade
+              </button>
+              <button onClick={() => setShowBloqueio(true)} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', fontSize: '12px', fontWeight: 500, background: 'var(--white)', color: 'var(--rose-text)', border: '1px solid var(--border-md)', borderRadius: 'var(--r-xs)', cursor: 'pointer', fontFamily: 'inherit' }}>
+                <Ban size={14} /> Bloquear
+              </button>
+              <button onClick={() => setShowNova(true)} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', fontSize: '12px', fontWeight: 600, background: 'var(--sage-dark)', color: 'white', border: 'none', borderRadius: 'var(--r-xs)', cursor: 'pointer', fontFamily: 'inherit' }}>
+                <Plus size={14} /> Nova agenda
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -182,13 +211,15 @@ export function Agenda() {
         <>
           {view === 'mes' && <VisaoMes cursor={cursor} range={range} doDia={doDia} onEvento={abrirLead} onDia={(d: Date) => { setCursor(d); setView('dia'); }} />}
           {view === 'semana' && <VisaoSemana range={range} doDia={doDia} onEvento={abrirLead} />}
-          {view === 'dia' && <VisaoDia cursor={cursor} agendas={agendas} profFiltro={profFiltro} doDia={doDia} onEvento={abrirLead} />}
+          {view === 'dia' && <VisaoDia cursor={cursor} agendas={agendas} profFiltro={profFiltro} doDia={doDia} onEvento={abrirLead} bloqueios={bloqueios} />}
           {view === 'lista' && <VisaoLista range={range} agendamentos={agendamentos} onEvento={abrirLead} />}
         </>
       )}
 
       <LeadDetailsModal isOpen={openLead} onClose={() => setOpenLead(false)} leadId={selectedLead?.id} onUpdate={loadAgendamentos} />
       {showNova && <NovaAgendaModal coresUsadas={agendas.map(a => a.cor)} onClose={() => setShowNova(false)} onSaved={() => { setShowNova(false); loadAgendas(); }} />}
+      {showDisp && <DisponibilidadeModal agendas={agendas} onClose={() => setShowDisp(false)} />}
+      {showBloqueio && <BloqueioModal agendas={agendas} profPadrao={profFiltro !== 'todas' ? profFiltro : (agendas[0]?.id || '')} onClose={() => setShowBloqueio(false)} onSaved={() => { setShowBloqueio(false); loadAgendamentos(); }} />}
     </div>
   );
 }
@@ -302,10 +333,23 @@ function VisaoSemana({ range, doDia, onEvento }: any) {
 
 // ── Visão Dia ───────────────────────────────────────────────────────────────
 // Com 'todas', uma coluna por profissional (agendas isoladas). Senão, coluna única.
-function VisaoDia({ cursor, agendas, profFiltro, doDia, onEvento }: any) {
+function VisaoDia({ cursor, agendas, profFiltro, doDia, onEvento, bloqueios }: any) {
   const colunas = profFiltro === 'todas' ? agendas : agendas.filter((a: any) => a.id === profFiltro);
   const eventos = doDia(cursor);
   const cols = colunas.length > 0 ? colunas : [{ id: '__none__', nome: 'Sem profissional', cor: 'var(--sage)' }];
+
+  // Bloqueio cobre a hora h da coluna c no dia cursor?
+  const blocked = (agendaId: string, h: number): any | null => {
+    const slot = new Date(cursor); slot.setHours(h, 0, 0, 0);
+    const slotMs = slot.getTime();
+    const diaIni = new Date(cursor); diaIni.setHours(0, 0, 0, 0);
+    const diaFim = new Date(cursor); diaFim.setHours(23, 59, 59, 999);
+    return (bloqueios || []).find((b: any) => {
+      if (b.agenda_id !== agendaId) return false;
+      if (b.dia_inteiro) return new Date(b.inicio) <= diaFim && new Date(b.fim) >= diaIni;
+      return new Date(b.inicio).getTime() <= slotMs && new Date(b.fim).getTime() > slotMs;
+    }) || null;
+  };
 
   return (
     <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: '12px', overflow: 'hidden' }}>
@@ -324,8 +368,14 @@ function VisaoDia({ cursor, agendas, profFiltro, doDia, onEvento }: any) {
             <div style={{ padding: '4px 6px', fontSize: '10.5px', color: 'var(--muted)', textAlign: 'right' }}>{String(h).padStart(2, '0')}:00</div>
             {cols.map((c: any) => {
               const evs = eventos.filter((a: any) => getHours(dt(a)) === h && (c.id === '__none__' ? true : a.agenda_id === c.id));
+              const bloq = c.id === '__none__' ? null : blocked(c.id, h);
               return (
-                <div key={c.id} style={{ borderLeft: '1px solid var(--border)', padding: '3px' }}>
+                <div key={c.id} style={{ borderLeft: '1px solid var(--border)', padding: '3px', position: 'relative', background: bloq ? 'repeating-linear-gradient(45deg, var(--bg), var(--bg) 6px, rgba(139,68,68,0.07) 6px, rgba(139,68,68,0.07) 12px)' : 'transparent' }}>
+                  {bloq && evs.length === 0 && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: 'var(--rose-text)', padding: '4px 5px' }}>
+                      <Ban size={10} /> {bloq.motivo || 'Bloqueado'}
+                    </div>
+                  )}
                   {evs.map((ag: any) => <Chip key={ag.id} ag={ag} onClick={() => onEvento(ag)} />)}
                 </div>
               );
@@ -439,6 +489,274 @@ function NovaAgendaModal({ coresUsadas, onClose, onSaved }: { coresUsadas: strin
     </div>
   );
 }
+
+// ── Modal Disponibilidade (agenda_hours por profissional) ────────────────────
+function DisponibilidadeModal({ agendas, onClose }: { agendas: any[]; onClose: () => void }) {
+  const [agendaId, setAgendaId] = useState<string>(agendas[0]?.id || '');
+  const [horas, setHoras] = useState<Record<string, { aberto: boolean; ini: string; fim: string }>>({});
+  const [loading, setLoading] = useState(false);
+  const [salvando, setSalvando] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  const carregar = async (id: string) => {
+    if (!id) return;
+    setLoading(true);
+    const { data } = await supabase.from('agenda_hours').select('*').eq('agenda_id', id);
+    const map: Record<string, { aberto: boolean; ini: string; fim: string }> = {};
+    DIAS_SEMANA.forEach(d => {
+      const row = (data || []).find((r: any) => r.dia === d.key);
+      const util = d.key !== 'domingo' && d.key !== 'sabado';
+      map[d.key] = row
+        ? { aberto: row.aberto, ini: (row.hora_inicio || '08:00').slice(0, 5), fim: (row.hora_fim || '18:00').slice(0, 5) }
+        : { aberto: util, ini: '08:00', fim: '18:00' };
+    });
+    setHoras(map);
+    setLoading(false);
+  };
+  useEffect(() => { carregar(agendaId); }, [agendaId]);
+
+  const salvar = async () => {
+    if (!agendaId) return;
+    setSalvando(true);
+    await supabase.from('agenda_hours').delete().eq('agenda_id', agendaId);
+    const rows = DIAS_SEMANA.map(d => ({
+      agenda_id: agendaId, dia: d.key, aberto: horas[d.key]?.aberto ?? false,
+      hora_inicio: horas[d.key]?.ini || null, hora_fim: horas[d.key]?.fim || null,
+    }));
+    await supabase.from('agenda_hours').insert(rows);
+    setSalvando(false); setSaved(true); setTimeout(() => setSaved(false), 1800);
+  };
+
+  const upd = (dia: string, patch: Partial<{ aberto: boolean; ini: string; fim: string }>) =>
+    setHoras(prev => ({ ...prev, [dia]: { ...prev[dia], ...patch } }));
+
+  return (
+    <div style={modalOverlay} onClick={() => !salvando && onClose()}>
+      <div onClick={e => e.stopPropagation()} style={{ ...modalBox, maxWidth: '480px' }}>
+        <div style={modalHeader}>
+          <h3 className="font-cormorant" style={modalTitle}>Disponibilidade semanal</h3>
+          <button onClick={onClose} style={iconBtn}><X size={18} /></button>
+        </div>
+        <div style={{ marginBottom: '14px' }}>
+          <label style={lbl}>Profissional</label>
+          <select value={agendaId} onChange={e => setAgendaId(e.target.value)} style={inp}>
+            {agendas.map(a => <option key={a.id} value={a.id}>{a.nome}</option>)}
+          </select>
+        </div>
+        {loading ? (
+          <div style={{ padding: '24px', textAlign: 'center', color: 'var(--muted)' }}><Loader2 size={16} className="animate-spin" /></div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {DIAS_SEMANA.map(d => {
+              const h = horas[d.key] || { aberto: false, ini: '08:00', fim: '18:00' };
+              return (
+                <div key={d.key} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', width: '110px', fontSize: '12.5px', color: 'var(--ink)', cursor: 'pointer' }}>
+                    <input type="checkbox" checked={h.aberto} onChange={e => upd(d.key, { aberto: e.target.checked })} />
+                    {d.label}
+                  </label>
+                  <input type="time" value={h.ini} disabled={!h.aberto} onChange={e => upd(d.key, { ini: e.target.value })} style={{ ...inp, width: '110px', opacity: h.aberto ? 1 : 0.4 }} />
+                  <span style={{ color: 'var(--muted)' }}>–</span>
+                  <input type="time" value={h.fim} disabled={!h.aberto} onChange={e => upd(d.key, { fim: e.target.value })} style={{ ...inp, width: '110px', opacity: h.aberto ? 1 : 0.4 }} />
+                </div>
+              );
+            })}
+          </div>
+        )}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '20px' }}>
+          <button onClick={onClose} style={btnGhost}>Fechar</button>
+          <button onClick={salvar} disabled={salvando} style={{ ...btnPrimary, opacity: salvando ? 0.6 : 1, background: saved ? 'rgba(16,185,129,0.85)' : 'var(--sage-dark)' }}>
+            {salvando && <Loader2 size={13} className="animate-spin" />} {saved ? 'Salvo!' : 'Salvar disponibilidade'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Modal Bloqueio (horário / dia / período) + aviso de consultas afetadas ───
+function BloqueioModal({ agendas, profPadrao, onClose, onSaved }: { agendas: any[]; profPadrao: string; onClose: () => void; onSaved: () => void }) {
+  const { user } = useAuth();
+  const [agendaId, setAgendaId] = useState(profPadrao || agendas[0]?.id || '');
+  const [tipo, setTipo] = useState<'horario' | 'dia' | 'periodo'>('horario');
+  const [data, setData] = useState('');
+  const [dataFim, setDataFim] = useState('');
+  const [horaIni, setHoraIni] = useState('08:00');
+  const [horaFim, setHoraFim] = useState('09:00');
+  const [motivo, setMotivo] = useState('');
+  const [step, setStep] = useState<1 | 2>(1);
+  const [afetados, setAfetados] = useState<any[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+
+  const calcIntervalo = (): { inicio: Date; fim: Date; diaInteiro: boolean } | null => {
+    if (!data) return null;
+    if (tipo === 'horario') {
+      return { inicio: new Date(`${data}T${horaIni}:00`), fim: new Date(`${data}T${horaFim}:00`), diaInteiro: false };
+    }
+    if (tipo === 'dia') {
+      return { inicio: new Date(`${data}T00:00:00`), fim: new Date(`${data}T23:59:59`), diaInteiro: true };
+    }
+    const fimD = dataFim || data;
+    return { inicio: new Date(`${data}T00:00:00`), fim: new Date(`${fimD}T23:59:59`), diaInteiro: true };
+  };
+
+  const continuar = async () => {
+    setErro(null);
+    const iv = calcIntervalo();
+    if (!agendaId || !iv) { setErro('Preencha o profissional e a(s) data(s).'); return; }
+    if (iv.fim <= iv.inicio) { setErro('O fim deve ser depois do início.'); return; }
+    setBusy(true);
+    const { data: afet } = await supabase
+      .from('agendamentos')
+      .select('id, lead_id, nome_lead, data_hora_inicio, leads:lead_id(nome_lead, whatsapp_lead)')
+      .eq('agenda_id', agendaId)
+      .not('status', 'in', '("cancelado","cancelou_agendamento","faltou")')
+      .gte('data_hora_inicio', iv.inicio.toISOString())
+      .lte('data_hora_inicio', iv.fim.toISOString());
+    setAfetados(afet || []);
+    setBusy(false);
+    setStep(2);
+  };
+
+  const confirmar = async (notificar: boolean) => {
+    const iv = calcIntervalo();
+    if (!iv) return;
+    setBusy(true);
+    const { error: bErr } = await supabase.from('bloqueios').insert({
+      agenda_id: agendaId, inicio: iv.inicio.toISOString(), fim: iv.fim.toISOString(),
+      dia_inteiro: iv.diaInteiro, motivo: motivo || null, created_by: user?.id || null,
+    });
+    if (bErr) { setErro('Erro ao bloquear: ' + bErr.message); setBusy(false); return; }
+
+    if (notificar && afetados.length > 0) {
+      // Handoff ao agente: uma tarefa por consulta afetada (o agente conduz o WhatsApp).
+      const eventos = afetados.map(a => ({
+        tipo: 'reagendar_por_bloqueio',
+        agendamento_id: a.id, lead_id: a.lead_id, agenda_id: agendaId,
+        payload: {
+          motivo: motivo || null,
+          bloqueio_inicio: iv.inicio.toISOString(), bloqueio_fim: iv.fim.toISOString(),
+          consulta_em: a.data_hora_inicio,
+          paciente: a.leads?.nome_lead || a.nome_lead, whatsapp: a.leads?.whatsapp_lead || null,
+        },
+      }));
+      await supabase.from('agente_eventos').insert(eventos);
+    }
+    if (user) {
+      await supabase.from('audit_log').insert({
+        user_id: user.id, action: 'agenda_bloqueada',
+        record_id: agendaId,
+        detalhes: { tipo, inicio: iv.inicio.toISOString(), fim: iv.fim.toISOString(), afetados: afetados.length, notificou: notificar, motivo },
+      });
+    }
+    setBusy(false);
+    onSaved();
+  };
+
+  return (
+    <div style={modalOverlay} onClick={() => !busy && onClose()}>
+      <div onClick={e => e.stopPropagation()} style={{ ...modalBox, maxWidth: '460px' }}>
+        <div style={modalHeader}>
+          <h3 className="font-cormorant" style={modalTitle}>Bloquear horário</h3>
+          <button onClick={onClose} style={iconBtn}><X size={18} /></button>
+        </div>
+
+        {erro && <p style={{ fontSize: '12px', color: 'var(--rose-text)', background: 'var(--rose-light)', padding: '8px 11px', borderRadius: 'var(--r-xs)', marginBottom: '12px' }}>{erro}</p>}
+
+        {step === 1 ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div>
+              <label style={lbl}>Profissional</label>
+              <select value={agendaId} onChange={e => setAgendaId(e.target.value)} style={inp}>
+                {agendas.map(a => <option key={a.id} value={a.id}>{a.nome}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={lbl}>Tipo de bloqueio</label>
+              <div style={{ display: 'flex', gap: '6px' }}>
+                {([['horario', 'Horário'], ['dia', 'Dia inteiro'], ['periodo', 'Período (férias)']] as [any, string][]).map(([v, label]) => (
+                  <button key={v} onClick={() => setTipo(v)} style={{ flex: 1, padding: '7px', fontSize: '11.5px', fontWeight: 500, borderRadius: 'var(--r-xs)', cursor: 'pointer', fontFamily: 'inherit', border: `1px solid ${tipo === v ? 'var(--sage)' : 'var(--border-md)'}`, background: tipo === v ? 'var(--sage-xlight)' : 'transparent', color: tipo === v ? 'var(--sage-dark)' : 'var(--muted)' }}>{label}</button>
+                ))}
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <div style={{ flex: 1 }}>
+                <label style={lbl}>{tipo === 'periodo' ? 'Data início' : 'Data'}</label>
+                <input type="date" value={data} onChange={e => setData(e.target.value)} style={inp} />
+              </div>
+              {tipo === 'periodo' && (
+                <div style={{ flex: 1 }}>
+                  <label style={lbl}>Data fim</label>
+                  <input type="date" value={dataFim} onChange={e => setDataFim(e.target.value)} style={inp} />
+                </div>
+              )}
+            </div>
+            {tipo === 'horario' && (
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <div style={{ flex: 1 }}><label style={lbl}>Das</label><input type="time" value={horaIni} onChange={e => setHoraIni(e.target.value)} style={inp} /></div>
+                <div style={{ flex: 1 }}><label style={lbl}>Até</label><input type="time" value={horaFim} onChange={e => setHoraFim(e.target.value)} style={inp} /></div>
+              </div>
+            )}
+            <div>
+              <label style={lbl}>Motivo (opcional)</label>
+              <input value={motivo} onChange={e => setMotivo(e.target.value)} placeholder="Ex: Férias, congresso..." style={inp} />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '6px' }}>
+              <button onClick={onClose} style={btnGhost}>Cancelar</button>
+              <button onClick={continuar} disabled={busy} style={{ ...btnPrimary, opacity: busy ? 0.6 : 1 }}>{busy && <Loader2 size={13} className="animate-spin" />} Continuar</button>
+            </div>
+          </div>
+        ) : (
+          <div>
+            <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
+              <div style={{ flexShrink: 0, padding: '8px', borderRadius: '50%', background: afetados.length ? 'var(--champ-light)' : 'var(--sage-xlight)', color: afetados.length ? 'var(--champ-text)' : 'var(--sage-dark)' }}>
+                <AlertTriangle size={18} />
+              </div>
+              <div>
+                <p style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--ink)' }}>
+                  {afetados.length === 0 ? 'Nenhuma consulta no período' : `${afetados.length} consulta${afetados.length > 1 ? 's' : ''} ser${afetados.length > 1 ? 'ão' : 'á'} afetada${afetados.length > 1 ? 's' : ''}`}
+                </p>
+                <p style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '4px', lineHeight: 1.5 }}>
+                  {afetados.length === 0
+                    ? 'Pode bloquear sem impacto em pacientes.'
+                    : 'Você pode só bloquear (sem avisar) ou pedir ao agente para notificar os pacientes via WhatsApp e conduzir o reagendamento.'}
+                </p>
+              </div>
+            </div>
+            {afetados.length > 0 && (
+              <div style={{ maxHeight: '140px', overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 'var(--r-xs)', marginBottom: '14px' }}>
+                {afetados.map(a => (
+                  <div key={a.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 10px', borderBottom: '1px solid var(--border)', fontSize: '12px' }}>
+                    <span style={{ color: 'var(--ink)' }}>{a.leads?.nome_lead || a.nome_lead || 'Paciente'}</span>
+                    <span style={{ color: 'var(--muted)' }}>{format(parseISO(a.data_hora_inicio), "dd/MM HH:mm")}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px' }}>
+              <button onClick={() => setStep(1)} disabled={busy} style={btnGhost}>Voltar</button>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button onClick={() => confirmar(false)} disabled={busy} style={{ ...btnGhost, color: 'var(--ink)' }}>{busy && <Loader2 size={12} className="animate-spin" />} Só bloquear</button>
+                {afetados.length > 0 && (
+                  <button onClick={() => confirmar(true)} disabled={busy} style={{ ...btnPrimary }}>{busy && <Loader2 size={12} className="animate-spin" />} Bloquear e notificar</button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+const modalOverlay: React.CSSProperties = { position: 'fixed', inset: 0, zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.4)', padding: '16px' };
+const modalBox: React.CSSProperties = { background: 'var(--white)', borderRadius: '12px', boxShadow: 'var(--shadow-modal)', width: '100%', padding: '22px', maxHeight: '88vh', overflowY: 'auto' };
+const modalHeader: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' };
+const modalTitle: React.CSSProperties = { fontSize: '18px', fontWeight: 600, color: 'var(--ink)' };
+const iconBtn: React.CSSProperties = { background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)' };
+const btnPrimary: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', fontSize: '12.5px', fontWeight: 600, borderRadius: 'var(--r-xs)', border: 'none', background: 'var(--sage-dark)', color: 'white', cursor: 'pointer', fontFamily: 'inherit' };
+const btnGhost: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', fontSize: '12.5px', fontWeight: 500, borderRadius: 'var(--r-xs)', border: '1px solid var(--border-md)', background: 'transparent', color: 'var(--muted)', cursor: 'pointer', fontFamily: 'inherit' };
 
 const navBtn: React.CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', borderRadius: 'var(--r-xs)', border: '1px solid var(--border-md)', background: 'var(--white)', color: 'var(--ink)', cursor: 'pointer' };
 const lbl: React.CSSProperties = { fontSize: '9.5px', fontWeight: 600, letterSpacing: '0.8px', textTransform: 'uppercase', color: 'var(--muted)', display: 'block', marginBottom: '5px' };

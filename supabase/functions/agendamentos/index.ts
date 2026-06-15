@@ -59,21 +59,42 @@ serve(async (req) => {
       const dataInicioStr = `${data}T00:00:00-03:00`;
       const dataFimStr = `${data}T23:59:59-03:00`;
       
+      // 'faltou'/cancelados liberam o slot automaticamente.
       const { data: agendamentosMarcados } = await supabaseClient
         .from("agendamentos")
         .select("data_hora_inicio")
         .eq("agenda_id", agenda_id)
-        .neq("status", "cancelado")
+        .not("status", "in", '("cancelado","cancelou_agendamento","faltou")')
         .gte("data_hora_inicio", dataInicioStr)
         .lte("data_hora_inicio", dataFimStr);
+
+      // Bloqueios que tocam este dia (horário, dia inteiro ou período/férias).
+      const { data: bloqueios } = await supabaseClient
+        .from("bloqueios")
+        .select("inicio, fim, dia_inteiro")
+        .eq("agenda_id", agenda_id)
+        .lte("inicio", dataFimStr)
+        .gte("fim", dataInicioStr);
 
       const startHour = parseInt(agendaHours.hora_inicio.split(":")[0]);
       const endHour = parseInt(agendaHours.hora_fim.split(":")[0]);
       const horasDisponiveis = [];
       const horasOcupadas = (agendamentosMarcados || []).map(a => new Date(a.data_hora_inicio).getHours());
 
+      const diaIni = new Date(dataInicioStr).getTime();
+      const diaFim = new Date(dataFimStr).getTime();
+      const horaBloqueada = (h: number): boolean => {
+        const slot = new Date(`${data}T${h.toString().padStart(2, '0')}:00:00-03:00`).getTime();
+        return (bloqueios || []).some((b: any) => {
+          if (b.dia_inteiro) {
+            return new Date(b.inicio).getTime() <= diaFim && new Date(b.fim).getTime() >= diaIni;
+          }
+          return new Date(b.inicio).getTime() <= slot && new Date(b.fim).getTime() > slot;
+        });
+      };
+
       for (let h = startHour; h < endHour; h++) {
-        if (!horasOcupadas.includes(h)) {
+        if (!horasOcupadas.includes(h) && !horaBloqueada(h)) {
           horasDisponiveis.push(`${h.toString().padStart(2, '0')}:00`);
         }
       }
@@ -94,9 +115,36 @@ serve(async (req) => {
     if (req.method === "POST" && path === "horarios") {
       const body = await req.json();
       const { agenda_id, lead_id, procedimento_nome, nome_lead, whatsapp_lead, data, hora } = body;
-      
+
       const inicio = new Date(`${data}T${hora}:00-03:00`);
-      
+
+      // Proteção: não agendar em horário bloqueado.
+      const { data: bloqOverlap } = await supabaseClient
+        .from("bloqueios")
+        .select("id, dia_inteiro, inicio, fim")
+        .eq("agenda_id", agenda_id)
+        .lte("inicio", inicio.toISOString())
+        .gte("fim", inicio.toISOString());
+      if (bloqOverlap && bloqOverlap.length > 0) {
+        return new Response(JSON.stringify({ error: "Horário bloqueado para este profissional." }), {
+          status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Proteção: sem marcação duplicada no mesmo slot/profissional.
+      const { data: jaMarcado } = await supabaseClient
+        .from("agendamentos")
+        .select("id")
+        .eq("agenda_id", agenda_id)
+        .eq("data_hora_inicio", inicio.toISOString())
+        .not("status", "in", '("cancelado","cancelou_agendamento","faltou")')
+        .limit(1);
+      if (jaMarcado && jaMarcado.length > 0) {
+        return new Response(JSON.stringify({ error: "Este horário já está ocupado." }), {
+          status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       const { data: newAgendamento, error } = await supabaseClient
         .from("agendamentos")
         .insert({
