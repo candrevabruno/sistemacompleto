@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Send, Loader2, User, MessageSquare, FileText, Download, Mic, Square, Paperclip, UserCheck, MoreVertical, Trash2, Ban, AlertTriangle, X } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, isToday, isYesterday, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { Conversa, Mensagem } from '../../types';
 
@@ -8,6 +8,13 @@ import type { Conversa, Mensagem } from '../../types';
 const JANELA_MS = 48 * 60 * 60 * 1000;
 function dentroDaJanela(createdAt: string): boolean {
   return Date.now() - new Date(createdAt).getTime() < JANELA_MS;
+}
+
+// Rótulo do separador de data, no estilo do WhatsApp.
+function labelData(d: Date): string {
+  if (isToday(d)) return 'Hoje';
+  if (isYesterday(d)) return 'Ontem';
+  return format(d, "d 'de' MMMM 'de' yyyy", { locale: ptBR });
 }
 
 function renderConteudo(m: Mensagem, isOut: boolean) {
@@ -248,17 +255,30 @@ export function ChatWindow({ conversa, mensagens, loadingMensagens, onEnviar, on
             <p className="text-sm text-[var(--muted)]">Nenhuma mensagem ainda</p>
           </div>
         ) : (
-          mensagens.map(m => {
+          mensagens.map((m, idx) => {
+            const prev = idx > 0 ? mensagens[idx - 1] : null;
+            const mostrarData = !prev || !isSameDay(new Date(prev.created_at), new Date(m.created_at));
+            const sep = mostrarData ? (
+              <div className="flex justify-center my-3">
+                <span className="px-3 py-1 bg-[var(--white)] rounded-full border border-[var(--border)] text-[10px] font-medium text-[var(--muted)] shadow-sm">
+                  {labelData(new Date(m.created_at))}
+                </span>
+              </div>
+            ) : null;
+
             if (m.tipo === 'sistema') {
               return (
-                <div key={m.id} className="flex justify-center my-1">
-                  <div className="flex items-center gap-1.5 px-3 py-1 bg-[var(--white)] rounded-full border border-[var(--border)] text-[10px] text-[var(--muted)]">
-                    <UserCheck className="w-3 h-3 flex-shrink-0" />
-                    <span>{m.conteudo}</span>
-                    <span>·</span>
-                    <span>{format(new Date(m.created_at), 'HH:mm', { locale: ptBR })}</span>
+                <React.Fragment key={m.id}>
+                  {sep}
+                  <div className="flex justify-center my-1">
+                    <div className="flex items-center gap-1.5 px-3 py-1 bg-[var(--white)] rounded-full border border-[var(--border)] text-[10px] text-[var(--muted)]">
+                      <UserCheck className="w-3 h-3 flex-shrink-0" />
+                      <span>{m.conteudo}</span>
+                      <span>·</span>
+                      <span>{format(new Date(m.created_at), 'HH:mm', { locale: ptBR })}</span>
+                    </div>
                   </div>
-                </div>
+                </React.Fragment>
               );
             }
             const isOut = m.direcao === 'saida';
@@ -266,7 +286,9 @@ export function ChatWindow({ conversa, mensagens, loadingMensagens, onEnviar, on
             const podeTodos = podeApagar && isOut && !!m.whatsapp_message_id && !m.apagada_para_todos && dentroDaJanela(m.created_at) && !apagadaContato;
             const temMenu = podeApagar && !apagadaContato;
             return (
-              <div key={m.id} className={`group flex items-center gap-1 ${isOut ? 'justify-end' : 'justify-start'}`}>
+              <React.Fragment key={m.id}>
+                {sep}
+                <div className={`group flex items-center gap-1 ${isOut ? 'justify-end' : 'justify-start'}`}>
                 {/* Botão de menu à esquerda para mensagens de saída */}
                 {temMenu && isOut && (
                   <MsgMenu
@@ -313,7 +335,8 @@ export function ChatWindow({ conversa, mensagens, loadingMensagens, onEnviar, on
                     onLocal={() => { setMenuId(null); setConfirm({ msg: m, scope: 'local' }); }}
                   />
                 )}
-              </div>
+                </div>
+              </React.Fragment>
             );
           })
         )}

@@ -860,6 +860,22 @@ function AbaWhatsApp() {
                 <p className="text-xs font-semibold text-[var(--muted)] mb-1.5">URL do Webhook (configure no provedor):</p>
                 <CopyableUrl url={providerWebhookUrl} />
               </div>
+              {provider === 'evolution' && (
+                <div className="pt-3">
+                  <div className="rounded-[8px] border border-[var(--border)] bg-[var(--bg)] p-3 text-xs text-[var(--muted)] leading-relaxed">
+                    <p className="font-semibold text-[var(--ink)] mb-1.5">Eventos a habilitar na Evolution</p>
+                    <p className="mb-2">
+                      No painel da Evolution, em <span className="font-medium">Events → Webhook</span>, cole a URL acima e
+                      ligue os eventos abaixo (senão mensagens recebidas e apagamentos não chegam ao Inbox):
+                    </p>
+                    <ul className="space-y-1">
+                      <li className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-[var(--sage-dark)] flex-shrink-0" /><code className="font-mono">MESSAGES_UPSERT</code> — receber mensagens</li>
+                      <li className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-[var(--sage-dark)] flex-shrink-0" /><code className="font-mono">MESSAGES_UPDATE</code> — paciente apaga (apagar p/ todos)</li>
+                      <li className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-[var(--sage-dark)] flex-shrink-0" /><code className="font-mono">MESSAGES_DELETE</code> — apagamento de mensagens</li>
+                    </ul>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <div className="text-center py-6">
