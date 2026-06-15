@@ -7,7 +7,8 @@ import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
   X, MessageCircle, Archive, UserCheck,
-  Clock, Target, Save, ChevronRight, MessageSquare,
+  Clock, Target, Save, ChevronRight, MessageSquare, User,
+  Pencil, Trash2, Check,
 } from 'lucide-react';
 import { calcularTemperatura, getInitials } from '../../lib/lead-utils';
 
@@ -63,6 +64,8 @@ type TLItem = {
   title: string;
   subtitle?: string;
   source: 'audit' | 'acao';
+  rawId?: string;  // id real em acoes_lead (para editar/apagar ações manuais)
+  obs?: string;    // observação crua (para edição)
 };
 
 // ── Temperature ───────────────────────────────────────────────────────────────
@@ -127,12 +130,24 @@ export function LeadDetailsModal({
   leadId: string | null | undefined;
   onUpdate?: () => void;
 }) {
-  const { user } = useAuth();
+  const { user, canEdit } = useAuth();
+  const canEditLeads = canEdit('modulo:leads');
   const navigate = useNavigate();
 
   const [lead, setLead] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [timeline, setTimeline] = useState<TLItem[]>([]);
+
+  // Bloco de contato (editável)
+  const [contatoForm, setContatoForm] = useState({ nome: '', nascimento: '', email: '', origem: '' });
+  const [savingContato, setSavingContato] = useState(false);
+
+  // Edição/exclusão de itens manuais do histórico
+  const [editTlId, setEditTlId] = useState<string | null>(null);
+  const [editTlObs, setEditTlObs] = useState('');
+  const [editTlData, setEditTlData] = useState('');
+  const [confirmDelTl, setConfirmDelTl] = useState<string | null>(null);
+  const [busyTl, setBusyTl] = useState(false);
 
   const [scoreForm, setScoreForm] = useState({ temperatura: '', sonho: '', contexto: '', obstaculo: '', rota: '', gatilho: '' });
   const [savingScore, setSavingScore] = useState(false);
@@ -172,6 +187,12 @@ export function LeadDetailsModal({
         gatilho:     leadData.score_gatilho     || '',
       });
       setAnotacoes(leadData.anotacoes_secretaria || '');
+      setContatoForm({
+        nome:       leadData.nome_lead       || '',
+        nascimento: (leadData.data_nascimento || '').slice(0, 10),
+        email:      leadData.email           || '',
+        origem:     leadData.origem          || '',
+      });
 
       const [{ data: audit }, { data: acoes }] = await Promise.all([
         supabase.from('audit_log').select('id, action, created_at, detalhes').eq('record_id', leadId).order('created_at', { ascending: false }),
@@ -188,6 +209,8 @@ export function LeadDetailsModal({
         })),
         ...(acoes || []).map(ac => ({
           id: `m-${ac.id}`,
+          rawId: ac.id,
+          obs: ac.observacao || '',
           created_at: ac.created_at,
           source: 'acao' as const,
           title: ACAO_LABEL[ac.tipo] || ac.tipo,
@@ -247,6 +270,61 @@ export function LeadDetailsModal({
     setSavingAnotacoes(true);
     await supabase.from('leads').update({ anotacoes_secretaria: anotacoes || null }).eq('id', lead.id);
     setSavingAnotacoes(false);
+  };
+
+  const handleSaveContato = async () => {
+    if (!lead) return;
+    setSavingContato(true);
+    const updates = {
+      nome_lead:       contatoForm.nome.trim() || null,
+      data_nascimento: contatoForm.nascimento || null,
+      email:           contatoForm.email.trim() || null,
+      origem:          contatoForm.origem.trim() || null,
+    };
+    await supabase.from('leads').update(updates).eq('id', lead.id);
+    setLead((p: any) => ({ ...p, ...updates }));
+    setSavingContato(false);
+    onUpdate?.();
+  };
+
+  // ── Edição/exclusão de itens MANUAIS do histórico (ações humanas) ─────────────
+  // Itens de origem IA/workflow (source 'audit') NÃO podem ser alterados.
+  const iniciarEdicaoTl = (item: TLItem) => {
+    setEditTlId(item.id);
+    setEditTlObs(item.obs || '');
+    // datetime-local: yyyy-MM-ddThh:mm
+    setEditTlData(format(new Date(item.created_at), "yyyy-MM-dd'T'HH:mm"));
+    setConfirmDelTl(null);
+  };
+
+  const salvarEdicaoTl = async (item: TLItem) => {
+    if (!item.rawId || !user) return;
+    setBusyTl(true);
+    const novoCreated = editTlData ? new Date(editTlData).toISOString() : item.created_at;
+    await supabase.from('acoes_lead').update({
+      observacao: editTlObs.trim() || null,
+      created_at: novoCreated,
+    }).eq('id', item.rawId);
+    await supabase.from('audit_log').insert({
+      user_id: user.id, action: 'acao_lead_editada', record_id: lead.id,
+      detalhes: { acao_id: item.rawId, obs_anterior: item.obs || null, obs_nova: editTlObs.trim() || null, data_anterior: item.created_at, data_nova: novoCreated },
+    });
+    setBusyTl(false);
+    setEditTlId(null);
+    await loadData();
+  };
+
+  const apagarTl = async (item: TLItem) => {
+    if (!item.rawId || !user) return;
+    setBusyTl(true);
+    await supabase.from('acoes_lead').delete().eq('id', item.rawId);
+    await supabase.from('audit_log').insert({
+      user_id: user.id, action: 'acao_lead_apagada', record_id: lead.id,
+      detalhes: { acao_id: item.rawId, tipo: item.title, obs_anterior: item.obs || null, data: item.created_at },
+    });
+    setBusyTl(false);
+    setConfirmDelTl(null);
+    await loadData();
   };
 
   const handleRegistrarAcao = async () => {
@@ -407,6 +485,47 @@ export function LeadDetailsModal({
             {/* BODY SCROLLÁVEL */}
             <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px' }}>
 
+              {/* CONTATO (editável) */}
+              <div style={{ marginBottom: '20px' }}>
+                <div style={sectionH}>
+                  <User size={12} style={{ color: 'var(--sage-dark)' }} />
+                  Contato
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <div style={{ gridColumn: 'span 2' }}>
+                    <label style={labelSt}>Nome completo</label>
+                    <input value={contatoForm.nome} onChange={e => setContatoForm(p => ({ ...p, nome: e.target.value }))}
+                      disabled={isArquivado} placeholder="Nome do lead"
+                      style={{ width: '100%', border: '1px solid var(--border-md)', borderRadius: '8px', padding: '7px 10px', fontSize: '12.5px', color: 'var(--ink)', background: 'var(--white)', fontFamily: 'inherit', outline: 'none' }} />
+                  </div>
+                  <div>
+                    <label style={labelSt}>Data de nascimento</label>
+                    <input type="date" value={contatoForm.nascimento} onChange={e => setContatoForm(p => ({ ...p, nascimento: e.target.value }))}
+                      disabled={isArquivado}
+                      style={{ width: '100%', border: '1px solid var(--border-md)', borderRadius: '8px', padding: '7px 10px', fontSize: '12.5px', color: 'var(--ink)', background: 'var(--white)', fontFamily: 'inherit', outline: 'none' }} />
+                  </div>
+                  <div>
+                    <label style={labelSt}>Origem</label>
+                    <input value={contatoForm.origem} onChange={e => setContatoForm(p => ({ ...p, origem: e.target.value }))}
+                      disabled={isArquivado} placeholder="Ex: Instagram, tráfego pago, indicação"
+                      style={{ width: '100%', border: '1px solid var(--border-md)', borderRadius: '8px', padding: '7px 10px', fontSize: '12.5px', color: 'var(--ink)', background: 'var(--white)', fontFamily: 'inherit', outline: 'none' }} />
+                  </div>
+                  <div style={{ gridColumn: 'span 2' }}>
+                    <label style={labelSt}>E-mail</label>
+                    <input type="email" value={contatoForm.email} onChange={e => setContatoForm(p => ({ ...p, email: e.target.value }))}
+                      disabled={isArquivado} placeholder="email@exemplo.com"
+                      style={{ width: '100%', border: '1px solid var(--border-md)', borderRadius: '8px', padding: '7px 10px', fontSize: '12.5px', color: 'var(--ink)', background: 'var(--white)', fontFamily: 'inherit', outline: 'none' }} />
+                  </div>
+                </div>
+                {!isArquivado && (
+                  <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'flex-end' }}>
+                    <button onClick={handleSaveContato} disabled={savingContato} style={{ ...btnGhost, fontSize: '11.5px', padding: '6px 12px', opacity: savingContato ? 0.7 : 1 }}>
+                      <Save size={12} /> {savingContato ? 'Salvando...' : 'Salvar contato'}
+                    </button>
+                  </div>
+                )}
+              </div>
+
               {/* SCORE */}
               <div style={{ marginBottom: '20px' }}>
                 <div style={sectionH}>
@@ -525,18 +644,50 @@ export function LeadDetailsModal({
                           )}
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ display: 'flex', alignItems: 'baseline', gap: '7px', flexWrap: 'wrap' }}>
-                            <span style={{ fontSize: '12.5px', fontWeight: 500, color: 'var(--ink)' }}>{item.title}</span>
-                            {item.source === 'acao' && (
-                              <span style={{ fontSize: '9.5px', fontWeight: 600, letterSpacing: '0.5px', textTransform: 'uppercase', padding: '1px 6px', borderRadius: '20px', background: 'var(--sage-xlight)', color: 'var(--sage-dark)', flexShrink: 0 }}>Manual</span>
+                          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '7px' }}>
+                            <div style={{ display: 'flex', alignItems: 'baseline', gap: '7px', flexWrap: 'wrap', minWidth: 0 }}>
+                              <span style={{ fontSize: '12.5px', fontWeight: 500, color: 'var(--ink)' }}>{item.title}</span>
+                              {item.source === 'acao'
+                                ? <span style={{ fontSize: '9.5px', fontWeight: 600, letterSpacing: '0.5px', textTransform: 'uppercase', padding: '1px 6px', borderRadius: '20px', background: 'var(--sage-xlight)', color: 'var(--sage-dark)', flexShrink: 0 }}>Manual</span>
+                                : <span style={{ fontSize: '9.5px', fontWeight: 600, letterSpacing: '0.5px', textTransform: 'uppercase', padding: '1px 6px', borderRadius: '20px', background: 'var(--bg)', color: 'var(--muted)', border: '1px solid var(--border)', flexShrink: 0 }}>Agente / sistema</span>}
+                            </div>
+                            {/* Editar/apagar: só ações manuais + permissão de editar Leads */}
+                            {item.source === 'acao' && canEditLeads && editTlId !== item.id && confirmDelTl !== item.id && (
+                              <span style={{ display: 'flex', gap: '2px', flexShrink: 0 }}>
+                                <button onClick={() => iniciarEdicaoTl(item)} title="Editar" style={{ padding: '2px', border: 'none', background: 'none', cursor: 'pointer', color: 'var(--muted)' }}><Pencil size={12} /></button>
+                                <button onClick={() => { setConfirmDelTl(item.id); setEditTlId(null); }} title="Apagar" style={{ padding: '2px', border: 'none', background: 'none', cursor: 'pointer', color: 'var(--muted)' }}><Trash2 size={12} /></button>
+                              </span>
                             )}
                           </div>
-                          {item.subtitle && (
-                            <div style={{ fontSize: '11.5px', color: 'var(--muted)', marginTop: '1px' }}>{item.subtitle}</div>
+
+                          {editTlId === item.id ? (
+                            <div style={{ marginTop: '6px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                              <input value={editTlObs} onChange={e => setEditTlObs(e.target.value)} placeholder="Observação..."
+                                style={{ width: '100%', border: '1px solid var(--border-md)', borderRadius: '8px', padding: '6px 9px', fontSize: '12px', color: 'var(--ink)', background: 'var(--white)', fontFamily: 'inherit', outline: 'none' }} />
+                              <input type="datetime-local" value={editTlData} onChange={e => setEditTlData(e.target.value)}
+                                style={{ width: '100%', border: '1px solid var(--border-md)', borderRadius: '8px', padding: '6px 9px', fontSize: '12px', color: 'var(--ink)', background: 'var(--white)', fontFamily: 'inherit', outline: 'none' }} />
+                              <div style={{ display: 'flex', gap: '6px' }}>
+                                <button onClick={() => salvarEdicaoTl(item)} disabled={busyTl} style={{ ...btnPrimary, fontSize: '11px', padding: '5px 11px' }}>
+                                  <Check size={12} /> Salvar
+                                </button>
+                                <button onClick={() => setEditTlId(null)} style={{ ...btnGhost, fontSize: '11px', padding: '5px 11px' }}>Cancelar</button>
+                              </div>
+                            </div>
+                          ) : (
+                            <>
+                              {item.subtitle && <div style={{ fontSize: '11.5px', color: 'var(--muted)', marginTop: '1px' }}>{item.subtitle}</div>}
+                              <div style={{ fontSize: '10.5px', color: 'var(--muted)', marginTop: '2px' }}>
+                                {format(new Date(item.created_at), "dd/MM/yy 'às' HH:mm", { locale: ptBR })}
+                              </div>
+                              {confirmDelTl === item.id && (
+                                <div style={{ marginTop: '6px', display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--rose-light)', padding: '6px 9px', borderRadius: '8px' }}>
+                                  <span style={{ fontSize: '11px', color: 'var(--rose-text)' }}>Apagar esta ação?</span>
+                                  <button onClick={() => apagarTl(item)} disabled={busyTl} style={{ fontSize: '11px', fontWeight: 500, padding: '3px 9px', borderRadius: '5px', border: 'none', cursor: 'pointer', background: 'var(--rose-text)', color: 'white', fontFamily: 'inherit' }}>{busyTl ? '...' : 'Apagar'}</button>
+                                  <button onClick={() => setConfirmDelTl(null)} style={{ fontSize: '11px', padding: '3px 9px', borderRadius: '5px', border: 'none', cursor: 'pointer', background: 'none', color: 'var(--rose-text)', fontFamily: 'inherit' }}>Cancelar</button>
+                                </div>
+                              )}
+                            </>
                           )}
-                          <div style={{ fontSize: '10.5px', color: 'var(--muted)', marginTop: '2px' }}>
-                            {format(new Date(item.created_at), "dd/MM/yy 'às' HH:mm", { locale: ptBR })}
-                          </div>
                         </div>
                       </div>
                     ))}
