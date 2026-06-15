@@ -116,6 +116,11 @@ export interface Mensagem {
   media_url: string | null;
   lida: boolean;
   created_at: string;
+  apagada_pelo_contato?: boolean;
+  apagada_para_todos?: boolean;
+  oculta_local?: boolean;
+  apagada_por?: string | null;
+  apagada_at?: string | null;
 }
 
 export interface Tag {

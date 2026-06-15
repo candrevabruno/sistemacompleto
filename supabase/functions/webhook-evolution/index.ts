@@ -59,6 +59,34 @@ Deno.serve(async (req: Request) => {
     const payload = await req.json();
     const event = payload.event as string;
 
+    // ── Regra 1: paciente apagou a mensagem no WhatsApp ──────────────
+    // A Evolution envia 'messages.delete' (revoke). NÃO deletamos o registro:
+    // marcamos como apagada_pelo_contato para a atendente ver que não é ativa.
+    if (event === 'messages.delete') {
+      const db = createAdminClient();
+      const raw = payload.data as Record<string, unknown>;
+      // O payload varia entre builds: pode vir a key direta, {key:{...}} ou um array.
+      const items = Array.isArray(raw) ? raw : [raw];
+      for (const it of items) {
+        const k = ((it as Record<string, unknown>).key ?? it) as Record<string, unknown>;
+        const msgId = (k.id as string) || ((it as Record<string, unknown>).id as string);
+        if (!msgId) continue;
+        await db
+          .from('mensagens')
+          .update({ apagada_pelo_contato: true })
+          .eq('whatsapp_message_id', msgId);
+        await db.from('whatsapp_logs').insert({
+          provider: 'evolution',
+          direction: 'inbound',
+          phone: extractPhone((k.remoteJid as string) || '') ?? '',
+          message_type: 'delete',
+          payload: it,
+          status: 'success',
+        });
+      }
+      return ok();
+    }
+
     // Apenas processa mensagens recebidas/enviadas
     if (event !== 'messages.upsert') return ok();
 
@@ -71,6 +99,22 @@ Deno.serve(async (req: Request) => {
 
     const phone = extractPhone(remoteJid);
     if (!phone) return ok(); // pula grupos
+
+    // Regra 1 (variante): revoke chega como upsert com protocolMessage REVOKE.
+    const msgObj = (data.message ?? {}) as Record<string, unknown>;
+    const proto = (msgObj.protocolMessage ?? {}) as Record<string, unknown>;
+    if (proto.type === 'REVOKE' || proto.type === 0) {
+      const revokedKey = (proto.key ?? {}) as Record<string, unknown>;
+      const revokedId = (revokedKey.id as string) || evolutionMsgId;
+      if (revokedId) {
+        const db = createAdminClient();
+        await db
+          .from('mensagens')
+          .update({ apagada_pelo_contato: true })
+          .eq('whatsapp_message_id', revokedId);
+      }
+      return ok();
+    }
 
     const { content, type, mediaUrl: rawMediaUrl } = extractMessage(data);
     if (!content) return ok();

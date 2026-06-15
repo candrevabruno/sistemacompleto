@@ -63,7 +63,7 @@ function playHumanHandoffAlert() {
 
 export function Inbox() {
   const { config, loading: configLoading } = useClinic();
-  const { user } = useAuth();
+  const { user, canEdit } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -168,8 +168,22 @@ export function Inbox() {
       .channel('inbox-mensagens')
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'mensagens' },
+        { event: '*', schema: 'public', table: 'mensagens' },
         payload => {
+          // ── UPDATE: apagamento (paciente revoga / clínica oculta) ──
+          if (payload.eventType === 'UPDATE') {
+            const upd = payload.new as Mensagem;
+            if (upd.conversa_id !== conversaSelecionadaRef.current?.id) return;
+            setMensagens(prev =>
+              // some do chat quando ocultada localmente; senão atualiza (ex.: riscar apagada pelo contato)
+              upd.oculta_local
+                ? prev.filter(m => m.id !== upd.id)
+                : prev.map(m => (m.id === upd.id ? upd : m))
+            );
+            return;
+          }
+          if (payload.eventType !== 'INSERT') return;
+
           const nova = payload.new as Mensagem;
 
           // Skip messages we inserted ourselves (already in local state)
@@ -223,7 +237,8 @@ export function Inbox() {
         .order('created_at', { ascending: true });
 
       if (error) console.error('Erro ao carregar mensagens:', error);
-      if (data) setMensagens(data);
+      // Mensagens ocultas localmente não aparecem no Inbox (mas persistem no banco — LGPD)
+      if (data) setMensagens(data.filter(m => !m.oculta_local));
     } catch (err) {
       console.error('Falha ao buscar mensagens:', err);
     } finally {
@@ -435,6 +450,20 @@ export function Inbox() {
     setConversas(prev => prev.map(c => c.id === conversaSelecionada.id ? updated : c));
   }
 
+  // ── Apagar mensagem (Regras 2/3) ────────────────────────────────
+  // scope 'todos' → apaga no WhatsApp do paciente também (só mensagem nossa, na janela)
+  // scope 'local' → some apenas do Inbox da clínica (registro persiste no banco — LGPD)
+  async function apagarMensagem(mensagemId: string, scope: 'todos' | 'local'): Promise<void> {
+    const { data, error } = await supabase.functions.invoke('whatsapp-delete', {
+      body: { mensagem_id: mensagemId, scope },
+    });
+    if (error || !data?.success) {
+      throw new Error(data?.error || error?.message || 'Erro ao apagar mensagem');
+    }
+    // Some do chat localmente (realtime UPDATE também cobre, mas damos feedback imediato)
+    setMensagens(prev => prev.filter(m => m.id !== mensagemId));
+  }
+
   // ── Delete conversation ─────────────────────────────────────────
   async function excluirConversa(conversaId: string) {
     await supabase.from('conversas').update({ status: 'arquivada' }).eq('id', conversaId);
@@ -516,6 +545,8 @@ export function Inbox() {
         onEnviar={enviarMensagem}
         onEnviarAudio={enviarAudio}
         onEnviarArquivo={enviarArquivo}
+        onApagarMensagem={apagarMensagem}
+        podeApagar={canEdit('modulo:inbox')}
         enviando={enviando}
       />
 

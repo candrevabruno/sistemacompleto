@@ -1,8 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Send, Loader2, User, MessageSquare, FileText, Download, Mic, Square, Paperclip, UserCheck } from 'lucide-react';
+import { Send, Loader2, User, MessageSquare, FileText, Download, Mic, Square, Paperclip, UserCheck, MoreVertical, Trash2, Ban, AlertTriangle, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { Conversa, Mensagem } from '../../types';
+
+// Janela do WhatsApp para "apagar para todos" (~2 dias).
+const JANELA_MS = 48 * 60 * 60 * 1000;
+function dentroDaJanela(createdAt: string): boolean {
+  return Date.now() - new Date(createdAt).getTime() < JANELA_MS;
+}
 
 function renderConteudo(m: Mensagem, isOut: boolean) {
   switch (m.tipo) {
@@ -49,6 +55,51 @@ function renderConteudo(m: Mensagem, isOut: boolean) {
   }
 }
 
+// Menu de ações por mensagem (apagar). Aparece no hover da linha.
+function MsgMenu({ open, onToggle, podeTodos, align, onTodos, onLocal }: {
+  open: boolean;
+  onToggle: () => void;
+  podeTodos: boolean;
+  align: 'left' | 'right';
+  onTodos: () => void;
+  onLocal: () => void;
+}) {
+  return (
+    <div className="relative flex-shrink-0">
+      <button
+        onClick={onToggle}
+        className={`w-7 h-7 rounded-full flex items-center justify-center text-[var(--muted)] hover:bg-[var(--white)] hover:text-[var(--ink)] transition-opacity ${open ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+        title="Opções da mensagem"
+      >
+        <MoreVertical className="w-4 h-4" />
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={onToggle} />
+          <div className={`absolute z-20 top-8 ${align === 'right' ? 'right-0' : 'left-0'} w-52 bg-white rounded-[8px] border border-[var(--border)] shadow-lg py-1 text-sm`}>
+            {podeTodos && (
+              <button
+                onClick={onTodos}
+                className="w-full flex items-center gap-2 px-3 py-2 text-left text-red-600 hover:bg-red-50"
+              >
+                <Trash2 className="w-4 h-4 flex-shrink-0" />
+                Apagar para todos
+              </button>
+            )}
+            <button
+              onClick={onLocal}
+              className="w-full flex items-center gap-2 px-3 py-2 text-left text-[var(--ink)] hover:bg-[var(--bg)]"
+            >
+              <Ban className="w-4 h-4 flex-shrink-0" />
+              Apagar só aqui
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 interface Props {
   conversa: Conversa | null;
   mensagens: Mensagem[];
@@ -56,13 +107,33 @@ interface Props {
   onEnviar: (texto: string) => Promise<void>;
   onEnviarAudio: (dataUrl: string) => Promise<void>;
   onEnviarArquivo: (file: File) => Promise<void>;
+  onApagarMensagem: (mensagemId: string, scope: 'todos' | 'local') => Promise<void>;
+  podeApagar: boolean;
   enviando: boolean;
 }
 
-export function ChatWindow({ conversa, mensagens, loadingMensagens, onEnviar, onEnviarAudio, onEnviarArquivo, enviando }: Props) {
+export function ChatWindow({ conversa, mensagens, loadingMensagens, onEnviar, onEnviarAudio, onEnviarArquivo, onApagarMensagem, podeApagar, enviando }: Props) {
   const [texto, setTexto] = useState('');
   const [gravando, setGravando] = useState(false);
   const [segundos, setSegundos] = useState(0);
+  const [menuId, setMenuId] = useState<string | null>(null);
+  const [confirm, setConfirm] = useState<{ msg: Mensagem; scope: 'todos' | 'local' } | null>(null);
+  const [apagando, setApagando] = useState(false);
+  const [erroApagar, setErroApagar] = useState<string | null>(null);
+
+  async function confirmarApagar() {
+    if (!confirm) return;
+    setApagando(true);
+    setErroApagar(null);
+    try {
+      await onApagarMensagem(confirm.msg.id, confirm.scope);
+      setConfirm(null);
+    } catch (err) {
+      setErroApagar(err instanceof Error ? err.message : 'Erro ao apagar mensagem');
+    } finally {
+      setApagando(false);
+    }
+  }
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -190,24 +261,58 @@ export function ChatWindow({ conversa, mensagens, loadingMensagens, onEnviar, on
                 </div>
               );
             }
+            const isOut = m.direcao === 'saida';
+            const apagadaContato = !!m.apagada_pelo_contato;
+            const podeTodos = podeApagar && isOut && !!m.whatsapp_message_id && !m.apagada_para_todos && dentroDaJanela(m.created_at) && !apagadaContato;
+            const temMenu = podeApagar && !apagadaContato;
             return (
-              <div key={m.id} className={`flex ${m.direcao === 'saida' ? 'justify-end' : 'justify-start'}`}>
+              <div key={m.id} className={`group flex items-center gap-1 ${isOut ? 'justify-end' : 'justify-start'}`}>
+                {/* Botão de menu à esquerda para mensagens de saída */}
+                {temMenu && isOut && (
+                  <MsgMenu
+                    open={menuId === m.id}
+                    onToggle={() => setMenuId(menuId === m.id ? null : m.id)}
+                    podeTodos={podeTodos}
+                    align="right"
+                    onTodos={() => { setMenuId(null); setConfirm({ msg: m, scope: 'todos' }); }}
+                    onLocal={() => { setMenuId(null); setConfirm({ msg: m, scope: 'local' }); }}
+                  />
+                )}
                 <div
                   className={`${m.tipo === 'audio' ? 'w-[260px]' : 'max-w-[70%]'} px-3 py-2 rounded-2xl text-sm ${
-                    m.direcao === 'saida'
+                    isOut
                       ? 'bg-[var(--sage-dark)] text-white rounded-br-sm'
                       : 'bg-white dark:bg-white/10 text-[var(--ink)] border border-[var(--border)] rounded-bl-sm shadow-sm'
-                  }`}
+                  } ${apagadaContato ? 'opacity-60' : ''}`}
                 >
-                  {renderConteudo(m, m.direcao === 'saida')}
+                  {apagadaContato && (
+                    <span className={`flex items-center gap-1 text-[10px] font-medium mb-0.5 ${isOut ? 'text-white/80' : 'text-[var(--muted)]'}`}>
+                      <Ban className="w-3 h-3 flex-shrink-0" />
+                      apagada pelo paciente
+                    </span>
+                  )}
+                  <div className={apagadaContato ? 'line-through opacity-80' : ''}>
+                    {renderConteudo(m, isOut)}
+                  </div>
                   <p
                     className={`text-[10px] mt-1 text-right ${
-                      m.direcao === 'saida' ? 'text-white/70' : 'text-[var(--muted)]'
+                      isOut ? 'text-white/70' : 'text-[var(--muted)]'
                     }`}
                   >
                     {format(new Date(m.created_at), 'HH:mm', { locale: ptBR })}
                   </p>
                 </div>
+                {/* Botão de menu à direita para mensagens de entrada */}
+                {temMenu && !isOut && (
+                  <MsgMenu
+                    open={menuId === m.id}
+                    onToggle={() => setMenuId(menuId === m.id ? null : m.id)}
+                    podeTodos={false}
+                    align="left"
+                    onTodos={() => {}}
+                    onLocal={() => { setMenuId(null); setConfirm({ msg: m, scope: 'local' }); }}
+                  />
+                )}
               </div>
             );
           })
@@ -298,6 +403,52 @@ export function ChatWindow({ conversa, mensagens, loadingMensagens, onEnviar, on
           </p>
         )}
       </div>
+
+      {/* Modal de confirmação de apagamento */}
+      {confirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => !apagando && setConfirm(null)}>
+          <div className="bg-white rounded-[12px] shadow-xl w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
+            <div className="flex items-start gap-3 mb-4">
+              <div className={`p-2 rounded-full flex-shrink-0 ${confirm.scope === 'todos' ? 'bg-red-100 text-red-600' : 'bg-amber-100 text-amber-600'}`}>
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-base font-cormorant font-bold text-[var(--ink)]">
+                  {confirm.scope === 'todos' ? 'Apagar para todos?' : 'Apagar só aqui?'}
+                </h3>
+                <p className="text-sm text-[var(--muted)] mt-1 leading-relaxed">
+                  {confirm.scope === 'todos'
+                    ? 'A mensagem será apagada também no WhatsApp do paciente. Esta ação não pode ser desfeita.'
+                    : 'A mensagem some apenas do Inbox da clínica — ela permanece no celular do paciente. O registro é mantido para fins de auditoria/LGPD.'}
+                </p>
+              </div>
+              <button onClick={() => !apagando && setConfirm(null)} className="text-[var(--muted)] hover:text-[var(--ink)]">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            {erroApagar && (
+              <p className="text-xs text-red-600 bg-red-50 rounded-[6px] px-3 py-2 mb-3">{erroApagar}</p>
+            )}
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setConfirm(null)}
+                disabled={apagando}
+                className="px-4 py-2 rounded-[8px] text-sm border border-[var(--border)] text-[var(--ink)] hover:bg-[var(--bg)] disabled:opacity-40"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmarApagar}
+                disabled={apagando}
+                className={`px-4 py-2 rounded-[8px] text-sm text-white flex items-center gap-2 disabled:opacity-40 ${confirm.scope === 'todos' ? 'bg-red-600 hover:bg-red-700' : 'bg-[var(--sage-dark)] hover:opacity-90'}`}
+              >
+                {apagando && <Loader2 className="w-4 h-4 animate-spin" />}
+                {confirm.scope === 'todos' ? 'Apagar para todos' : 'Apagar só aqui'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

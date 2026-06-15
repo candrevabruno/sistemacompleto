@@ -58,6 +58,29 @@ export class WhatsAppService {
       : this.metaSendMedia(phone, mediaUrl, mediaType, caption);
   }
 
+  // Apaga para todos (revoke) uma mensagem que NÓS enviamos, dentro da janela do WhatsApp.
+  // Só funciona para fromMe=true; o WhatsApp não permite apagar do lado do contato.
+  async deleteForEveryone(phone: string, whatsappMsgId: string): Promise<void> {
+    if (this.cfg.whatsapp_provider !== 'evolution') {
+      // Meta Cloud API não oferece "apagar para todos" — no-op (some apenas localmente).
+      return;
+    }
+    const remoteJid = `${phone}@s.whatsapp.net`;
+    const body = JSON.stringify({ id: whatsappMsgId, remoteJid, fromMe: true, participant: '' });
+    const url = `${this.baseUrl}/chat/deleteMessageForEveryone/${this.cfg.evolution_instance_name}`;
+    const headers = { apikey: this.cfg.evolution_api_key!, 'Content-Type': 'application/json' };
+
+    // Evolution v2 usa DELETE; algumas builds aceitam POST — tenta os dois.
+    let res = await fetch(url, { method: 'DELETE', headers, body });
+    if (res.status === 404 || res.status === 405) {
+      res = await fetch(url, { method: 'POST', headers, body });
+    }
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`Evolution API ${res.status}: ${text}`);
+    }
+  }
+
   // ── Evolution ──────────────────────────────────────────────────────
 
   private async evolutionSendText(phone: string, message: string): Promise<SendResult> {
