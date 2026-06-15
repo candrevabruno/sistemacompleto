@@ -408,19 +408,19 @@ export function Dashboard() {
           <Loader2 className="w-6 h-6 animate-spin" style={{ color: 'var(--muted)' }} />
         </div>
       ) : (
-        <>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {/* ── Atendimentos por dia ── */}
           <div style={panel}>
             <PanelTitle>Atendimentos no WhatsApp</PanelTitle>
-            <PanelSub>Total de leads atendidos pelo agente de IA por dia no período selecionado</PanelSub>
-            <div style={{ height: 300 }}>
+            <PanelSub>Leads atendidos pelo agente por dia</PanelSub>
+            <div style={{ height: 200 }}>
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={chart1Data} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                <LineChart data={chart1Data} margin={{ top: 10, right: 10, left: -18, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
-                  <XAxis dataKey="dia" axisLine={false} tickLine={false} tickMargin={10} tick={{ fill: 'var(--muted)', fontSize: 11 }} padding={{ left: 20, right: 20 }} />
-                  <YAxis axisLine={false} tickLine={false} tickMargin={10} tick={{ fill: 'var(--muted)', fontSize: 11 }} />
+                  <XAxis dataKey="dia" axisLine={false} tickLine={false} tickMargin={8} tick={{ fill: 'var(--muted)', fontSize: 10 }} padding={{ left: 12, right: 12 }} />
+                  <YAxis axisLine={false} tickLine={false} tickMargin={6} tick={{ fill: 'var(--muted)', fontSize: 10 }} width={28} />
                   <Tooltip contentStyle={tooltipStyle} />
-                  <Line type="monotone" dataKey="leads" stroke="var(--sage-dark)" strokeWidth={2.5} dot={{ r: 4, fill: 'var(--sage-dark)', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 6, strokeWidth: 0 }} />
+                  <Line type="monotone" dataKey="leads" stroke="var(--sage-dark)" strokeWidth={2} dot={{ r: 3, fill: 'var(--sage-dark)', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 5, strokeWidth: 0 }} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -429,85 +429,78 @@ export function Dashboard() {
           {/* ── Dias com mais movimento ── */}
           <div style={panel}>
             <PanelTitle>Dias com mais movimento</PanelTitle>
-            <PanelSub>Veja em quais dias da semana sua clínica recebe mais contatos</PanelSub>
-            <div style={{ height: 300 }}>
+            <PanelSub>Contatos por dia da semana</PanelSub>
+            <div style={{ height: 200 }}>
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chart2Data} margin={{ top: 20, right: 20, left: -10, bottom: 0 }}>
+                <BarChart data={chart2Data} margin={{ top: 16, right: 8, left: -18, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tickMargin={10} tick={{ fill: 'var(--muted)', fontSize: 11 }} />
-                  <YAxis axisLine={false} tickLine={false} tickMargin={10} tick={{ fill: 'var(--muted)', fontSize: 11 }} />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tickMargin={8} tick={{ fill: 'var(--muted)', fontSize: 10 }} />
+                  <YAxis axisLine={false} tickLine={false} tickMargin={6} tick={{ fill: 'var(--muted)', fontSize: 10 }} width={28} />
                   <Tooltip contentStyle={tooltipStyle} cursor={{ fill: 'var(--sage-xlight)' }} />
-                  <Bar dataKey="valor" name="Leads" fill="var(--sage-dark)" radius={[6, 6, 0, 0]} barSize={32} label={{ position: 'top', fill: 'var(--muted)', fontSize: 11, fontWeight: '500' }} />
+                  <Bar dataKey="valor" name="Leads" fill="var(--sage-dark)" radius={[5, 5, 0, 0]} barSize={22} label={{ position: 'top', fill: 'var(--muted)', fontSize: 10, fontWeight: '500' }} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           </div>
 
-          {/* ── Horário + Qualificação ── */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div style={panel}>
-              <PanelTitle>Horário dos contatos</PanelTitle>
-              <PanelSub>Contatos dentro e fora do horário de funcionamento</PanelSub>
-              <div style={{ height: 300 }}>
+          {/* ── Horário dos contatos ── */}
+          <div style={panel}>
+            <PanelTitle>Horário dos contatos</PanelTitle>
+            <PanelSub>Dentro e fora do horário</PanelSub>
+            <div style={{ height: 200 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={chart3Data} cx="50%" cy="50%" innerRadius="58%" outerRadius="82%" paddingAngle={4} dataKey="value" stroke="none">
+                    {chart3Data.map((_, i) => <Cell key={i} fill={COLORS[i]} />)}
+                  </Pie>
+                  <Tooltip contentStyle={tooltipStyle} />
+                  <Legend verticalAlign="bottom" height={28} iconType="circle" wrapperStyle={{ fontSize: '11px', color: 'var(--muted)' }} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* ── Qualificação dos Leads ── */}
+          <div style={panel}>
+            <PanelTitle>Qualificação dos Leads</PanelTitle>
+            <PanelSub>Qualificados × abandonaram</PanelSub>
+            <div style={{ height: 200 }}>
+              {totalLeads > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
-                    <Pie data={chart3Data} cx="50%" cy="50%" innerRadius="65%" outerRadius="85%" paddingAngle={4} dataKey="value" stroke="none">
-                      {chart3Data.map((_, i) => <Cell key={i} fill={COLORS[i]} />)}
+                    <Pie data={qualData} cx="50%" cy="50%" innerRadius="58%" outerRadius="82%" paddingAngle={4} dataKey="value" stroke="none">
+                      {qualData.map((_, i) => <Cell key={i} fill={QUALI_COLORS[i]} />)}
                     </Pie>
                     <Tooltip contentStyle={tooltipStyle} />
-                    <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: '12px', color: 'var(--muted)' }} />
+                    <Legend verticalAlign="bottom" height={28} iconType="circle" wrapperStyle={{ fontSize: '11px', color: 'var(--muted)' }} />
                   </PieChart>
                 </ResponsiveContainer>
-              </div>
-              <p className="text-[11px] text-center mt-2 px-3 py-2 rounded-[8px]" style={{ color: 'var(--muted)', background: 'var(--bg)' }}>
-                Horário reflete as configurações administrativas ativas.
-              </p>
-            </div>
-
-            <div style={panel}>
-              <PanelTitle>Qualificação dos Leads</PanelTitle>
-              <PanelSub>Comparativo entre qualificados e quem abandonou a conversa</PanelSub>
-              <div style={{ height: 300 }}>
-                {totalLeads > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie data={qualData} cx="50%" cy="50%" innerRadius="65%" outerRadius="85%" paddingAngle={4} dataKey="value" stroke="none">
-                        {qualData.map((_, i) => <Cell key={i} fill={QUALI_COLORS[i]} />)}
-                      </Pie>
-                      <Tooltip contentStyle={tooltipStyle} />
-                      <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: '12px', color: 'var(--muted)' }} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="flex items-center justify-center h-full text-[13px]" style={{ color: 'var(--muted)' }}>
-                    Nenhum lead registrado no período.
-                  </div>
-                )}
-              </div>
-              <p className="text-[11px] text-center mt-2 px-3 py-2 rounded-[8px]" style={{ color: 'var(--muted)', background: 'var(--bg)' }}>
-                Total de <strong>{totalLeads}</strong> leads no período.
-              </p>
+              ) : (
+                <div className="flex items-center justify-center h-full text-[12px]" style={{ color: 'var(--muted)' }}>
+                  Nenhum lead no período.
+                </div>
+              )}
             </div>
           </div>
 
           {/* ── Objeções ── */}
           <div style={panel}>
             <PanelTitle>Principais Objeções</PanelTitle>
-            <PanelSub>Motivos pelos quais os contatos não se tornaram clientes</PanelSub>
-            <div style={{ height: 280 }}>
+            <PanelSub>Motivos de não conversão</PanelSub>
+            <div style={{ height: 200 }}>
               {chartObjecoes.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={chartObjecoes} layout="vertical" margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
+                  <BarChart data={chartObjecoes} layout="vertical" margin={{ top: 5, right: 24, left: 4, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--border)" />
-                    <XAxis type="number" axisLine={false} tickLine={false} tick={{ fill: 'var(--muted)', fontSize: 11 }} allowDecimals={false} />
-                    <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} width={140} tick={{ fill: 'var(--ink)', fontSize: 11 }} />
+                    <XAxis type="number" axisLine={false} tickLine={false} tick={{ fill: 'var(--muted)', fontSize: 10 }} allowDecimals={false} />
+                    <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} width={96} tick={{ fill: 'var(--ink)', fontSize: 10 }} />
                     <Tooltip contentStyle={tooltipStyle} cursor={{ fill: 'var(--sage-xlight)' }} />
-                    <Bar dataKey="value" name="Leads" fill="var(--sage-dark)" radius={[0, 4, 4, 0]} barSize={22} label={{ position: 'right', fill: 'var(--muted)', fontSize: 11, fontWeight: '500' }} />
+                    <Bar dataKey="value" name="Leads" fill="var(--sage-dark)" radius={[0, 4, 4, 0]} barSize={16} label={{ position: 'right', fill: 'var(--muted)', fontSize: 10, fontWeight: '500' }} />
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="flex items-center justify-center h-full text-[13px]" style={{ color: 'var(--muted)' }}>
-                  Nenhuma objeção registrada no período.
+                <div className="flex items-center justify-center h-full text-[12px]" style={{ color: 'var(--muted)' }}>
+                  Nenhuma objeção no período.
                 </div>
               )}
             </div>
@@ -516,26 +509,26 @@ export function Dashboard() {
           {/* ── Principais Serviços ── */}
           <div style={panel}>
             <PanelTitle>Principais Serviços</PanelTitle>
-            <PanelSub>Serviços mais contratados nas vendas fechadas</PanelSub>
-            <div style={{ height: 280 }}>
+            <PanelSub>Mais contratados nas vendas</PanelSub>
+            <div style={{ height: 200 }}>
               {chartServicos.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={chartServicos} layout="vertical" margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
+                  <BarChart data={chartServicos} layout="vertical" margin={{ top: 5, right: 24, left: 4, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--border)" />
-                    <XAxis type="number" axisLine={false} tickLine={false} tick={{ fill: 'var(--muted)', fontSize: 11 }} allowDecimals={false} />
-                    <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} width={140} tick={{ fill: 'var(--ink)', fontSize: 11 }} />
+                    <XAxis type="number" axisLine={false} tickLine={false} tick={{ fill: 'var(--muted)', fontSize: 10 }} allowDecimals={false} />
+                    <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} width={96} tick={{ fill: 'var(--ink)', fontSize: 10 }} />
                     <Tooltip contentStyle={tooltipStyle} cursor={{ fill: 'var(--sage-xlight)' }} />
-                    <Bar dataKey="value" name="Vendas" fill="var(--sage)" radius={[0, 4, 4, 0]} barSize={22} label={{ position: 'right', fill: 'var(--muted)', fontSize: 11, fontWeight: '500' }} />
+                    <Bar dataKey="value" name="Vendas" fill="var(--sage)" radius={[0, 4, 4, 0]} barSize={16} label={{ position: 'right', fill: 'var(--muted)', fontSize: 10, fontWeight: '500' }} />
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="flex items-center justify-center h-full text-[13px]" style={{ color: 'var(--muted)' }}>
-                  Nenhum serviço registrado nas conversões do período.
+                <div className="flex items-center justify-center h-full text-[12px]" style={{ color: 'var(--muted)' }}>
+                  Nenhum serviço no período.
                 </div>
               )}
             </div>
           </div>
-        </>
+        </div>
       )}
 
       {/* ── KPIs Clínicos ── */}

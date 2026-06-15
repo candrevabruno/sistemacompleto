@@ -154,9 +154,6 @@ function KpiCard({ kpi, valor, semaforo }: { kpi: KpiCatalog; valor: number | nu
         <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: cor, flexShrink: 0, marginTop: '4px' }} />
         <div>
           <div style={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--ink)', lineHeight: 1.25 }}>{kpi.nome}</div>
-          <div style={{ fontSize: '9px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--muted)', marginTop: '1px' }}>
-            {PILAR_LABEL[kpi.pilar]}
-          </div>
         </div>
       </div>
 
@@ -278,7 +275,7 @@ function ConfigModal({ catalog, selection, onToggle, onClose }: {
 
 export function KpiPainel({ dateRange }: { dateRange: { start: Date; end: Date } }) {
   const { user } = useAuth();
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
 
   const [loading, setLoading]     = useState(true);
   const [catalog, setCatalog]     = useState<KpiCatalog[]>([]);
@@ -370,7 +367,7 @@ export function KpiPainel({ dateRange }: { dateRange: { start: Date; end: Date }
         ))}
       </div>
 
-      {/* Grid de cards */}
+      {/* Cards agrupados por categoria */}
       {ativos.length === 0 ? (
         <div style={{ padding: '32px', textAlign: 'center' }}>
           <p style={{ fontSize: '13px', color: 'var(--muted)' }}>
@@ -378,10 +375,23 @@ export function KpiPainel({ dateRange }: { dateRange: { start: Date; end: Date }
           </p>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(176px, 1fr))', gap: '10px' }}>
-          {ativos.map(kpi => {
-            const val = valores[kpi.codigo] ?? null;
-            return <KpiCard key={kpi.codigo} kpi={kpi} valor={val} semaforo={calcSemaforo(kpi, val)} />;
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {(['operacional', 'comercial', 'experiencia'] as const).map(pilar => {
+            const doPilar = ativos.filter(k => k.pilar === pilar);
+            if (doPilar.length === 0) return null;
+            return (
+              <div key={pilar}>
+                <div style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1.2px', color: 'var(--sage-dark)', paddingBottom: '8px', marginBottom: '12px', borderBottom: '1px solid var(--border)' }}>
+                  {PILAR_LABEL[pilar]}
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(176px, 1fr))', gap: '10px' }}>
+                  {doPilar.map(kpi => {
+                    const val = valores[kpi.codigo] ?? null;
+                    return <KpiCard key={kpi.codigo} kpi={kpi} valor={val} semaforo={calcSemaforo(kpi, val)} />;
+                  })}
+                </div>
+              </div>
+            );
           })}
         </div>
       )}

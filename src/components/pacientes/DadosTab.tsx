@@ -2,8 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { supabase } from '../../lib/supabase';
-import { Copy, Loader2, Check, CalendarDays, Bot, AlertCircle, User, MapPin, CreditCard, FileText, Clock, StickyNote } from 'lucide-react';
+import { Copy, Loader2, Check, CalendarDays, Bot, AlertCircle, User, MapPin, CreditCard, FileText, Clock, StickyNote, Gift } from 'lucide-react';
 import { PainelAnotacoes } from './PainelAnotacoes';
+
+// Aniversário: compara dia/mês da data de nascimento com hoje (grátis para todos).
+function isAniversarioHoje(dataNasc: string | null | undefined): boolean {
+  if (!dataNasc) return false;
+  const p = dataNasc.slice(0, 10).split('-');
+  if (p.length < 3) return false;
+  const hoje = new Date();
+  return Number(p[1]) === hoje.getMonth() + 1 && Number(p[2]) === hoje.getDate();
+}
 
 interface Props {
   lead: any;
@@ -332,8 +341,23 @@ export function DadosTab({ lead, pacienteId, proximaConsulta: proximaConsultaPro
             <input value={email} onChange={e => setEmail(e.target.value)} type="email" style={inputStyle} />
           </Field>
 
-          <Field label="Data de nascimento">
-            <input value={dataNasc} onChange={e => setDataNasc(e.target.value)} type="date" style={inputStyle} />
+          <Field label={isAniversarioHoje(dataNasc) ? '🎁 Data de nascimento' : 'Data de nascimento'}>
+            {isAniversarioHoje(dataNasc) ? (
+              <div style={{ position: 'relative' }}>
+                <input
+                  value={dataNasc}
+                  onChange={e => setDataNasc(e.target.value)}
+                  type="date"
+                  style={{ ...inputStyle, background: 'var(--champ-light)', border: '1px solid var(--champ-text)', color: 'var(--champ-text)', fontWeight: 600, paddingRight: '34px' }}
+                />
+                <Gift size={15} style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--champ-text)', pointerEvents: 'none' }} />
+                <div style={{ marginTop: '5px', display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '10.5px', fontWeight: 600, color: 'var(--champ-text)', background: 'var(--champ-light)', padding: '2px 8px', borderRadius: '20px' }}>
+                  <Gift size={11} /> Aniversário é hoje!
+                </div>
+              </div>
+            ) : (
+              <input value={dataNasc} onChange={e => setDataNasc(e.target.value)} type="date" style={inputStyle} />
+            )}
           </Field>
 
           <Field label="Como nos conheceu">
