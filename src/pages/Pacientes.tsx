@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useClinic } from '../contexts/ClinicContext';
-import { Search, Users, MessageSquare, CalendarPlus, ClipboardList, ExternalLink, Check, X, Clock, Loader2, Upload, UserPlus } from 'lucide-react';
+import { Search, Users, MessageSquare, CalendarPlus, ClipboardList, ExternalLink, Check, X, Clock, Loader2, Upload, UserPlus, MoreVertical, Archive, ArchiveRestore, Trash2, AlertTriangle } from 'lucide-react';
 import { DadosTab } from '../components/pacientes/DadosTab';
 import { ConsultasTab } from '../components/pacientes/ConsultasTab';
 import { ProcedimentosTab } from '../components/pacientes/ProcedimentosTab';
@@ -23,7 +23,7 @@ function getIniciais(nome: string | null | undefined): string {
 
 export function Pacientes() {
   const navigate = useNavigate();
-  const { can, canEdit } = useAuth();
+  const { can, canEdit, user } = useAuth();
   const { config } = useClinic();
   // Importação de pacientes exige poder editar o módulo.
   const canImport = canEdit('modulo:pacientes');
@@ -46,6 +46,10 @@ export function Pacientes() {
   const [marcandoId, setMarcandoId] = useState<string | null>(null);
   const [showImportar, setShowImportar] = useState(false);
   const [showNovo, setShowNovo] = useState(false);
+  const [mostrarArquivados, setMostrarArquivados] = useState(false);
+  const [menuAberto, setMenuAberto] = useState(false);
+  const [confirmAcao, setConfirmAcao] = useState<'arquivar' | 'apagar' | null>(null);
+  const [processando, setProcessando] = useState(false);
 
   const TABS: { id: Tab; label: string }[] = [
     can('paciente_tab:dados')         && { id: 'dados' as Tab,         label: 'Dados' },
@@ -63,19 +67,20 @@ export function Pacientes() {
     }
   }, [TABS.map(t => t.id).join(','), activeTab]);
 
-  // Carrega lista de pacientes (leads convertidos)
+  // Carrega lista de pacientes (leads convertidos). mostrarArquivados troca o filtro.
   const loadPacientes = async () => {
     setLoading(true);
     const { data } = await supabase
       .from('leads')
-      .select('id, nome_lead, whatsapp_lead, procedimento_interesse, status, email, data_nascimento')
+      .select('id, nome_lead, whatsapp_lead, procedimento_interesse, status, email, data_nascimento, arquivado')
       .eq('status', 'converteu')
+      .eq('arquivado', mostrarArquivados)
       .order('nome_lead', { ascending: true });
     if (data) setLeads(data);
     setLoading(false);
   };
 
-  useEffect(() => { loadPacientes(); }, []);
+  useEffect(() => { loadPacientes(); }, [mostrarArquivados]);
 
   // Refresh ao voltar ao tab ou reconectar rede
   useVisibilityRefresh(loadPacientes);
@@ -152,6 +157,53 @@ export function Pacientes() {
     setProximaConsulta(ag || null);
 
     setLoadingProfile(false);
+  };
+
+  // ── Arquivar / Restaurar / Apagar paciente ──────────────────────
+  const limparSelecao = () => {
+    setLeadSelecionado(null);
+    setPacienteId(null);
+    setProximaConsulta(null);
+  };
+
+  const arquivarPaciente = async () => {
+    if (!leadSelecionado || !user) return;
+    setProcessando(true);
+    const arquivar = !mostrarArquivados; // na lista de arquivados, a ação é restaurar
+    await supabase.from('leads').update({
+      arquivado: arquivar,
+      arquivado_em: arquivar ? new Date().toISOString() : null,
+    }).eq('id', leadSelecionado.id);
+    await supabase.from('audit_log').insert({
+      user_id: user.id,
+      action: arquivar ? 'paciente_arquivado' : 'paciente_restaurado',
+      record_id: leadSelecionado.id,
+      detalhes: { nome: leadSelecionado.nome_lead },
+    });
+    setProcessando(false);
+    setConfirmAcao(null);
+    setMenuAberto(false);
+    limparSelecao();
+    await loadPacientes();
+  };
+
+  const apagarPaciente = async () => {
+    if (!leadSelecionado || !user) return;
+    setProcessando(true);
+    // Auditoria ANTES de apagar (o record_id deixa de existir depois).
+    await supabase.from('audit_log').insert({
+      user_id: user.id,
+      action: 'paciente_apagado',
+      record_id: leadSelecionado.id,
+      detalhes: { nome: leadSelecionado.nome_lead, whatsapp: leadSelecionado.whatsapp_lead, paciente_id: pacienteId },
+    });
+    const { error } = await supabase.rpc('apagar_paciente_completo', { p_lead_id: leadSelecionado.id });
+    setProcessando(false);
+    setConfirmAcao(null);
+    setMenuAberto(false);
+    if (error) { alert('Erro ao apagar: ' + error.message); return; }
+    limparSelecao();
+    await loadPacientes();
   };
 
   const abrirAgendamento = () => {
@@ -255,6 +307,17 @@ export function Pacientes() {
               </button>
             ))}
           </div>
+
+          {/* Toggle Ativos / Arquivados — apenas no modo Todos */}
+          {viewMode === 'todos' && canImport && (
+            <button
+              onClick={() => { setMostrarArquivados(v => !v); limparSelecao(); }}
+              style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '8px', padding: '3px 8px', fontSize: '10.5px', fontWeight: 500, background: mostrarArquivados ? 'var(--champ-light)' : 'transparent', color: mostrarArquivados ? 'var(--champ-text)' : 'var(--muted)', border: '1px solid var(--border)', borderRadius: 'var(--r-xs)', cursor: 'pointer', fontFamily: 'inherit' }}
+            >
+              <Archive style={{ width: '10px', height: '10px' }} />
+              {mostrarArquivados ? 'Ver ativos' : 'Ver arquivados'}
+            </button>
+          )}
 
           {/* Search — apenas no modo Todos */}
           {viewMode === 'todos' && (
@@ -555,6 +618,44 @@ export function Pacientes() {
                   <ExternalLink style={{ width: '11px', height: '11px', opacity: 0.5 }} />
                 </button>
               )}
+
+              {/* Menu de ações (arquivar / apagar) */}
+              {canImport && (
+                <div style={{ position: 'relative' }}>
+                  <button
+                    onClick={() => setMenuAberto(v => !v)}
+                    title="Mais ações"
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '34px', height: '34px', borderRadius: 'var(--r-xs)', border: '1px solid var(--border-md)', background: 'transparent', color: 'var(--muted)', cursor: 'pointer' }}
+                  >
+                    <MoreVertical style={{ width: '15px', height: '15px' }} />
+                  </button>
+                  {menuAberto && (
+                    <>
+                      <div style={{ position: 'fixed', inset: 0, zIndex: 30 }} onClick={() => setMenuAberto(false)} />
+                      <div style={{ position: 'absolute', zIndex: 40, top: '40px', right: 0, width: '190px', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-xs)', boxShadow: 'var(--shadow)', overflow: 'hidden', fontSize: '12.5px' }}>
+                        <button
+                          onClick={() => { setMenuAberto(false); setConfirmAcao('arquivar'); }}
+                          style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', textAlign: 'left', padding: '9px 12px', background: 'transparent', border: 'none', color: 'var(--ink)', cursor: 'pointer', fontFamily: 'inherit' }}
+                          onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
+                          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                        >
+                          {mostrarArquivados ? <ArchiveRestore style={{ width: '14px', height: '14px' }} /> : <Archive style={{ width: '14px', height: '14px' }} />}
+                          {mostrarArquivados ? 'Restaurar paciente' : 'Arquivar paciente'}
+                        </button>
+                        <button
+                          onClick={() => { setMenuAberto(false); setConfirmAcao('apagar'); }}
+                          style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', textAlign: 'left', padding: '9px 12px', background: 'transparent', border: 'none', borderTop: '1px solid var(--border)', color: 'var(--rose-text)', cursor: 'pointer', fontFamily: 'inherit' }}
+                          onMouseEnter={e => (e.currentTarget.style.background = 'var(--rose-light)')}
+                          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                        >
+                          <Trash2 style={{ width: '14px', height: '14px' }} />
+                          Apagar definitivamente
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
@@ -657,6 +758,56 @@ export function Pacientes() {
             if (novo) selecionarLead(novo);
           }}
         />
+      )}
+
+      {/* Confirmação de arquivar / apagar */}
+      {confirmAcao && leadSelecionado && (
+        <div
+          style={{ position: 'fixed', inset: 0, zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.4)', padding: '16px' }}
+          onClick={() => !processando && setConfirmAcao(null)}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ background: 'var(--white)', borderRadius: '12px', boxShadow: 'var(--shadow-modal)', width: '100%', maxWidth: '420px', padding: '22px' }}
+          >
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', marginBottom: '16px' }}>
+              <div style={{ flexShrink: 0, padding: '8px', borderRadius: '50%', background: confirmAcao === 'apagar' ? 'var(--rose-light)' : 'var(--champ-light)', color: confirmAcao === 'apagar' ? 'var(--rose-text)' : 'var(--champ-text)' }}>
+                {confirmAcao === 'apagar' ? <Trash2 size={18} /> : <AlertTriangle size={18} />}
+              </div>
+              <div style={{ flex: 1 }}>
+                <h3 className="font-cormorant" style={{ fontSize: '17px', fontWeight: 600, color: 'var(--ink)' }}>
+                  {confirmAcao === 'apagar'
+                    ? 'Apagar paciente definitivamente?'
+                    : mostrarArquivados ? 'Restaurar paciente?' : 'Arquivar paciente?'}
+                </h3>
+                <p style={{ fontSize: '12.5px', color: 'var(--muted)', marginTop: '6px', lineHeight: 1.5 }}>
+                  {confirmAcao === 'apagar'
+                    ? <>Isso remove <strong>{leadSelecionado.nome_lead || 'o paciente'}</strong> e todos os dados ligados (consultas, conversas, procedimentos, anotações). <strong>Não pode ser desfeito.</strong> Para um cadastro que pode voltar, use arquivar.</>
+                    : mostrarArquivados
+                      ? <>O paciente <strong>{leadSelecionado.nome_lead || ''}</strong> volta para a lista de ativos.</>
+                      : <>O paciente <strong>{leadSelecionado.nome_lead || ''}</strong> sai da lista, mas os dados são mantidos. Você pode restaurar depois em “Ver arquivados”.</>}
+                </p>
+              </div>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+              <button
+                onClick={() => setConfirmAcao(null)}
+                disabled={processando}
+                style={{ padding: '8px 16px', fontSize: '12.5px', fontWeight: 500, borderRadius: 'var(--r-xs)', border: '1px solid var(--border-md)', background: 'transparent', color: 'var(--ink)', cursor: 'pointer', fontFamily: 'inherit', opacity: processando ? 0.5 : 1 }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmAcao === 'apagar' ? apagarPaciente : arquivarPaciente}
+                disabled={processando}
+                style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', fontSize: '12.5px', fontWeight: 600, borderRadius: 'var(--r-xs)', border: 'none', color: 'white', cursor: 'pointer', fontFamily: 'inherit', opacity: processando ? 0.6 : 1, background: confirmAcao === 'apagar' ? 'var(--rose-text)' : 'var(--sage-dark)' }}
+              >
+                {processando && <Loader2 size={13} className="animate-spin" />}
+                {confirmAcao === 'apagar' ? 'Apagar' : mostrarArquivados ? 'Restaurar' : 'Arquivar'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
