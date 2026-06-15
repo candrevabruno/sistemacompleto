@@ -44,11 +44,10 @@ export function ResumoConsultaSection({ pacienteId, leadId, nomePaciente }: Prop
     setLoading(false);
   };
 
-  // Clique no botão: se há webhook (vai enviar ao paciente), pede dupla confirmação.
+  // Clique no botão: sempre pede dupla confirmação antes de salvar/enviar (item 4).
   const onClicarSalvar = () => {
     if (!texto.trim() || !user) return;
-    if (webhookUrl) setConfirmOpen(true);
-    else salvarEEnviar();
+    setConfirmOpen(true);
   };
 
   const salvarEEnviar = async () => {
@@ -177,17 +176,19 @@ export function ResumoConsultaSection({ pacienteId, leadId, nomePaciente }: Prop
             <AlertTriangle className="w-6 h-6" style={{ color: 'var(--champ-text)' }} />
           </div>
           <h3 className="font-display mb-2" style={{ fontSize: '19px', fontStyle: 'italic', fontWeight: 300, color: 'var(--ink)' }}>
-            Enviar resumo ao paciente?
+            {webhookUrl ? 'Enviar resumo ao paciente?' : 'Salvar resumo?'}
           </h3>
           <p className="text-sm mb-5" style={{ color: 'var(--muted)' }}>
-            Deseja realmente enviar o resumo para o paciente? Reveja o texto antes de confirmar — a mensagem será disparada via WhatsApp.
+            {webhookUrl
+              ? 'Deseja realmente enviar o resumo para o paciente? Reveja o texto antes de confirmar — a mensagem será disparada via WhatsApp.'
+              : 'Deseja realmente salvar este resumo no prontuário do paciente? Reveja o texto antes de confirmar.'}
           </p>
           <div className="flex gap-3">
             <button onClick={() => setConfirmOpen(false)} className="flex-1 text-sm font-medium px-4 py-2.5 rounded-[8px]" style={{ border: '1px solid var(--border-md)', color: 'var(--ink)', background: 'transparent' }}>
               Cancelar
             </button>
             <button onClick={salvarEEnviar} className="flex-1 text-sm font-medium px-4 py-2.5 rounded-[8px]" style={{ background: 'var(--sage-dark)', color: '#fff' }}>
-              Confirmar e enviar
+              {webhookUrl ? 'Confirmar e enviar' : 'Confirmar'}
             </button>
           </div>
         </div>
