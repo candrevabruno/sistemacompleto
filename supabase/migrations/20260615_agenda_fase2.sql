@@ -1,5 +1,17 @@
 -- ETAPA 6B Fase 2 — disponibilidade, bloqueios e fila de eventos do agente.
 
+-- ── agenda_hours: disponibilidade semanal por profissional (faltava nesta instância) ──
+-- dia em TEXT (domingo..sabado) para não depender do enum dia_semana.
+CREATE TABLE IF NOT EXISTS public.agenda_hours (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  agenda_id   UUID NOT NULL REFERENCES public.agendas(id) ON DELETE CASCADE,
+  dia         TEXT NOT NULL,
+  aberto      BOOLEAN NOT NULL DEFAULT true,
+  hora_inicio TEXT,
+  hora_fim    TEXT
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_agenda_hours_agenda_dia ON public.agenda_hours (agenda_id, dia);
+
 -- ── Bloqueios de agenda (horário, dia inteiro ou período/férias) ─────────────
 CREATE TABLE IF NOT EXISTS public.bloqueios (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
