@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { supabase } from '../../lib/supabase';
-import { Copy, Loader2, Check, CalendarDays, Bot, AlertCircle, User, MapPin, CreditCard, FileText, Clock, StickyNote, Gift } from 'lucide-react';
+import { Copy, Loader2, Check, CalendarDays, Bot, AlertCircle, User, MapPin, CreditCard, FileText, Clock, StickyNote, Gift, Phone, LifeBuoy, MessageCircle } from 'lucide-react';
 import { PainelAnotacoes } from './PainelAnotacoes';
 
 // Aniversário: compara dia/mês da data de nascimento com hoje (grátis para todos).
@@ -14,6 +14,35 @@ function isAniversarioHoje(dataNasc: string | null | undefined): boolean {
   return Number(p[1]) === hoje.getMonth() + 1 && Number(p[2]) === hoje.getDate();
 }
 
+// Idade calculada a partir da data de nascimento (não há coluna no banco).
+function calcularIdade(dataNasc: string | null | undefined): number | null {
+  if (!dataNasc) return null;
+  const p = dataNasc.slice(0, 10).split('-');
+  if (p.length < 3) return null;
+  const nasc = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+  if (isNaN(nasc.getTime())) return null;
+  const hoje = new Date();
+  let idade = hoje.getFullYear() - nasc.getFullYear();
+  const m = hoje.getMonth() - nasc.getMonth();
+  if (m < 0 || (m === 0 && hoje.getDate() < nasc.getDate())) idade--;
+  return idade >= 0 && idade < 130 ? idade : null;
+}
+
+// ViaCEP — auto-preenche endereço (sem credencial/custo).
+async function buscarViaCep(cep: string): Promise<{ rua: string; bairro: string; cidade: string; estado: string } | null> {
+  const limpo = cep.replace(/\D/g, '');
+  if (limpo.length !== 8) return null;
+  try {
+    const res = await fetch(`https://viacep.com.br/ws/${limpo}/json/`);
+    if (!res.ok) return null;
+    const d = await res.json();
+    if (d.erro) return null;
+    return { rua: d.logradouro || '', bairro: d.bairro || '', cidade: d.localidade || '', estado: d.uf || '' };
+  } catch {
+    return null;
+  }
+}
+
 interface Props {
   lead: any;
   pacienteId: string | null;
@@ -21,11 +50,37 @@ interface Props {
 }
 
 const COMO_CONHECEU_OPTS = [
-  { value: 'indicacao', label: 'Indicação' },
   { value: 'instagram', label: 'Instagram' },
-  { value: 'whatsapp', label: 'WhatsApp' },
   { value: 'google', label: 'Google' },
+  { value: 'indicacao', label: 'Indicação' },
+  { value: 'facebook', label: 'Facebook' },
+  { value: 'tiktok', label: 'TikTok' },
+  { value: 'site', label: 'Site' },
+  { value: 'profissional_saude', label: 'Profissional de saúde' },
+  { value: 'convenio', label: 'Convênio' },
+  { value: 'evento', label: 'Evento' },
   { value: 'outro', label: 'Outro' },
+];
+
+const SEXO_OPTS = [
+  { value: 'feminino', label: 'Feminino' },
+  { value: 'masculino', label: 'Masculino' },
+  { value: 'outro', label: 'Outro' },
+  { value: 'nao_informar', label: 'Prefiro não informar' },
+];
+
+const ESTADO_CIVIL_OPTS = [
+  { value: 'solteiro', label: 'Solteiro(a)' },
+  { value: 'casado', label: 'Casado(a)' },
+  { value: 'divorciado', label: 'Divorciado(a)' },
+  { value: 'viuvo', label: 'Viúvo(a)' },
+  { value: 'uniao_estavel', label: 'União estável' },
+];
+
+const CANAIS_OPTS = [
+  { value: 'whatsapp', label: 'WhatsApp' },
+  { value: 'ligacao', label: 'Ligação' },
+  { value: 'email', label: 'E-mail' },
 ];
 
 const STATUS_PROXIMO: Record<string, { label: string; color: string; bg: string }> = {
@@ -133,23 +188,45 @@ export function DadosTab({ lead, pacienteId, proximaConsulta: proximaConsultaPro
   const [email, setEmail] = useState('');
   const [dataNasc, setDataNasc] = useState('');
   const [comoConheceu, setComoConheceu] = useState('');
-  const [indicadoPorId, setIndicadoPorId] = useState('');
-  const [indicadoPorBusca, setIndicadoPorBusca] = useState('');
-  const [sugestoes, setSugestoes] = useState<any[]>([]);
-  const [mostrarSugestoes, setMostrarSugestoes] = useState(false);
+  const [indicadoPor, setIndicadoPor] = useState('');
+
+  // ── Dados pessoais extra (pacientes) ───────────────────────────
+  const [nomeSocial, setNomeSocial] = useState('');
+  const [cpf, setCpf] = useState('');
+  const [sexo, setSexo] = useState('');
+  const [estadoCivil, setEstadoCivil] = useState('');
+  const [profissao, setProfissao] = useState('');
+  const [nacionalidade, setNacionalidade] = useState('');
+
+  // ── Contato (pacientes) ────────────────────────────────────────
+  const [celularWhatsapp, setCelularWhatsapp] = useState(true);
+  const [telefoneSecundario, setTelefoneSecundario] = useState('');
+
+  // ── Contato de emergência (pacientes) ──────────────────────────
+  const [emergNome, setEmergNome] = useState('');
+  const [emergParentesco, setEmergParentesco] = useState('');
+  const [emergTelefone, setEmergTelefone] = useState('');
+
+  // ── Preferências de comunicação (pacientes) ────────────────────
+  const [canais, setCanais] = useState<string[]>([]);
+  const [melhorHorario, setMelhorHorario] = useState('');
 
   // ── Endereço (pacientes) ───────────────────────────────────────
   const [rua, setRua] = useState('');
   const [numero, setNumero] = useState('');
+  const [complemento, setComplemento] = useState('');
   const [bairro, setBairro] = useState('');
   const [cidade, setCidade] = useState('');
   const [estado, setEstado] = useState('');
   const [cep, setCep] = useState('');
+  const [buscandoCep, setBuscandoCep] = useState(false);
 
   // ── Financeiro (pacientes) ─────────────────────────────────────
   const [tipo, setTipo] = useState<'particular' | 'convenio'>('particular');
   const [convenioNome, setConvenioNome] = useState('');
   const [convenioNumero, setConvenioNumero] = useState('');
+  const [convenioValidade, setConvenioValidade] = useState('');
+  const [convenioPlano, setConvenioPlano] = useState('');
   const [prefPagamento, setPrefPagamento] = useState('');
 
   // ── Nota Fiscal (pacientes) ────────────────────────────────────
@@ -194,13 +271,28 @@ export function DadosTab({ lead, pacienteId, proximaConsulta: proximaConsultaPro
 
     if (pac) {
       const end = pac.endereco || {};
-      setRua(end.rua || ''); setNumero(end.numero || ''); setBairro(end.bairro || '');
-      setCidade(end.cidade || ''); setEstado(end.estado || ''); setCep(end.cep || '');
+      setRua(end.rua || ''); setNumero(end.numero || ''); setComplemento(end.complemento || '');
+      setBairro(end.bairro || ''); setCidade(end.cidade || ''); setEstado(end.estado || ''); setCep(end.cep || '');
       setComoConheceu(pac.como_conheceu || '');
-      setIndicadoPorId(pac.indicado_por_lead_id || '');
+      setIndicadoPor(pac.indicado_por || '');
+      setNomeSocial(pac.nome_social || '');
+      setCpf(pac.cpf || '');
+      setSexo(pac.sexo || '');
+      setEstadoCivil(pac.estado_civil || '');
+      setProfissao(pac.profissao || '');
+      setNacionalidade(pac.nacionalidade || '');
+      setCelularWhatsapp(pac.celular_whatsapp ?? true);
+      setTelefoneSecundario(pac.telefone_secundario || '');
+      setEmergNome(pac.contato_emergencia_nome || '');
+      setEmergParentesco(pac.contato_emergencia_parentesco || '');
+      setEmergTelefone(pac.contato_emergencia_telefone || '');
+      setCanais(Array.isArray(pac.preferencia_canais) ? pac.preferencia_canais : []);
+      setMelhorHorario(pac.melhor_horario_contato || '');
       setTipo(pac.tipo || 'particular');
       setConvenioNome(pac.convenio_nome || '');
       setConvenioNumero(pac.convenio_numero || '');
+      setConvenioValidade(pac.convenio_validade || '');
+      setConvenioPlano(pac.convenio_plano || '');
       setPrefPagamento(pac.preferencia_pagamento || '');
       setNfDocumento(pac.nf_documento || '');
       setNfNome(pac.nf_nome || '');
@@ -209,32 +301,25 @@ export function DadosTab({ lead, pacienteId, proximaConsulta: proximaConsultaPro
       setNfCidade(nfe.cidade || ''); setNfEstado(nfe.estado || ''); setNfCep(nfe.cep || '');
       setResumoIA(pac.ultimo_resumo_conversa || '');
       setResumoIAAt(pac.ultimo_resumo_at || null);
-
-      if (pac.indicado_por_lead_id) {
-        const { data: ind } = await supabase
-          .from('leads').select('nome_lead').eq('id', pac.indicado_por_lead_id).single();
-        if (ind) setIndicadoPorBusca(ind.nome_lead || '');
-      }
     }
 
     setLoadingPac(false);
   };
 
-  const buscarIndicadoPor = async (q: string) => {
-    setIndicadoPorBusca(q);
-    setIndicadoPorId('');
-    if (q.length < 2) { setSugestoes([]); return; }
-    const { data } = await supabase
-      .from('leads').select('id, nome_lead').ilike('nome_lead', `%${q}%`).neq('id', lead.id).limit(6);
-    setSugestoes(data || []);
-    setMostrarSugestoes(true);
+  // Auto-preenche endereço pelo CEP (ViaCEP).
+  const onCepBlur = async () => {
+    if (cep.replace(/\D/g, '').length !== 8) return;
+    setBuscandoCep(true);
+    const r = await buscarViaCep(cep);
+    setBuscandoCep(false);
+    if (r) {
+      setRua(r.rua || rua); setBairro(r.bairro || bairro);
+      setCidade(r.cidade || cidade); setEstado(r.estado || estado);
+    }
   };
 
-  const selecionarIndicador = (s: any) => {
-    setIndicadoPorId(s.id);
-    setIndicadoPorBusca(s.nome_lead);
-    setSugestoes([]);
-    setMostrarSugestoes(false);
+  const toggleCanal = (value: string) => {
+    setCanais(prev => prev.includes(value) ? prev.filter(c => c !== value) : [...prev, value]);
   };
 
   const copiarEnderecoParaNF = () => {
@@ -254,9 +339,22 @@ export function DadosTab({ lead, pacienteId, proximaConsulta: proximaConsultaPro
     }).eq('id', lead.id);
     if (pacienteId) {
       await supabase.from('pacientes').update({
-        endereco: { rua, numero, bairro, cidade, estado, cep },
+        endereco: { rua, numero, complemento, bairro, cidade, estado, cep },
         como_conheceu: comoConheceu || null,
-        indicado_por_lead_id: indicadoPorId || null,
+        indicado_por: comoConheceu === 'indicacao' ? (indicadoPor || null) : null,
+        nome_social: nomeSocial || null,
+        cpf: cpf || null,
+        sexo: sexo || null,
+        estado_civil: estadoCivil || null,
+        profissao: profissao || null,
+        nacionalidade: nacionalidade || null,
+        celular_whatsapp: celularWhatsapp,
+        telefone_secundario: telefoneSecundario || null,
+        contato_emergencia_nome: emergNome || null,
+        contato_emergencia_parentesco: emergParentesco || null,
+        contato_emergencia_telefone: emergTelefone || null,
+        preferencia_canais: canais,
+        melhor_horario_contato: melhorHorario || null,
       }).eq('id', pacienteId);
     }
     setSalvandoPessoal(false); flash(setSavedPessoal);
@@ -265,11 +363,15 @@ export function DadosTab({ lead, pacienteId, proximaConsulta: proximaConsultaPro
   const salvarFinanceiro = async () => {
     if (!pacienteId) return;
     setSalvandoFinanceiro(true);
+    const ehConvenio = tipo === 'convenio';
     await supabase.from('pacientes').update({
       tipo,
-      convenio_nome: tipo === 'convenio' ? convenioNome : null,
-      convenio_numero: tipo === 'convenio' ? convenioNumero : null,
-      preferencia_pagamento: tipo === 'particular' ? prefPagamento : null,
+      possui_convenio: ehConvenio,
+      convenio_nome: ehConvenio ? (convenioNome || null) : null,
+      convenio_numero: ehConvenio ? (convenioNumero || null) : null,
+      convenio_validade: ehConvenio ? (convenioValidade || null) : null,
+      convenio_plano: ehConvenio ? (convenioPlano || null) : null,
+      preferencia_pagamento: !ehConvenio ? (prefPagamento || null) : null,
     }).eq('id', pacienteId);
     setSalvandoFinanceiro(false); flash(setSavedFinanceiro);
   };
@@ -323,24 +425,21 @@ export function DadosTab({ lead, pacienteId, proximaConsulta: proximaConsultaPro
   return (
     <div style={{ padding: '20px 22px' }}>
 
-      {/* ── 1. Informações Pessoais ── */}
+      {/* ── 1. Dados pessoais + contato + endereço + emergência + preferências ── */}
       <div style={{ marginBottom: '22px' }}>
-        <SectionHeader icon={<User size={13} />} label="Informações Pessoais" />
+        <SectionHeader icon={<User size={13} />} label="Dados Pessoais" />
 
         <div style={grid3}>
-          {/* Nome full-width */}
-          <Field label="Nome completo" style={{ gridColumn: '1 / -1' }}>
+          <Field label="Nome completo" style={{ gridColumn: '1 / span 2' }}>
             <input value={nome} onChange={e => setNome(e.target.value)} style={inputStyle} />
           </Field>
-
-          <Field label="Telefone / WhatsApp">
-            <input value={telefone} readOnly style={{ ...inputStyle, opacity: 0.6, cursor: 'default' }} />
+          <Field label="Nome social (opcional)">
+            <input value={nomeSocial} onChange={e => setNomeSocial(e.target.value)} style={inputStyle} />
           </Field>
 
-          <Field label="E-mail">
-            <input value={email} onChange={e => setEmail(e.target.value)} type="email" style={inputStyle} />
+          <Field label="CPF">
+            <input value={cpf} onChange={e => setCpf(e.target.value)} placeholder="000.000.000-00" style={inputStyle} />
           </Field>
-
           <Field label={isAniversarioHoje(dataNasc) ? '🎁 Data de nascimento' : 'Data de nascimento'}>
             <input
               value={dataNasc}
@@ -356,82 +455,86 @@ export function DadosTab({ lead, pacienteId, proximaConsulta: proximaConsultaPro
               </div>
             )}
           </Field>
-
-          <Field label="Como nos conheceu">
-            <select value={comoConheceu} onChange={e => setComoConheceu(e.target.value)} style={inputStyle}>
-              <option value="">Selecionar...</option>
-              {COMO_CONHECEU_OPTS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-            </select>
+          <Field label="Idade">
+            <input
+              value={calcularIdade(dataNasc) !== null ? `${calcularIdade(dataNasc)} anos` : '—'}
+              readOnly
+              style={{ ...inputStyle, opacity: 0.6, cursor: 'default' }}
+            />
           </Field>
 
-          {comoConheceu === 'indicacao' && (
-            <Field label="Indicado por">
-              <div style={{ position: 'relative' }}>
-                <input
-                  value={indicadoPorBusca}
-                  onChange={e => buscarIndicadoPor(e.target.value)}
-                  onFocus={() => sugestoes.length > 0 && setMostrarSugestoes(true)}
-                  onBlur={() => setTimeout(() => setMostrarSugestoes(false), 150)}
-                  placeholder="Buscar paciente..."
-                  style={inputStyle}
-                />
-                {mostrarSugestoes && sugestoes.length > 0 && (
-                  <div
-                    style={{
-                      position: 'absolute',
-                      zIndex: 20,
-                      top: 'calc(100% + 4px)',
-                      left: 0,
-                      right: 0,
-                      borderRadius: 'var(--r-xs)',
-                      border: '1px solid var(--border)',
-                      background: 'var(--white)',
-                      boxShadow: 'var(--shadow)',
-                      overflow: 'hidden',
-                    }}
-                  >
-                    {sugestoes.map(s => (
-                      <button
-                        key={s.id}
-                        onMouseDown={() => selecionarIndicador(s)}
-                        style={{
-                          width: '100%',
-                          textAlign: 'left',
-                          padding: '8px 11px',
-                          fontSize: '12.5px',
-                          color: 'var(--ink)',
-                          background: 'transparent',
-                          border: 'none',
-                          cursor: 'pointer',
-                          fontFamily: 'inherit',
-                        }}
-                        onMouseEnter={e => { e.currentTarget.style.background = 'var(--sage-xlight)'; }}
-                        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
-                      >
-                        {s.nome_lead}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+          <Field label="Sexo">
+            <select value={sexo} onChange={e => setSexo(e.target.value)} style={inputStyle}>
+              <option value="">Selecionar...</option>
+              {SEXO_OPTS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </Field>
+          <Field label="Estado civil">
+            <select value={estadoCivil} onChange={e => setEstadoCivil(e.target.value)} style={inputStyle}>
+              <option value="">Selecionar...</option>
+              {ESTADO_CIVIL_OPTS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </Field>
+          <Field label="Profissão">
+            <input value={profissao} onChange={e => setProfissao(e.target.value)} style={inputStyle} />
+          </Field>
+          <Field label="Nacionalidade">
+            <input value={nacionalidade} onChange={e => setNacionalidade(e.target.value)} placeholder="Brasileira" style={inputStyle} />
+          </Field>
+        </div>
+
+        {/* Sub-seção contato */}
+        <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid var(--border)' }}>
+          <div style={{ ...sectionHeaderStyle, marginBottom: '12px' }}>
+            <span style={{ color: 'var(--sage-dark)', display: 'flex', alignItems: 'center', fontSize: '13px' }}><Phone size={13} /></span>
+            Contato
+          </div>
+          <div style={grid3}>
+            <Field label="Celular principal">
+              <input value={telefone} readOnly style={{ ...inputStyle, opacity: 0.6, cursor: 'default' }} />
+              <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', marginTop: '6px', fontSize: '11.5px', color: 'var(--ink)', cursor: 'pointer' }}>
+                <input type="checkbox" checked={celularWhatsapp} onChange={e => setCelularWhatsapp(e.target.checked)} />
+                É WhatsApp?
+              </label>
             </Field>
-          )}
+            <Field label="Telefone secundário">
+              <input value={telefoneSecundario} onChange={e => setTelefoneSecundario(e.target.value)} style={inputStyle} />
+            </Field>
+            <Field label="E-mail">
+              <input value={email} onChange={e => setEmail(e.target.value)} type="email" style={inputStyle} />
+            </Field>
+            <Field label="Como conheceu a clínica">
+              <select value={comoConheceu} onChange={e => setComoConheceu(e.target.value)} style={inputStyle}>
+                <option value="">Selecionar...</option>
+                {COMO_CONHECEU_OPTS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            </Field>
+            {comoConheceu === 'indicacao' && (
+              <Field label="Quem indicou?" style={{ gridColumn: '2 / span 2' }}>
+                <input value={indicadoPor} onChange={e => setIndicadoPor(e.target.value)} placeholder="Nome de quem indicou" style={inputStyle} />
+              </Field>
+            )}
+          </div>
         </div>
 
         {/* Sub-seção endereço */}
         <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid var(--border)' }}>
           <div style={{ ...sectionHeaderStyle, marginBottom: '12px' }}>
-            <span style={{ color: 'var(--sage-dark)', display: 'flex', alignItems: 'center', fontSize: '13px' }}>
-              <MapPin size={13} />
-            </span>
+            <span style={{ color: 'var(--sage-dark)', display: 'flex', alignItems: 'center', fontSize: '13px' }}><MapPin size={13} /></span>
             Endereço
           </div>
           <div style={grid3}>
-            <Field label="Rua" style={{ gridColumn: '1 / span 2' }}>
+            <Field label={buscandoCep ? 'CEP (buscando...)' : 'CEP'}>
+              <input value={cep} onChange={e => setCep(e.target.value)} onBlur={onCepBlur} placeholder="00000-000" style={inputStyle} />
+            </Field>
+            <Field label="Rua" style={{ gridColumn: '2 / span 2' }}>
               <input value={rua} onChange={e => setRua(e.target.value)} style={inputStyle} />
             </Field>
             <Field label="Número">
               <input value={numero} onChange={e => setNumero(e.target.value)} style={inputStyle} />
+            </Field>
+            <Field label="Complemento" style={{ gridColumn: '2 / span 2' }}>
+              <input value={complemento} onChange={e => setComplemento(e.target.value)} placeholder="Apto, bloco, referência..." style={inputStyle} />
             </Field>
             <Field label="Bairro">
               <input value={bairro} onChange={e => setBairro(e.target.value)} style={inputStyle} />
@@ -442,8 +545,61 @@ export function DadosTab({ lead, pacienteId, proximaConsulta: proximaConsultaPro
             <Field label="Estado (UF)">
               <input value={estado} onChange={e => setEstado(e.target.value)} maxLength={2} placeholder="SP" style={inputStyle} />
             </Field>
-            <Field label="CEP">
-              <input value={cep} onChange={e => setCep(e.target.value)} placeholder="00000-000" style={inputStyle} />
+          </div>
+        </div>
+
+        {/* Sub-seção contato de emergência */}
+        <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid var(--border)' }}>
+          <div style={{ ...sectionHeaderStyle, marginBottom: '12px' }}>
+            <span style={{ color: 'var(--sage-dark)', display: 'flex', alignItems: 'center', fontSize: '13px' }}><LifeBuoy size={13} /></span>
+            Contato de Emergência
+          </div>
+          <div style={grid3}>
+            <Field label="Nome">
+              <input value={emergNome} onChange={e => setEmergNome(e.target.value)} style={inputStyle} />
+            </Field>
+            <Field label="Grau de parentesco">
+              <input value={emergParentesco} onChange={e => setEmergParentesco(e.target.value)} placeholder="Mãe, cônjuge..." style={inputStyle} />
+            </Field>
+            <Field label="Telefone">
+              <input value={emergTelefone} onChange={e => setEmergTelefone(e.target.value)} style={inputStyle} />
+            </Field>
+          </div>
+        </div>
+
+        {/* Sub-seção preferências de comunicação */}
+        <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid var(--border)' }}>
+          <div style={{ ...sectionHeaderStyle, marginBottom: '12px' }}>
+            <span style={{ color: 'var(--sage-dark)', display: 'flex', alignItems: 'center', fontSize: '13px' }}><MessageCircle size={13} /></span>
+            Preferências de Comunicação
+          </div>
+          <div style={grid3}>
+            <div style={{ gridColumn: '1 / span 2' }}>
+              <label style={labelStyle}>Canais preferidos</label>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                {CANAIS_OPTS.map(o => {
+                  const ativo = canais.includes(o.value);
+                  return (
+                    <div
+                      key={o.value}
+                      onClick={() => toggleCanal(o.value)}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: '6px', padding: '7px 14px',
+                        borderRadius: 'var(--r-xs)', cursor: 'pointer', fontSize: '12.5px', userSelect: 'none',
+                        border: `1px solid ${ativo ? 'var(--sage)' : 'var(--border-md)'}`,
+                        color: ativo ? 'var(--sage-dark)' : 'var(--muted)',
+                        background: ativo ? 'var(--sage-xlight)' : 'transparent',
+                      }}
+                    >
+                      <span style={{ width: '8px', height: '8px', borderRadius: '2px', border: '2px solid currentColor', background: ativo ? 'var(--sage-dark)' : 'transparent', flexShrink: 0 }} />
+                      {o.label}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            <Field label="Melhor horário para contato">
+              <input value={melhorHorario} onChange={e => setMelhorHorario(e.target.value)} placeholder="Ex: manhã, após 18h..." style={inputStyle} />
             </Field>
           </div>
         </div>
@@ -498,6 +654,12 @@ export function DadosTab({ lead, pacienteId, proximaConsulta: proximaConsultaPro
               </Field>
               <Field label="Número da carteirinha">
                 <input value={convenioNumero} onChange={e => setConvenioNumero(e.target.value)} style={inputStyle} />
+              </Field>
+              <Field label="Plano">
+                <input value={convenioPlano} onChange={e => setConvenioPlano(e.target.value)} placeholder="Ex: Enfermaria, Apartamento..." style={inputStyle} />
+              </Field>
+              <Field label="Validade da carteirinha">
+                <input value={convenioValidade} onChange={e => setConvenioValidade(e.target.value)} type="date" style={inputStyle} />
               </Field>
             </>
           ) : (

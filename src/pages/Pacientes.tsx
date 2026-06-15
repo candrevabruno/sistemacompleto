@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useClinic } from '../contexts/ClinicContext';
-import { Search, Users, MessageSquare, CalendarPlus, ClipboardList, ExternalLink, Check, X, Clock, Loader2, Upload } from 'lucide-react';
+import { Search, Users, MessageSquare, CalendarPlus, ClipboardList, ExternalLink, Check, X, Clock, Loader2, Upload, UserPlus } from 'lucide-react';
 import { DadosTab } from '../components/pacientes/DadosTab';
 import { ConsultasTab } from '../components/pacientes/ConsultasTab';
 import { ProcedimentosTab } from '../components/pacientes/ProcedimentosTab';
@@ -12,6 +12,7 @@ import { ComportamentoTab } from '../components/pacientes/ComportamentoTab';
 import { AnotacoesProfissionalTab } from '../components/pacientes/AnotacoesProfissionalTab';
 import { ExperienciaPremiumTab } from '../components/pacientes/ExperienciaPremiumTab';
 import { ImportarPacientesModal } from '../components/pacientes/ImportarPacientesModal';
+import { NovoPacienteModal } from '../components/pacientes/NovoPacienteModal';
 
 type Tab = 'dados' | 'consultas' | 'procedimentos' | 'comportamento' | 'profissional' | 'premium';
 
@@ -44,6 +45,7 @@ export function Pacientes() {
   const [loadingHoje, setLoadingHoje] = useState(false);
   const [marcandoId, setMarcandoId] = useState<string | null>(null);
   const [showImportar, setShowImportar] = useState(false);
+  const [showNovo, setShowNovo] = useState(false);
 
   const TABS: { id: Tab; label: string }[] = [
     can('paciente_tab:dados')         && { id: 'dados' as Tab,         label: 'Dados' },
@@ -203,14 +205,24 @@ export function Pacientes() {
                 {viewMode === 'hoje' ? agendamentosHoje.length : leads.length}
               </span>
               {canImport && (
-                <button
-                  onClick={() => setShowImportar(true)}
-                  title="Importar pacientes (CSV)"
-                  style={{ display: 'flex', alignItems: 'center', padding: '3px 7px', fontSize: '10.5px', fontWeight: 500, background: 'var(--champ-light)', color: 'var(--champ-text)', border: 'none', borderRadius: 'var(--r-xs)', cursor: 'pointer', fontFamily: 'inherit', gap: '3px' }}
-                >
-                  <Upload style={{ width: '10px', height: '10px' }} />
-                  CSV
-                </button>
+                <>
+                  <button
+                    onClick={() => setShowNovo(true)}
+                    title="Adicionar paciente manualmente"
+                    style={{ display: 'flex', alignItems: 'center', padding: '3px 8px', fontSize: '10.5px', fontWeight: 600, background: 'var(--sage-dark)', color: 'white', border: 'none', borderRadius: 'var(--r-xs)', cursor: 'pointer', fontFamily: 'inherit', gap: '3px' }}
+                  >
+                    <UserPlus style={{ width: '10px', height: '10px' }} />
+                    Adicionar
+                  </button>
+                  <button
+                    onClick={() => setShowImportar(true)}
+                    title="Importar pacientes (CSV)"
+                    style={{ display: 'flex', alignItems: 'center', padding: '3px 7px', fontSize: '10.5px', fontWeight: 500, background: 'var(--champ-light)', color: 'var(--champ-text)', border: 'none', borderRadius: 'var(--r-xs)', cursor: 'pointer', fontFamily: 'inherit', gap: '3px' }}
+                  >
+                    <Upload style={{ width: '10px', height: '10px' }} />
+                    CSV
+                  </button>
+                </>
               )}
             </div>
           </div>
@@ -626,6 +638,24 @@ export function Pacientes() {
           isOpen={showImportar}
           onClose={() => setShowImportar(false)}
           onSuccess={() => { setShowImportar(false); loadPacientes(); }}
+        />
+      )}
+
+      {showNovo && (
+        <NovoPacienteModal
+          isOpen={showNovo}
+          onClose={() => setShowNovo(false)}
+          onSuccess={async (leadId) => {
+            setShowNovo(false);
+            await loadPacientes();
+            // Abre o perfil do paciente recém-criado.
+            const { data: novo } = await supabase
+              .from('leads')
+              .select('id, nome_lead, whatsapp_lead, procedimento_interesse, status, email, data_nascimento')
+              .eq('id', leadId)
+              .single();
+            if (novo) selecionarLead(novo);
+          }}
         />
       )}
     </div>

@@ -171,11 +171,13 @@ export function Dashboard() {
     setAgendamentosData(agendamentosArr);
     setLeadsData(leadsArr);
 
-    // Metrics for selected period
-    setMetricsLeads(leadsArr.length);
+    // Metrics for selected period.
+    // Cadastros manuais (e importações) não passaram pelo funil/agente → fora da conversão.
+    const leadsFunil = leadsArr.filter(l => !l.cadastro_manual);
+    setMetricsLeads(leadsFunil.length);
     setMetricsAgendamentos(agendamentosArr.length);
-    const convertidos = leadsArr.filter(l => l.status === 'converteu').length;
-    setMetricsConversao(leadsArr.length > 0 ? Math.round((convertidos / leadsArr.length) * 100) : 0);
+    const convertidos = leadsFunil.filter(l => l.status === 'converteu').length;
+    setMetricsConversao(leadsFunil.length > 0 ? Math.round((convertidos / leadsFunil.length) * 100) : 0);
     const faturamento = (pReq.data || []).reduce(
       (acc, p) => acc + (parseFloat(p.valor) || 0), 0
     );
