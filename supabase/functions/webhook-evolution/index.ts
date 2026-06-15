@@ -60,30 +60,60 @@ Deno.serve(async (req: Request) => {
     const event = payload.event as string;
 
     // ── Regra 1: paciente apagou a mensagem no WhatsApp ──────────────
-    // A Evolution envia 'messages.delete' (revoke). NÃO deletamos o registro:
-    // marcamos como apagada_pelo_contato para a atendente ver que não é ativa.
-    if (event === 'messages.delete') {
-      const db = createAdminClient();
-      const raw = payload.data as Record<string, unknown>;
-      // O payload varia entre builds: pode vir a key direta, {key:{...}} ou um array.
+    // NÃO deletamos o registro: marcamos como apagada_pelo_contato.
+    // O "apagar para todos" do contato chega de forma diferente entre builds:
+    //   • 'messages.delete'  → sempre é apagamento
+    //   • 'messages.update'  → só quando há sinal de revoke (status/stub/protocolMessage)
+    if (event === 'messages.delete' || event === 'messages.update') {
+      // Log de diagnóstico do payload bruto (visível em Edge Functions → Logs).
+      console.log(`[apagar] event=${event} payload=`, JSON.stringify(payload.data).slice(0, 800));
+
+      const raw = payload.data as unknown;
       const items = Array.isArray(raw) ? raw : [raw];
-      for (const it of items) {
-        const k = ((it as Record<string, unknown>).key ?? it) as Record<string, unknown>;
-        const msgId = (k.id as string) || ((it as Record<string, unknown>).id as string);
+      const db = createAdminClient();
+      let marcou = 0;
+
+      for (const itemRaw of items) {
+        const it = (itemRaw ?? {}) as Record<string, unknown>;
+        const k = (it.key ?? it) as Record<string, unknown>;
+        const msgId =
+          (k.id as string) || (it.id as string) ||
+          (it.keyId as string) || (it.messageId as string);
         if (!msgId) continue;
-        await db
+
+        // Em messages.update precisamos confirmar que é revoke (não um simples
+        // update de status entregue/lido).
+        if (event === 'messages.update') {
+          const status = String((it.status as string) || '').toUpperCase();
+          const stub = String((it.messageStubType as string | number) ?? '').toUpperCase();
+          const upd = (it.update ?? {}) as Record<string, unknown>;
+          const msgNode = (it.message ?? upd.message) as Record<string, unknown> | null;
+          const proto = ((msgNode?.protocolMessage ?? {}) as Record<string, unknown>);
+          const ehRevoke =
+            status === 'DELETED' || status === 'REVOKED' ||
+            stub.includes('REVOKE') ||
+            proto.type === 'REVOKE' || proto.type === 0 ||
+            ('message' in upd && upd.message === null);
+          if (!ehRevoke) continue;
+        }
+
+        const { data: upd, error } = await db
           .from('mensagens')
           .update({ apagada_pelo_contato: true })
-          .eq('whatsapp_message_id', msgId);
+          .eq('whatsapp_message_id', msgId)
+          .select('id');
+        if (!error && upd && upd.length > 0) marcou += upd.length;
+
         await db.from('whatsapp_logs').insert({
           provider: 'evolution',
           direction: 'inbound',
           phone: extractPhone((k.remoteJid as string) || '') ?? '',
           message_type: 'delete',
           payload: it,
-          status: 'success',
+          status: upd && upd.length > 0 ? 'success' : 'no_match',
         });
       }
+      console.log(`[apagar] mensagens marcadas: ${marcou}`);
       return ok();
     }
 
