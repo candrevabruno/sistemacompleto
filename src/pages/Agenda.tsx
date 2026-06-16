@@ -32,6 +32,23 @@ const STATUS_LABEL: Record<string, string> = {
 function dt(ag: any): Date { return parseISO(ag.data_hora_inicio); }
 function isCancelado(ag: any) { return ag.status === 'cancelado' || ag.status === 'cancelou_agendamento'; }
 
+// Bloqueios que tocam um dia inteiro (qualquer interseção com o dia).
+function bloqueiosDoDia(bloqueios: any[], day: Date): any[] {
+  const ini = new Date(day); ini.setHours(0, 0, 0, 0);
+  const fim = new Date(day); fim.setHours(23, 59, 59, 999);
+  return (bloqueios || []).filter(b => new Date(b.inicio) <= fim && new Date(b.fim) >= ini);
+}
+// Um bloqueio cobre o slot (dia + hora)?
+function bloqueioCobreSlot(b: any, day: Date, hour: number): boolean {
+  if (b.dia_inteiro) {
+    const ini = new Date(day); ini.setHours(0, 0, 0, 0);
+    const fim = new Date(day); fim.setHours(23, 59, 59, 999);
+    return new Date(b.inicio) <= fim && new Date(b.fim) >= ini;
+  }
+  const slot = new Date(day); slot.setHours(hour, 0, 0, 0);
+  return new Date(b.inicio).getTime() <= slot.getTime() && new Date(b.fim).getTime() > slot.getTime();
+}
+
 export function Agenda() {
   const { canEdit } = useAuth();
   const podeEditar = canEdit('modulo:agenda');
@@ -209,8 +226,8 @@ export function Agenda() {
         </div>
       ) : (
         <>
-          {view === 'mes' && <VisaoMes cursor={cursor} range={range} doDia={doDia} onEvento={abrirLead} onDia={(d: Date) => { setCursor(d); setView('dia'); }} />}
-          {view === 'semana' && <VisaoSemana range={range} doDia={doDia} onEvento={abrirLead} />}
+          {view === 'mes' && <VisaoMes cursor={cursor} range={range} doDia={doDia} onEvento={abrirLead} onDia={(d: Date) => { setCursor(d); setView('dia'); }} bloqueios={bloqueios} />}
+          {view === 'semana' && <VisaoSemana range={range} doDia={doDia} onEvento={abrirLead} bloqueios={bloqueios} />}
           {view === 'dia' && <VisaoDia cursor={cursor} agendas={agendas} profFiltro={profFiltro} doDia={doDia} onEvento={abrirLead} bloqueios={bloqueios} />}
           {view === 'lista' && <VisaoLista range={range} agendamentos={agendamentos} onEvento={abrirLead} />}
         </>
@@ -248,7 +265,7 @@ function Chip({ ag, onClick, compact }: { ag: any; onClick: () => void; compact?
 }
 
 // ── Visão Mês ───────────────────────────────────────────────────────────────
-function VisaoMes({ cursor, range, doDia, onEvento, onDia }: any) {
+function VisaoMes({ cursor, range, doDia, onEvento, onDia, bloqueios }: any) {
   const dias = eachDayOfInterval({ start: range.start, end: range.end });
   const semanas: Date[][] = [];
   for (let i = 0; i < dias.length; i += 7) semanas.push(dias.slice(i, i + 7));
@@ -265,6 +282,7 @@ function VisaoMes({ cursor, range, doDia, onEvento, onDia }: any) {
         <div key={wi} style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)' }}>
           {semana.map(day => {
             const eventos = doDia(day);
+            const bloqs = bloqueiosDoDia(bloqueios || [], day);
             const foraMes = !isSameMonth(day, cursor);
             return (
               <div
@@ -281,6 +299,12 @@ function VisaoMes({ cursor, range, doDia, onEvento, onDia }: any) {
                 >
                   {format(day, 'd')}
                 </button>
+                {bloqs.map((b: any) => (
+                  <div key={b.id} title={b.motivo || 'Bloqueado'} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: 'var(--rose-text)', background: 'rgba(139,68,68,0.08)', borderRadius: '4px', padding: '1px 5px', marginBottom: '3px', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                    <Ban size={9} style={{ flexShrink: 0 }} />
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.dia_inteiro ? (b.motivo || 'Bloqueado') : `${format(parseISO(b.inicio), 'HH:mm')} ${b.motivo || 'bloqueado'}`}{b.agendas?.nome ? ` · ${b.agendas.nome}` : ''}</span>
+                  </div>
+                ))}
                 {eventos.slice(0, 3).map((ag: any) => <Chip key={ag.id} ag={ag} onClick={() => onEvento(ag)} compact />)}
                 {eventos.length > 3 && (
                   <button onClick={() => onDia(day)} style={{ fontSize: '10px', color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', padding: '0 5px' }}>
@@ -297,7 +321,7 @@ function VisaoMes({ cursor, range, doDia, onEvento, onDia }: any) {
 }
 
 // ── Visão Semana ────────────────────────────────────────────────────────────
-function VisaoSemana({ range, doDia, onEvento }: any) {
+function VisaoSemana({ range, doDia, onEvento, bloqueios }: any) {
   const dias = eachDayOfInterval({ start: range.start, end: range.end });
   return (
     <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: '12px', overflow: 'hidden' }}>
@@ -318,8 +342,12 @@ function VisaoSemana({ range, doDia, onEvento }: any) {
             <div style={{ padding: '4px 6px', fontSize: '10.5px', color: 'var(--muted)', textAlign: 'right' }}>{String(h).padStart(2, '0')}:00</div>
             {dias.map((d: Date) => {
               const eventos = doDia(d).filter((a: any) => getHours(dt(a)) === h);
+              const bloq = (bloqueios || []).find((b: any) => bloqueioCobreSlot(b, d, h));
               return (
-                <div key={d.toISOString()} style={{ borderLeft: '1px solid var(--border)', padding: '3px' }}>
+                <div key={d.toISOString()} style={{ borderLeft: '1px solid var(--border)', padding: '3px', background: bloq ? 'repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(139,68,68,0.08) 5px, rgba(139,68,68,0.08) 10px)' : 'transparent' }}>
+                  {bloq && eventos.length === 0 && (
+                    <div title={bloq.motivo || 'Bloqueado'} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--rose-text)', opacity: 0.7 }}><Ban size={11} /></div>
+                  )}
                   {eventos.map((ag: any) => <Chip key={ag.id} ag={ag} onClick={() => onEvento(ag)} compact />)}
                 </div>
               );
