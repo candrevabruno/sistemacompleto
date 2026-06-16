@@ -80,7 +80,7 @@ export function Agenda() {
   }, [view, cursor]);
 
   const loadAgendas = async () => {
-    const { data } = await supabase.from('agendas').select('id, nome, cor, calcom_event_type_id').eq('ativo', true).order('nome');
+    const { data } = await supabase.from('agendas').select('id, nome, cor, calcom_event_type_id, calcom_schedule_id').eq('ativo', true).order('nome');
     if (data) setAgendas(data);
   };
 
@@ -576,12 +576,18 @@ function NovaAgendaModal({ coresUsadas, onClose, onSaved }: { coresUsadas: strin
 }
 
 // ── Modal Disponibilidade (agenda_hours por profissional) ────────────────────
+const DIA_CALCOM: Record<string, string> = {
+  domingo: 'Sunday', segunda: 'Monday', terca: 'Tuesday', quarta: 'Wednesday',
+  quinta: 'Thursday', sexta: 'Friday', sabado: 'Saturday',
+};
+
 function DisponibilidadeModal({ agendas, onClose }: { agendas: any[]; onClose: () => void }) {
   const [agendaId, setAgendaId] = useState<string>(agendas[0]?.id || '');
   const [horas, setHoras] = useState<Record<string, { aberto: boolean; ini: string; fim: string }>>({});
   const [loading, setLoading] = useState(false);
   const [salvando, setSalvando] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [aviso, setAviso] = useState<string | null>(null);
 
   const carregar = async (id: string) => {
     if (!id) return;
@@ -602,13 +608,37 @@ function DisponibilidadeModal({ agendas, onClose }: { agendas: any[]; onClose: (
 
   const salvar = async () => {
     if (!agendaId) return;
-    setSalvando(true);
+    setSalvando(true); setAviso(null);
     await supabase.from('agenda_hours').delete().eq('agenda_id', agendaId);
     const rows = DIAS_SEMANA.map(d => ({
       agenda_id: agendaId, dia: d.key, aberto: horas[d.key]?.aberto ?? false,
       hora_inicio: horas[d.key]?.ini || null, hora_fim: horas[d.key]?.fim || null,
     }));
     await supabase.from('agenda_hours').insert(rows);
+
+    // Reflete a disponibilidade no Cal.com (schedule do profissional). Best-effort.
+    const ag = agendas.find((a: any) => a.id === agendaId);
+    const availability = DIAS_SEMANA
+      .filter(d => horas[d.key]?.aberto && horas[d.key]?.ini && horas[d.key]?.fim)
+      .map(d => ({ days: [DIA_CALCOM[d.key]], startTime: horas[d.key].ini, endTime: horas[d.key].fim }));
+    if (availability.length === 0) {
+      setAviso('Salvo no sistema. Marque ao menos um dia para refletir no Cal.com.');
+    } else {
+      try {
+        const { data: r, error: cErr } = await supabase.functions.invoke('cal-sync', {
+          body: { action: 'set-availability', scheduleId: ag?.calcom_schedule_id || undefined, timeZone: 'America/Sao_Paulo', availability },
+        });
+        if (cErr || r?.error) {
+          let detalhe = r?.error || cErr?.message || '';
+          try { const body = await (cErr as any)?.context?.json?.(); if (body?.error) detalhe = body.error; } catch { /* ignore */ }
+          setAviso('Salvo no sistema, mas não refletiu no Cal.com: ' + detalhe);
+        } else if (r?.scheduleId && r.scheduleId !== ag?.calcom_schedule_id) {
+          await supabase.from('agendas').update({ calcom_schedule_id: String(r.scheduleId) }).eq('id', agendaId);
+        }
+      } catch (e: any) {
+        setAviso('Salvo no sistema, mas não refletiu no Cal.com: ' + (e?.message || ''));
+      }
+    }
     setSalvando(false); setSaved(true); setTimeout(() => setSaved(false), 1800);
   };
 
@@ -622,6 +652,7 @@ function DisponibilidadeModal({ agendas, onClose }: { agendas: any[]; onClose: (
           <h3 className="font-cormorant" style={modalTitle}>Disponibilidade semanal</h3>
           <button onClick={onClose} style={iconBtn}><X size={18} /></button>
         </div>
+        {aviso && <p style={{ fontSize: '12px', color: 'var(--champ-text)', background: 'var(--champ-light)', padding: '8px 11px', borderRadius: 'var(--r-xs)', marginBottom: '12px', lineHeight: 1.5 }}>{aviso}</p>}
         <div style={{ marginBottom: '14px' }}>
           <label style={lbl}>Profissional</label>
           <select value={agendaId} onChange={e => setAgendaId(e.target.value)} style={inp}>

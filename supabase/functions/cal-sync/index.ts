@@ -15,6 +15,7 @@ const CAL_BASE = 'https://api.cal.com/v2';
 const CAL_VERSION = '2026-02-25';     // bookings (create/cancel/reschedule)
 const CAL_VERSION_OOO = '2024-08-13'; // out-of-office (create/delete)
 const CAL_VERSION_EVT = '2024-06-14'; // event-types (delete)
+const CAL_VERSION_SCH = '2024-06-11'; // schedules (availability)
 const TZ_PADRAO = 'America/Sao_Paulo';
 
 function parseJwt(token: string): Record<string, unknown> {
@@ -32,7 +33,7 @@ Deno.serve(async (req: Request) => {
     try { if (parseJwt(reqAuth.slice(7)).role !== 'authenticated') return json({ error: 'Unauthorized' }, 401); }
     catch { return json({ error: 'Unauthorized' }, 401); }
 
-    const { action, calcom_uid, start, end, reason, eventTypeId, attendee, timeZone, ooo_id } = await req.json();
+    const { action, calcom_uid, start, end, reason, eventTypeId, attendee, timeZone, ooo_id, scheduleId, availability } = await req.json();
 
     const db = createAdminClient();
     const { data: cfg } = await db.from('clinic_config').select('calcom_api_key').eq('id', 1).single();
@@ -79,6 +80,26 @@ Deno.serve(async (req: Request) => {
       // Remove o Out-of-Office (desbloquear).
       if (!ooo_id) return json({ error: 'ooo_id obrigatório' }, 400);
       res = await fetch(`${CAL_BASE}/out-of-office/${ooo_id}`, { method: 'DELETE', headers: headersOoo });
+    } else if (action === 'set-availability') {
+      // Atualiza a disponibilidade (schedule) do profissional no Cal.com.
+      if (!Array.isArray(availability)) return json({ error: 'availability obrigatório' }, 400);
+      const headersSch = { Authorization: apiAuth, 'cal-api-version': CAL_VERSION_SCH, 'Content-Type': 'application/json' };
+      let schedId = scheduleId;
+      if (!schedId) {
+        const dres = await fetch(`${CAL_BASE}/schedules/default`, { headers: headersSch });
+        const dtext = await dres.text();
+        if (!dres.ok) { console.error('cal-sync schedule default:', dres.status, dtext.slice(0, 300)); return json({ error: `Cal.com ${dres.status}: ${dtext.slice(0, 300)}` }, 502); }
+        const dj = JSON.parse(dtext || '{}');
+        schedId = dj?.data?.id ?? dj?.id ?? null;
+      }
+      if (!schedId) return json({ error: 'Nenhum schedule encontrado no Cal.com (crie uma Disponibilidade lá primeiro).' }, 502);
+      const pres = await fetch(`${CAL_BASE}/schedules/${schedId}`, {
+        method: 'PATCH', headers: headersSch,
+        body: JSON.stringify({ availability, ...(timeZone ? { timeZone } : {}) }),
+      });
+      const ptext = await pres.text();
+      if (!pres.ok) { console.error('cal-sync set-availability:', pres.status, ptext.slice(0, 400)); return json({ error: `Cal.com ${pres.status}: ${ptext.slice(0, 400)}` }, 502); }
+      return json({ success: true, scheduleId: schedId, calcom: JSON.parse(ptext || '{}') });
     } else if (action === 'delete-event-type') {
       // Apaga o event-type no Cal.com (quando a agenda/profissional é apagada no sistema).
       if (!eventTypeId) return json({ error: 'eventTypeId obrigatório' }, 400);
