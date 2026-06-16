@@ -7,7 +7,7 @@ import {
   addMonths, addWeeks, addDays, eachDayOfInterval, getHours,
 } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, Plus, CalendarDays, Loader2, X, Ban, Clock, AlertTriangle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, CalendarDays, Loader2, X, Ban, Clock, AlertTriangle, Check, UserX, User } from 'lucide-react';
 import { LeadDetailsModal } from '../components/crm/LeadDetailsModal';
 
 const DIAS_SEMANA: { key: string; label: string }[] = [
@@ -63,6 +63,7 @@ export function Agenda() {
   const [bloqueios, setBloqueios] = useState<any[]>([]);
   const [selectedLead, setSelectedLead] = useState<any>(null);
   const [openLead, setOpenLead] = useState(false);
+  const [selectedAg, setSelectedAg] = useState<any>(null);
   const [showNova, setShowNova] = useState(false);
   const [showDisp, setShowDisp] = useState(false);
   const [showBloqueio, setShowBloqueio] = useState(false);
@@ -125,6 +126,7 @@ export function Agenda() {
     setSelectedLead(ag.leads);
     setOpenLead(true);
   };
+  const abrirEvento = (ag: any) => setSelectedAg(ag);
 
   const navegar = (dir: -1 | 1) => {
     if (view === 'dia') setCursor(c => addDays(c, dir));
@@ -230,13 +232,23 @@ export function Agenda() {
         </div>
       ) : (
         <>
-          {view === 'mes' && <VisaoMes cursor={cursor} range={range} doDia={doDia} onEvento={abrirLead} onDia={(d: Date) => { setCursor(d); setView('dia'); }} bloqueios={bloqueios} />}
-          {view === 'semana' && <VisaoSemana range={range} doDia={doDia} onEvento={abrirLead} bloqueios={bloqueios} />}
-          {view === 'dia' && <VisaoDia cursor={cursor} agendas={agendas} profFiltro={profFiltro} doDia={doDia} onEvento={abrirLead} bloqueios={bloqueios} />}
-          {view === 'lista' && <VisaoLista range={range} agendamentos={agendamentos} onEvento={abrirLead} />}
+          {view === 'mes' && <VisaoMes cursor={cursor} range={range} doDia={doDia} onEvento={abrirEvento} onDia={(d: Date) => { setCursor(d); setView('dia'); }} bloqueios={bloqueios} />}
+          {view === 'semana' && <VisaoSemana range={range} doDia={doDia} onEvento={abrirEvento} bloqueios={bloqueios} />}
+          {view === 'dia' && <VisaoDia cursor={cursor} agendas={agendas} profFiltro={profFiltro} doDia={doDia} onEvento={abrirEvento} bloqueios={bloqueios} />}
+          {view === 'lista' && <VisaoLista range={range} agendamentos={agendamentos} onEvento={abrirEvento} />}
         </>
       )}
 
+      {selectedAg && (
+        <AgendamentoModal
+          ag={selectedAg}
+          agendas={agendas}
+          podeEditar={podeEditar}
+          onClose={() => setSelectedAg(null)}
+          onUpdated={() => { setSelectedAg(null); loadAgendamentos(); }}
+          onVerPaciente={(ag: any) => { setSelectedAg(null); if (ag.leads) { setSelectedLead(ag.leads); setOpenLead(true); } }}
+        />
+      )}
       <LeadDetailsModal isOpen={openLead} onClose={() => setOpenLead(false)} leadId={selectedLead?.id} onUpdate={loadAgendamentos} />
       {showNova && <NovaAgendaModal coresUsadas={agendas.map(a => a.cor)} onClose={() => setShowNova(false)} onSaved={() => { setShowNova(false); loadAgendas(); }} />}
       {showDisp && <DisponibilidadeModal agendas={agendas} onClose={() => setShowDisp(false)} />}
@@ -783,6 +795,116 @@ function BloqueioModal({ agendas, profPadrao, onClose, onSaved }: { agendas: any
   );
 }
 
+// ── Modal Agendamento (ações: compareceu/faltou/cancelar/reagendar) ──────────
+function AgendamentoModal({ ag, agendas, podeEditar, onClose, onUpdated, onVerPaciente }: { ag: any; agendas: any[]; podeEditar: boolean; onClose: () => void; onUpdated: () => void; onVerPaciente: (ag: any) => void }) {
+  const { user } = useAuth();
+  const [busy, setBusy] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+  const [modoReag, setModoReag] = useState(false);
+  const [novaData, setNovaData] = useState(format(parseISO(ag.data_hora_inicio), 'yyyy-MM-dd'));
+  const [novaHora, setNovaHora] = useState(format(parseISO(ag.data_hora_inicio), 'HH:mm'));
+  const cor = ag.agendas?.cor || 'var(--sage)';
+  const nome = ag.nome_lead || ag.leads?.nome_lead || 'Paciente';
+
+  const auditar = async (action: string, detalhes: any) => {
+    if (!user) return;
+    await supabase.from('audit_log').insert({ user_id: user.id, action, record_id: ag.lead_id, detalhes: { agendamento_id: ag.id, ...detalhes } });
+  };
+
+  const mudarStatus = async (novo: string) => {
+    setBusy(true); setErro(null);
+    const { error } = await supabase.from('agendamentos').update({ status: novo }).eq('id', ag.id);
+    if (error) { setErro('Erro: ' + error.message); setBusy(false); return; }
+    // Compareceu confirma a conversão do lead (entra nas métricas).
+    if (novo === 'compareceu' && ag.lead_id && ag.leads?.status !== 'converteu') {
+      await supabase.from('leads').update({ status: 'converteu', converteu_em: new Date().toISOString() }).eq('id', ag.lead_id);
+    }
+    await auditar('agendamento_status', { de: ag.status, para: novo });
+    setBusy(false); onUpdated();
+  };
+
+  const reagendar = async () => {
+    setErro(null);
+    if (!novaData || !novaHora) { setErro('Informe a nova data e hora.'); return; }
+    const inicio = new Date(`${novaData}T${novaHora}:00`);
+    if (isNaN(inicio.getTime())) { setErro('Data/hora inválida.'); return; }
+    setBusy(true);
+    // Proteções: bloqueio + duplicidade (ignora o próprio).
+    const { data: bloq } = await supabase.from('bloqueios').select('id')
+      .eq('agenda_id', ag.agenda_id).lte('inicio', inicio.toISOString()).gte('fim', inicio.toISOString());
+    if (bloq && bloq.length > 0) { setErro('Horário bloqueado para o profissional.'); setBusy(false); return; }
+    const { data: dup } = await supabase.from('agendamentos').select('id')
+      .eq('agenda_id', ag.agenda_id).eq('data_hora_inicio', inicio.toISOString())
+      .not('status', 'in', '("cancelado","cancelou_agendamento","faltou")').neq('id', ag.id).limit(1);
+    if (dup && dup.length > 0) { setErro('Já existe agendamento nesse horário.'); setBusy(false); return; }
+
+    const { error } = await supabase.from('agendamentos')
+      .update({ data_hora_inicio: inicio.toISOString(), status: 'reagendado' }).eq('id', ag.id);
+    if (error) { setErro('Erro: ' + error.message); setBusy(false); return; }
+    if (ag.lead_id) await supabase.from('leads').update({ data_agendamento: inicio.toISOString() }).eq('id', ag.lead_id);
+    await auditar('agendamento_reagendado', { de: ag.data_hora_inicio, para: inicio.toISOString() });
+    setBusy(false); onUpdated();
+  };
+
+  return (
+    <div style={modalOverlay} onClick={() => !busy && onClose()}>
+      <div onClick={e => e.stopPropagation()} style={{ ...modalBox, maxWidth: '420px' }}>
+        <div style={modalHeader}>
+          <h3 className="font-cormorant" style={modalTitle}>Agendamento</h3>
+          <button onClick={onClose} style={iconBtn}><X size={18} /></button>
+        </div>
+
+        {/* Resumo */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 14px', background: 'var(--bg)', borderRadius: 'var(--r-sm)', borderLeft: `3px solid ${cor}`, marginBottom: '16px' }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--ink)' }}>{nome}</div>
+            <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '2px' }}>
+              {format(parseISO(ag.data_hora_inicio), "EEEE, dd/MM 'às' HH:mm", { locale: ptBR })}
+            </div>
+            <div style={{ fontSize: '11.5px', color: 'var(--muted)', marginTop: '2px' }}>
+              {ag.procedimento_nome || ag.leads?.procedimento_interesse || '—'}{ag.agendas?.nome ? ` · ${ag.agendas.nome}` : ''}
+            </div>
+          </div>
+          <span style={{ fontSize: '10px', fontWeight: 600, padding: '3px 8px', borderRadius: '20px', background: isCancelado(ag) ? 'var(--rose-light)' : 'var(--sage-xlight)', color: isCancelado(ag) ? 'var(--rose-text)' : 'var(--sage-dark)' }}>
+            {STATUS_LABEL[ag.status] || ag.status}
+          </span>
+        </div>
+
+        {erro && <p style={{ fontSize: '12px', color: 'var(--rose-text)', background: 'var(--rose-light)', padding: '8px 11px', borderRadius: 'var(--r-xs)', marginBottom: '12px' }}>{erro}</p>}
+
+        {modoReag ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <div style={{ flex: 1 }}><label style={lbl}>Nova data</label><input type="date" value={novaData} onChange={e => setNovaData(e.target.value)} style={inp} /></div>
+              <div style={{ flex: 1 }}><label style={lbl}>Nova hora</label><input type="time" value={novaHora} onChange={e => setNovaHora(e.target.value)} style={inp} /></div>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+              <button onClick={() => setModoReag(false)} disabled={busy} style={btnGhost}>Voltar</button>
+              <button onClick={reagendar} disabled={busy} style={{ ...btnPrimary, opacity: busy ? 0.6 : 1 }}>{busy && <Loader2 size={13} className="animate-spin" />} Confirmar reagendamento</button>
+            </div>
+          </div>
+        ) : podeEditar ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button onClick={() => mudarStatus('compareceu')} disabled={busy} style={{ ...acaoBtn, color: 'var(--sage-dark)', borderColor: 'var(--sage)' }}><Check size={14} /> Compareceu</button>
+              <button onClick={() => mudarStatus('faltou')} disabled={busy} style={{ ...acaoBtn, color: 'var(--champ-text)', borderColor: 'var(--champ)' }}><UserX size={14} /> Faltou</button>
+            </div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button onClick={() => setModoReag(true)} disabled={busy} style={{ ...acaoBtn }}><Clock size={14} /> Reagendar</button>
+              <button onClick={() => mudarStatus('cancelado')} disabled={busy} style={{ ...acaoBtn, color: 'var(--rose-text)', borderColor: 'rgba(139,68,68,0.3)' }}><Ban size={14} /> Cancelar</button>
+            </div>
+            {ag.leads && (
+              <button onClick={() => onVerPaciente(ag)} style={{ ...acaoBtn, justifyContent: 'center', color: 'var(--ink)' }}><User size={14} /> Ver perfil do paciente</button>
+            )}
+          </div>
+        ) : (
+          ag.leads && <button onClick={() => onVerPaciente(ag)} style={{ ...acaoBtn, justifyContent: 'center', color: 'var(--ink)' }}><User size={14} /> Ver perfil do paciente</button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Modal Novo agendamento (manual, sem agente) ─────────────────────────────
 function NovoAgendamentoModal({ agendas, profPadrao, dataPadrao, onClose, onSaved }: { agendas: any[]; profPadrao: string; dataPadrao: string; onClose: () => void; onSaved: () => void }) {
   const { user } = useAuth();
@@ -921,6 +1043,7 @@ const modalTitle: React.CSSProperties = { fontSize: '18px', fontWeight: 600, col
 const iconBtn: React.CSSProperties = { background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)' };
 const btnPrimary: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', fontSize: '12.5px', fontWeight: 600, borderRadius: 'var(--r-xs)', border: 'none', background: 'var(--sage-dark)', color: 'white', cursor: 'pointer', fontFamily: 'inherit' };
 const btnGhost: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', fontSize: '12.5px', fontWeight: 500, borderRadius: 'var(--r-xs)', border: '1px solid var(--border-md)', background: 'transparent', color: 'var(--muted)', cursor: 'pointer', fontFamily: 'inherit' };
+const acaoBtn: React.CSSProperties = { flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '9px 12px', fontSize: '12.5px', fontWeight: 600, borderRadius: 'var(--r-xs)', border: '1px solid var(--border-md)', background: 'var(--white)', color: 'var(--ink)', cursor: 'pointer', fontFamily: 'inherit' };
 
 const navBtn: React.CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', borderRadius: 'var(--r-xs)', border: '1px solid var(--border-md)', background: 'var(--white)', color: 'var(--ink)', cursor: 'pointer' };
 const lbl: React.CSSProperties = { fontSize: '9.5px', fontWeight: 600, letterSpacing: '0.8px', textTransform: 'uppercase', color: 'var(--muted)', display: 'block', marginBottom: '5px' };
