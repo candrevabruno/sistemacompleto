@@ -13,7 +13,7 @@ import { createAdminClient } from '../_shared/supabase-client.ts';
 
 const CAL_BASE = 'https://api.cal.com/v2';
 const CAL_VERSION = '2026-02-25';     // bookings (create/cancel/reschedule)
-const CAL_VERSION_OOO = '2024-08-13'; // out-of-office (create/delete)
+const CAL_VERSION_OOO = '2026-02-25'; // out-of-office (/me/ooo create/delete)
 const CAL_VERSION_EVT = '2024-06-14'; // event-types (delete)
 const CAL_VERSION_SCH = '2024-06-11'; // schedules (availability)
 const TZ_PADRAO = 'America/Sao_Paulo';
@@ -72,14 +72,14 @@ Deno.serve(async (req: Request) => {
     } else if (action === 'block') {
       // Out-of-Office: bloqueia a disponibilidade do profissional no Cal.com.
       if (!start || !end) return json({ error: 'start e end obrigatórios' }, 400);
-      res = await fetch(`${CAL_BASE}/out-of-office`, {
+      res = await fetch(`${CAL_BASE}/me/ooo`, {
         method: 'POST', headers: headersOoo,
         body: JSON.stringify({ start, end, reason: 'unspecified', notes: reason || 'Bloqueado pela clínica' }),
       });
     } else if (action === 'unblock') {
       // Remove o Out-of-Office (desbloquear).
       if (!ooo_id) return json({ error: 'ooo_id obrigatório' }, 400);
-      res = await fetch(`${CAL_BASE}/out-of-office/${ooo_id}`, { method: 'DELETE', headers: headersOoo });
+      res = await fetch(`${CAL_BASE}/me/ooo/${ooo_id}`, { method: 'DELETE', headers: headersOoo });
     } else if (action === 'set-availability') {
       // Atualiza a disponibilidade (schedule) do profissional no Cal.com.
       if (!Array.isArray(availability)) return json({ error: 'availability obrigatório' }, 400);
