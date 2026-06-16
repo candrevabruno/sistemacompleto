@@ -60,7 +60,7 @@ Deno.serve(async (req: Request) => {
     // ── CANCELAMENTO: libera o slot + aciona lista de espera ──
     if (evt === 'BOOKING_CANCELLED') {
       const { data: upd } = await db.from('agendamentos')
-        .update({ status: 'cancelado' }).eq('calcom_uid', uid).select('id, agenda_id, data_hora_inicio, lead_id, procedimento_nome');
+        .update({ status: 'cancelado' }).eq('calcom_uid', uid).neq('status', 'cancelado').select('id, agenda_id, data_hora_inicio, lead_id, procedimento_nome');
       if (upd && upd.length > 0) {
         const a = upd[0];
         await db.from('agente_eventos').insert({

@@ -1004,6 +1004,12 @@ function AgendamentoModal({ ag, agendas, podeEditar, onClose, onUpdated, onVerPa
         payload: { motivo: novo, quando: ag.data_hora_inicio, procedimento: ag.procedimento_nome || null, profissional: ag.agendas?.nome || null },
       });
     }
+    // Reflete o cancelamento no Cal.com (se a reserva veio de lá). Best-effort.
+    if (novo === 'cancelado' && ag.calcom_uid) {
+      try {
+        await supabase.functions.invoke('cal-sync', { body: { action: 'cancel', calcom_uid: ag.calcom_uid, reason: 'Cancelado pela clínica' } });
+      } catch (e) { console.error('cal-sync cancel falhou:', e); }
+    }
     await auditar('agendamento_status', { de: ag.status, para: novo });
     setBusy(false); onUpdated();
   };
