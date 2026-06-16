@@ -789,18 +789,38 @@ function BloqueioModal({ agendas, profPadrao, onClose, onSaved }: { agendas: any
     }).select('id').single();
     if (bErr) { setErro('Erro ao bloquear: ' + bErr.message); setBusy(false); return; }
 
-    // Reflete o bloqueio no Cal.com (Out-of-Office) p/ ele não oferecer o horário. Best-effort.
-    // Guarda o ID do OOO para que o "Desbloquear" também o remova no Cal.com.
+    // Reflete o bloqueio no Cal.com. Best-effort.
+    //  - Dia inteiro / período → Out-of-Office (Ausência).
+    //  - Horário específico → reserva(s)-bloqueio no event-type (OOO só cobre dia inteiro).
     let avisoCalcom: string | null = null;
+    const ag = agendas.find((a: any) => a.id === agendaId);
     try {
-      const { data: r, error: cErr } = await supabase.functions.invoke('cal-sync', { body: { action: 'block', start: iv.inicio.toISOString(), end: iv.fim.toISOString(), reason: motivo || 'Bloqueado pela clínica' } });
-      if (cErr || r?.error) {
-        let detalhe = r?.error || cErr?.message || '';
-        try { const body = await (cErr as any)?.context?.json?.(); if (body?.error) detalhe = body.error; } catch { /* ignore */ }
-        avisoCalcom = detalhe;
+      if (iv.diaInteiro) {
+        const { data: r, error: cErr } = await supabase.functions.invoke('cal-sync', { body: { action: 'block', start: iv.inicio.toISOString(), end: iv.fim.toISOString(), reason: motivo || 'Bloqueado pela clínica' } });
+        if (cErr || r?.error) {
+          let detalhe = r?.error || cErr?.message || '';
+          try { const body = await (cErr as any)?.context?.json?.(); if (body?.error) detalhe = body.error; } catch { /* ignore */ }
+          avisoCalcom = detalhe;
+        } else {
+          const oooId = r?.calcom?.data?.id ?? r?.calcom?.id ?? null;
+          if (oooId && novoBloq?.id) await supabase.from('bloqueios').update({ calcom_ooo_id: String(oooId) }).eq('id', novoBloq.id);
+        }
+      } else if (!ag?.calcom_event_type_id) {
+        avisoCalcom = 'Este profissional não tem "ID do Event-type" do Cal.com, então o bloqueio por horário valeu só no sistema.';
       } else {
-        const oooId = r?.calcom?.data?.id ?? r?.calcom?.id ?? null;
-        if (oooId && novoBloq?.id) await supabase.from('bloqueios').update({ calcom_ooo_id: String(oooId) }).eq('id', novoBloq.id);
+        const { data: r, error: cErr } = await supabase.functions.invoke('cal-sync', { body: { action: 'block-slot', eventTypeId: ag.calcom_event_type_id, start: iv.inicio.toISOString(), end: iv.fim.toISOString(), timeZone: 'America/Sao_Paulo' } });
+        let detalhe = '';
+        if (cErr || r?.error) {
+          detalhe = r?.error || cErr?.message || '';
+          try { const body = await (cErr as any)?.context?.json?.(); if (body?.error) detalhe = body.error; } catch { /* ignore */ }
+        }
+        const uids: string[] = r?.uids || [];
+        if (uids.length && novoBloq?.id) await supabase.from('bloqueios').update({ calcom_booking_uids: uids }).eq('id', novoBloq.id);
+        if (detalhe && uids.length === 0) {
+          avisoCalcom = /minimum booking notice|too soon|scheduling window|too far/i.test(detalhe)
+            ? 'esse horário viola as regras do event-type no Cal.com (antecedência mínima ou janela de disponibilidade). Ajuste em Cal.com → Tipos de Eventos → Limites, ou bloqueie um horário mais à frente.'
+            : detalhe;
+        }
       }
     } catch (e: any) { avisoCalcom = e?.message || String(e); }
 
@@ -871,10 +891,15 @@ function BloqueioModal({ agendas, profPadrao, onClose, onSaved }: { agendas: any
               )}
             </div>
             {tipo === 'horario' && (
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <div style={{ flex: 1 }}><label style={lbl}>Das</label><input type="time" value={horaIni} onChange={e => setHoraIni(e.target.value)} style={inp} /></div>
-                <div style={{ flex: 1 }}><label style={lbl}>Até</label><input type="time" value={horaFim} onChange={e => setHoraFim(e.target.value)} style={inp} /></div>
-              </div>
+              <>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <div style={{ flex: 1 }}><label style={lbl}>Das</label><input type="time" value={horaIni} onChange={e => setHoraIni(e.target.value)} style={inp} /></div>
+                  <div style={{ flex: 1 }}><label style={lbl}>Até</label><input type="time" value={horaFim} onChange={e => setHoraFim(e.target.value)} style={inp} /></div>
+                </div>
+                <p style={{ fontSize: '11px', color: 'var(--muted)', lineHeight: 1.5, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r-xs)', padding: '8px 10px' }}>
+                  ℹ️ O bloqueio por horário vira uma <strong>reserva-bloqueio</strong> no Cal.com (trava só essa faixa). Por isso o Cal.com aplica a <strong>antecedência mínima</strong> do event-type: bloquear um horário <strong>muito em cima da hora</strong> pode ser recusado — nesse caso o bloqueio vale só no sistema. Para travar o <strong>dia todo</strong>, use "Dia inteiro".
+                </p>
+              </>
             )}
             <div>
               <label style={lbl}>Motivo (opcional)</label>
@@ -940,10 +965,16 @@ function DesbloquearModal({ bloqueio, onClose, onSaved }: { bloqueio: any; onClo
 
   const desbloquear = async () => {
     setBusy(true); setErro(null);
-    // Remove o Out-of-Office no Cal.com (se houver). Best-effort.
+    // Desfaz no Cal.com (best-effort): OOO (dia/período) ou reserva(s)-bloqueio (horário).
     if (bloqueio.calcom_ooo_id) {
       try { await supabase.functions.invoke('cal-sync', { body: { action: 'unblock', ooo_id: bloqueio.calcom_ooo_id } }); }
       catch (e) { console.error('cal-sync unblock falhou:', e); }
+    }
+    if (Array.isArray(bloqueio.calcom_booking_uids)) {
+      for (const uid of bloqueio.calcom_booking_uids) {
+        try { await supabase.functions.invoke('cal-sync', { body: { action: 'cancel', calcom_uid: uid, reason: 'Desbloqueado pela clínica' } }); }
+        catch (e) { console.error('cal-sync cancel (desbloqueio) falhou:', e); }
+      }
     }
     const { error } = await supabase.from('bloqueios').delete().eq('id', bloqueio.id);
     if (error) { setErro('Erro ao desbloquear: ' + error.message); setBusy(false); return; }

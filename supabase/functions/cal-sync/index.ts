@@ -76,6 +76,37 @@ Deno.serve(async (req: Request) => {
         method: 'POST', headers: headersOoo,
         body: JSON.stringify({ start, end, reason: 'unspecified', notes: reason || 'Bloqueado pela clínica' }),
       });
+    } else if (action === 'block-slot') {
+      // Bloqueia um HORÁRIO específico criando reserva(s)-bloqueio no event-type
+      // (o OOO só cobre dia inteiro). Cria reservas cobrindo [start, end) passo = duração do event-type.
+      if (!eventTypeId || !start || !end) return json({ error: 'eventTypeId, start e end obrigatórios' }, 400);
+      let len = Number(lengthInMinutes) || 0;
+      if (!len) {
+        const er = await fetch(`${CAL_BASE}/event-types/${eventTypeId}`, { headers: { Authorization: apiAuth, 'cal-api-version': CAL_VERSION_EVT } });
+        const et = JSON.parse((await er.text()) || '{}');
+        len = et?.data?.lengthInMinutes || et?.data?.length || 60;
+      }
+      const startMs = new Date(start).getTime();
+      const endMs = new Date(end).getTime();
+      const stepMs = Math.max(len, 5) * 60000;
+      const uids: string[] = [];
+      let errMsg: string | null = null;
+      for (let t = startMs; t < endMs; t += stepMs) {
+        const bres = await fetch(`${CAL_BASE}/bookings`, {
+          method: 'POST', headers,
+          body: JSON.stringify({
+            start: new Date(t).toISOString(), eventTypeId: Number(eventTypeId),
+            attendee: { name: 'Bloqueado', email: `bloqueio.${t}@sememail.local`, timeZone: timeZone || TZ_PADRAO, language: 'pt' },
+          }),
+        });
+        const btext = await bres.text();
+        if (!bres.ok) { errMsg = `Cal.com ${bres.status}: ${btext.slice(0, 250)}`; break; }
+        const bj = JSON.parse(btext || '{}');
+        const uid = bj?.data?.uid ?? bj?.uid;
+        if (uid) uids.push(uid);
+      }
+      if (errMsg && uids.length === 0) return json({ error: errMsg }, 502);
+      return json({ success: true, uids, error: errMsg });
     } else if (action === 'unblock') {
       // Remove o Out-of-Office (desbloquear).
       if (!ooo_id) return json({ error: 'ooo_id obrigatório' }, 400);
