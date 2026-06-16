@@ -933,6 +933,11 @@ function GerenciarAgendasModal({ onClose, onChanged }: { onClose: () => void; on
   const apagar = async () => {
     if (!confirmDel) return;
     setBusyId(confirmDel.id); setErro(null);
+    // Remove o event-type no Cal.com (se houver). Best-effort.
+    if (confirmDel.calcom_event_type_id) {
+      try { await supabase.functions.invoke('cal-sync', { body: { action: 'delete-event-type', eventTypeId: confirmDel.calcom_event_type_id } }); }
+      catch (e) { console.error('cal-sync delete-event-type falhou:', e); }
+    }
     const { error } = await supabase.rpc('apagar_agenda_completa', { p_agenda_id: confirmDel.id });
     if (error) { setErro('Erro ao apagar: ' + error.message); setBusyId(null); return; }
     if (user) await supabase.from('audit_log').insert({ user_id: user.id, action: 'agenda_apagada', record_id: confirmDel.id, detalhes: { nome: confirmDel.nome, agendamentos: qtdVinc } });
@@ -988,10 +993,14 @@ function GerenciarAgendasModal({ onClose, onChanged }: { onClose: () => void; on
                 </button>
               </div>
             ))}
-            <p style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '4px', lineHeight: 1.5 }}>
-              <Archive size={11} style={{ verticalAlign: '-1px' }} /> Arquivar tira a agenda da visão sem perder o histórico (reversível).
-              <Trash2 size={11} style={{ verticalAlign: '-1px', marginLeft: '6px' }} /> Apagar remove tudo definitivamente.
-            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', marginTop: '6px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--muted)' }}>
+                <Archive size={12} style={{ flexShrink: 0 }} /> <span>Arquivar tira a agenda da visão sem perder o histórico (reversível).</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--muted)' }}>
+                <Trash2 size={12} style={{ flexShrink: 0 }} /> <span>Apagar remove tudo definitivamente (e o event-type no Cal.com).</span>
+              </div>
+            </div>
           </div>
         )}
       </div>

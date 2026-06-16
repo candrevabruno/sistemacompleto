@@ -14,6 +14,7 @@ import { createAdminClient } from '../_shared/supabase-client.ts';
 const CAL_BASE = 'https://api.cal.com/v2';
 const CAL_VERSION = '2026-02-25';     // bookings (create/cancel/reschedule)
 const CAL_VERSION_OOO = '2024-08-13'; // out-of-office (create/delete)
+const CAL_VERSION_EVT = '2024-06-14'; // event-types (delete)
 const TZ_PADRAO = 'America/Sao_Paulo';
 
 function parseJwt(token: string): Record<string, unknown> {
@@ -78,6 +79,13 @@ Deno.serve(async (req: Request) => {
       // Remove o Out-of-Office (desbloquear).
       if (!ooo_id) return json({ error: 'ooo_id obrigatório' }, 400);
       res = await fetch(`${CAL_BASE}/out-of-office/${ooo_id}`, { method: 'DELETE', headers: headersOoo });
+    } else if (action === 'delete-event-type') {
+      // Apaga o event-type no Cal.com (quando a agenda/profissional é apagada no sistema).
+      if (!eventTypeId) return json({ error: 'eventTypeId obrigatório' }, 400);
+      res = await fetch(`${CAL_BASE}/event-types/${eventTypeId}`, {
+        method: 'DELETE',
+        headers: { Authorization: apiAuth, 'cal-api-version': CAL_VERSION_EVT, 'Content-Type': 'application/json' },
+      });
     } else {
       return json({ error: 'action inválida' }, 400);
     }
