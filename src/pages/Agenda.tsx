@@ -7,7 +7,7 @@ import {
   addMonths, addWeeks, addDays, eachDayOfInterval, getHours,
 } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, Plus, CalendarDays, Loader2, X, Ban, Clock, AlertTriangle, Check, UserX, User } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, CalendarDays, Loader2, X, Ban, Clock, AlertTriangle, Check, UserX, User, ListChecks, ArrowUp, Trash2 } from 'lucide-react';
 import { LeadDetailsModal } from '../components/crm/LeadDetailsModal';
 
 const DIAS_SEMANA: { key: string; label: string }[] = [
@@ -17,7 +17,7 @@ const DIAS_SEMANA: { key: string; label: string }[] = [
   { key: 'sabado', label: 'Sábado' },
 ];
 
-type View = 'mes' | 'semana' | 'dia' | 'lista';
+type View = 'mes' | 'semana' | 'dia' | 'lista' | 'espera';
 
 const HORA_INI = 7;
 const HORA_FIM = 21; // exclusivo
@@ -160,20 +160,24 @@ export function Agenda() {
           Agenda
         </div>
 
-        {/* Navegação */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-          <button onClick={() => navegar(-1)} style={navBtn}><ChevronLeft size={16} /></button>
-          <button onClick={() => setCursor(new Date())} style={{ ...navBtn, width: 'auto', padding: '0 12px', fontSize: '12px', fontWeight: 600 }}>Hoje</button>
-          <button onClick={() => navegar(1)} style={navBtn}><ChevronRight size={16} /></button>
-        </div>
-        <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--ink)', textTransform: 'capitalize', minWidth: '160px' }}>
-          {tituloPeriodo}
-        </div>
+        {/* Navegação (oculta na lista de espera) */}
+        {view !== 'espera' && (
+          <>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <button onClick={() => navegar(-1)} style={navBtn}><ChevronLeft size={16} /></button>
+              <button onClick={() => setCursor(new Date())} style={{ ...navBtn, width: 'auto', padding: '0 12px', fontSize: '12px', fontWeight: 600 }}>Hoje</button>
+              <button onClick={() => navegar(1)} style={navBtn}><ChevronRight size={16} /></button>
+            </div>
+            <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--ink)', textTransform: 'capitalize', minWidth: '160px' }}>
+              {tituloPeriodo}
+            </div>
+          </>
+        )}
 
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
           {/* Seletor de visão */}
           <div style={{ display: 'flex', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-xs)', overflow: 'hidden' }}>
-            {([['mes', 'Mês'], ['semana', 'Semana'], ['dia', 'Dia'], ['lista', 'Lista']] as [View, string][]).map(([v, label]) => (
+            {([['mes', 'Mês'], ['semana', 'Semana'], ['dia', 'Dia'], ['lista', 'Lista'], ['espera', 'Espera']] as [View, string][]).map(([v, label]) => (
               <button
                 key={v}
                 onClick={() => setView(v)}
@@ -239,6 +243,7 @@ export function Agenda() {
           {view === 'semana' && <VisaoSemana range={range} doDia={doDia} onEvento={abrirEvento} bloqueios={bloqueios} />}
           {view === 'dia' && <VisaoDia cursor={cursor} agendas={agendas} profFiltro={profFiltro} doDia={doDia} onEvento={abrirEvento} bloqueios={bloqueios} />}
           {view === 'lista' && <VisaoLista range={range} agendamentos={agendamentos} onEvento={abrirEvento} />}
+          {view === 'espera' && <VisaoEspera agendas={agendas} profFiltro={profFiltro} podeEditar={podeEditar} />}
         </>
       )}
 
@@ -798,6 +803,171 @@ function BloqueioModal({ agendas, profPadrao, onClose, onSaved }: { agendas: any
   );
 }
 
+// ── Visão Lista de Espera ────────────────────────────────────────────────────
+function VisaoEspera({ agendas, profFiltro, podeEditar }: { agendas: any[]; profFiltro: string; podeEditar: boolean }) {
+  const [itens, setItens] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showAdd, setShowAdd] = useState(false);
+
+  const load = async () => {
+    setLoading(true);
+    let q = supabase
+      .from('lista_espera')
+      .select('*, agendas(nome, cor)')
+      .in('status', ['aguardando', 'oferecido'])
+      .order('prioridade', { ascending: false })
+      .order('created_at', { ascending: true });
+    if (profFiltro !== 'todas') q = q.or(`agenda_id.eq.${profFiltro},agenda_id.is.null`);
+    const { data } = await q;
+    setItens(data || []);
+    setLoading(false);
+  };
+  useEffect(() => { load(); }, [profFiltro]);
+
+  const subir = async (it: any) => {
+    await supabase.from('lista_espera').update({ prioridade: (it.prioridade || 0) + 1, updated_at: new Date().toISOString() }).eq('id', it.id);
+    load();
+  };
+  const remover = async (it: any) => {
+    await supabase.from('lista_espera').delete().eq('id', it.id);
+    load();
+  };
+
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+        <p style={{ fontSize: '12px', color: 'var(--muted)' }}>
+          {itens.length} paciente{itens.length !== 1 ? 's' : ''} aguardando vaga. Quando um horário é liberado, o agente oferece ao próximo da fila.
+        </p>
+        {podeEditar && (
+          <button onClick={() => setShowAdd(true)} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', fontSize: '12px', fontWeight: 600, background: 'var(--sage-dark)', color: 'white', border: 'none', borderRadius: 'var(--r-xs)', cursor: 'pointer', fontFamily: 'inherit' }}>
+            <Plus size={14} /> Adicionar à lista
+          </button>
+        )}
+      </div>
+
+      {loading ? (
+        <div style={{ padding: '48px', textAlign: 'center', color: 'var(--muted)' }}><Loader2 size={18} className="animate-spin" /></div>
+      ) : itens.length === 0 ? (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '64px', gap: '10px' }}>
+          <ListChecks size={40} style={{ opacity: 0.2, color: 'var(--muted)' }} />
+          <p className="font-display" style={{ fontSize: '16px', fontStyle: 'italic', color: 'var(--muted)' }}>Lista de espera vazia</p>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {itens.map((it, idx) => {
+            const cor = it.agendas?.cor || 'var(--border-md)';
+            return (
+              <div key={it.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: '10px', borderLeft: `3px solid ${cor}`, padding: '12px 14px' }}>
+                <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--muted)', width: '24px', textAlign: 'center' }}>{idx + 1}º</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)' }}>{it.nome}{it.whatsapp ? <span style={{ color: 'var(--muted)', fontWeight: 400 }}> · {it.whatsapp}</span> : ''}</div>
+                  <div style={{ fontSize: '11.5px', color: 'var(--muted)', marginTop: '2px' }}>
+                    {it.procedimento || '—'}{it.agendas?.nome ? ` · ${it.agendas.nome}` : ' · Qualquer profissional'}{it.preferencias ? ` · ${it.preferencias}` : ''}
+                  </div>
+                </div>
+                <span style={{ fontSize: '10px', fontWeight: 600, padding: '3px 8px', borderRadius: '20px', background: it.status === 'oferecido' ? 'var(--sage-xlight)' : 'var(--champ-light)', color: it.status === 'oferecido' ? 'var(--sage-dark)' : 'var(--champ-text)' }}>
+                  {it.status === 'oferecido' ? 'Oferecido' : 'Aguardando'}
+                </span>
+                {podeEditar && (
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    <button onClick={() => subir(it)} title="Subir prioridade" style={miniBtn}><ArrowUp size={13} /></button>
+                    <button onClick={() => remover(it)} title="Remover da lista" style={{ ...miniBtn, color: 'var(--rose-text)' }}><Trash2 size={13} /></button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {showAdd && <AddEsperaModal agendas={agendas} onClose={() => setShowAdd(false)} onSaved={() => { setShowAdd(false); load(); }} />}
+    </div>
+  );
+}
+
+// ── Modal Adicionar à lista de espera ────────────────────────────────────────
+function AddEsperaModal({ agendas, onClose, onSaved }: { agendas: any[]; onClose: () => void; onSaved: () => void }) {
+  const { user } = useAuth();
+  const [busca, setBusca] = useState('');
+  const [sugestoes, setSugestoes] = useState<any[]>([]);
+  const [mostrarSug, setMostrarSug] = useState(false);
+  const [leadId, setLeadId] = useState<string | null>(null);
+  const [nome, setNome] = useState('');
+  const [whatsapp, setWhatsapp] = useState('');
+  const [agendaId, setAgendaId] = useState('');
+  const [procedimento, setProcedimento] = useState('');
+  const [preferencias, setPreferencias] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+
+  const buscar = async (q: string) => {
+    setBusca(q); setLeadId(null);
+    if (q.trim().length < 2) { setSugestoes([]); return; }
+    const { data } = await supabase.from('leads').select('id, nome_lead, whatsapp_lead').or(`nome_lead.ilike.%${q}%,whatsapp_lead.ilike.%${q}%`).limit(6);
+    setSugestoes(data || []); setMostrarSug(true);
+  };
+  const selecionar = (l: any) => { setLeadId(l.id); setNome(l.nome_lead || ''); setWhatsapp(l.whatsapp_lead || ''); setBusca(l.nome_lead || ''); setSugestoes([]); setMostrarSug(false); };
+
+  const salvar = async () => {
+    setErro(null);
+    if (!nome.trim()) { setErro('Informe o nome do paciente.'); return; }
+    setBusy(true);
+    const { error } = await supabase.from('lista_espera').insert({
+      lead_id: leadId, nome: nome.trim(), whatsapp: whatsapp || null,
+      agenda_id: agendaId || null, procedimento: procedimento || null,
+      preferencias: preferencias || null, status: 'aguardando', created_by: user?.id || null,
+    });
+    setBusy(false);
+    if (error) { setErro('Erro: ' + error.message); return; }
+    onSaved();
+  };
+
+  return (
+    <div style={modalOverlay} onClick={() => !busy && onClose()}>
+      <div onClick={e => e.stopPropagation()} style={{ ...modalBox, maxWidth: '440px' }}>
+        <div style={modalHeader}>
+          <h3 className="font-cormorant" style={modalTitle}>Adicionar à lista de espera</h3>
+          <button onClick={onClose} style={iconBtn}><X size={18} /></button>
+        </div>
+        {erro && <p style={{ fontSize: '12px', color: 'var(--rose-text)', background: 'var(--rose-light)', padding: '8px 11px', borderRadius: 'var(--r-xs)', marginBottom: '12px' }}>{erro}</p>}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div style={{ position: 'relative' }}>
+            <label style={lbl}>Paciente (buscar existente)</label>
+            <input value={busca} onChange={e => buscar(e.target.value)} onFocus={() => sugestoes.length > 0 && setMostrarSug(true)} onBlur={() => setTimeout(() => setMostrarSug(false), 150)} placeholder="Nome ou WhatsApp..." style={inp} />
+            {mostrarSug && sugestoes.length > 0 && (
+              <div style={{ position: 'absolute', zIndex: 20, top: 'calc(100% + 4px)', left: 0, right: 0, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-xs)', boxShadow: 'var(--shadow)', overflow: 'hidden' }}>
+                {sugestoes.map(s => (
+                  <button key={s.id} onMouseDown={() => selecionar(s)} style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 11px', fontSize: '12.5px', color: 'var(--ink)', background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
+                    {s.nome_lead || 'Sem nome'} <span style={{ color: 'var(--muted)' }}>· {s.whatsapp_lead || '—'}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <div style={{ flex: 1 }}><label style={lbl}>Nome</label><input value={nome} onChange={e => { setNome(e.target.value); setLeadId(null); }} style={inp} /></div>
+            <div style={{ flex: 1 }}><label style={lbl}>WhatsApp</label><input value={whatsapp} onChange={e => setWhatsapp(e.target.value)} style={inp} /></div>
+          </div>
+          <div>
+            <label style={lbl}>Profissional preferido</label>
+            <select value={agendaId} onChange={e => setAgendaId(e.target.value)} style={inp}>
+              <option value="">Qualquer profissional</option>
+              {agendas.map(a => <option key={a.id} value={a.id}>{a.nome}</option>)}
+            </select>
+          </div>
+          <div><label style={lbl}>Procedimento</label><input value={procedimento} onChange={e => setProcedimento(e.target.value)} style={inp} /></div>
+          <div><label style={lbl}>Preferências (dias/horários)</label><input value={preferencias} onChange={e => setPreferencias(e.target.value)} placeholder="Ex: manhãs, após 18h, terças..." style={inp} /></div>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '20px' }}>
+          <button onClick={onClose} disabled={busy} style={btnGhost}>Cancelar</button>
+          <button onClick={salvar} disabled={busy} style={{ ...btnPrimary, opacity: busy ? 0.6 : 1 }}>{busy && <Loader2 size={13} className="animate-spin" />} Adicionar</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Modal Agendamento (ações: compareceu/faltou/cancelar/reagendar) ──────────
 function AgendamentoModal({ ag, agendas, podeEditar, onClose, onUpdated, onVerPaciente }: { ag: any; agendas: any[]; podeEditar: boolean; onClose: () => void; onUpdated: () => void; onVerPaciente: (ag: any) => void }) {
   const { user } = useAuth();
@@ -821,6 +991,13 @@ function AgendamentoModal({ ag, agendas, podeEditar, onClose, onUpdated, onVerPa
     // Compareceu confirma a conversão do lead (entra nas métricas).
     if (novo === 'compareceu' && ag.lead_id && ag.leads?.status !== 'converteu') {
       await supabase.from('leads').update({ status: 'converteu', converteu_em: new Date().toISOString() }).eq('id', ag.lead_id);
+    }
+    // Slot liberado (cancelou/faltou) → aciona o agente para oferecer ao próximo da fila.
+    if (novo === 'cancelado' || novo === 'faltou') {
+      await supabase.from('agente_eventos').insert({
+        tipo: 'slot_liberado', agendamento_id: ag.id, lead_id: ag.lead_id, agenda_id: ag.agenda_id,
+        payload: { motivo: novo, quando: ag.data_hora_inicio, procedimento: ag.procedimento_nome || null, profissional: ag.agendas?.nome || null },
+      });
     }
     await auditar('agendamento_status', { de: ag.status, para: novo });
     setBusy(false); onUpdated();
@@ -1065,6 +1242,7 @@ const iconBtn: React.CSSProperties = { background: 'none', border: 'none', curso
 const btnPrimary: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', fontSize: '12.5px', fontWeight: 600, borderRadius: 'var(--r-xs)', border: 'none', background: 'var(--sage-dark)', color: 'white', cursor: 'pointer', fontFamily: 'inherit' };
 const btnGhost: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', fontSize: '12.5px', fontWeight: 500, borderRadius: 'var(--r-xs)', border: '1px solid var(--border-md)', background: 'transparent', color: 'var(--muted)', cursor: 'pointer', fontFamily: 'inherit' };
 const acaoBtn: React.CSSProperties = { flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '9px 12px', fontSize: '12.5px', fontWeight: 600, borderRadius: 'var(--r-xs)', border: '1px solid var(--border-md)', background: 'var(--white)', color: 'var(--ink)', cursor: 'pointer', fontFamily: 'inherit' };
+const miniBtn: React.CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'center', width: '28px', height: '28px', borderRadius: '6px', border: '1px solid var(--border-md)', background: 'transparent', color: 'var(--muted)', cursor: 'pointer' };
 
 const navBtn: React.CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', borderRadius: 'var(--r-xs)', border: '1px solid var(--border-md)', background: 'var(--white)', color: 'var(--ink)', cursor: 'pointer' };
 const lbl: React.CSSProperties = { fontSize: '9.5px', fontWeight: 600, letterSpacing: '0.8px', textTransform: 'uppercase', color: 'var(--muted)', display: 'block', marginBottom: '5px' };
