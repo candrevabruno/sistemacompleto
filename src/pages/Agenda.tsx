@@ -68,6 +68,7 @@ export function Agenda() {
   const [showDisp, setShowDisp] = useState(false);
   const [showBloqueio, setShowBloqueio] = useState(false);
   const [showNovoAg, setShowNovoAg] = useState(false);
+  const [bloqDel, setBloqDel] = useState<any>(null);
 
   // Intervalo visível conforme a visão
   const range = useMemo(() => {
@@ -78,7 +79,7 @@ export function Agenda() {
   }, [view, cursor]);
 
   const loadAgendas = async () => {
-    const { data } = await supabase.from('agendas').select('id, nome, cor').eq('ativo', true).order('nome');
+    const { data } = await supabase.from('agendas').select('id, nome, cor, calcom_event_type_id').eq('ativo', true).order('nome');
     if (data) setAgendas(data);
   };
 
@@ -239,9 +240,9 @@ export function Agenda() {
         </div>
       ) : (
         <>
-          {view === 'mes' && <VisaoMes cursor={cursor} range={range} doDia={doDia} onEvento={abrirEvento} onDia={(d: Date) => { setCursor(d); setView('dia'); }} bloqueios={bloqueios} />}
-          {view === 'semana' && <VisaoSemana range={range} doDia={doDia} onEvento={abrirEvento} bloqueios={bloqueios} />}
-          {view === 'dia' && <VisaoDia cursor={cursor} agendas={agendas} profFiltro={profFiltro} doDia={doDia} onEvento={abrirEvento} bloqueios={bloqueios} />}
+          {view === 'mes' && <VisaoMes cursor={cursor} range={range} doDia={doDia} onEvento={abrirEvento} onDia={(d: Date) => { setCursor(d); setView('dia'); }} bloqueios={bloqueios} onBloqueio={podeEditar ? setBloqDel : undefined} />}
+          {view === 'semana' && <VisaoSemana range={range} doDia={doDia} onEvento={abrirEvento} bloqueios={bloqueios} onBloqueio={podeEditar ? setBloqDel : undefined} />}
+          {view === 'dia' && <VisaoDia cursor={cursor} agendas={agendas} profFiltro={profFiltro} doDia={doDia} onEvento={abrirEvento} bloqueios={bloqueios} onBloqueio={podeEditar ? setBloqDel : undefined} />}
           {view === 'lista' && <VisaoLista range={range} agendamentos={agendamentos} onEvento={abrirEvento} />}
           {view === 'espera' && <VisaoEspera agendas={agendas} profFiltro={profFiltro} podeEditar={podeEditar} />}
         </>
@@ -262,6 +263,7 @@ export function Agenda() {
       {showDisp && <DisponibilidadeModal agendas={agendas} onClose={() => setShowDisp(false)} />}
       {showBloqueio && <BloqueioModal agendas={agendas} profPadrao={profFiltro !== 'todas' ? profFiltro : (agendas[0]?.id || '')} onClose={() => setShowBloqueio(false)} onSaved={() => { setShowBloqueio(false); loadAgendamentos(); }} />}
       {showNovoAg && <NovoAgendamentoModal agendas={agendas} profPadrao={profFiltro !== 'todas' ? profFiltro : (agendas[0]?.id || '')} dataPadrao={format(cursor, 'yyyy-MM-dd')} onClose={() => setShowNovoAg(false)} onSaved={() => { setShowNovoAg(false); loadAgendamentos(); }} />}
+      {bloqDel && <DesbloquearModal bloqueio={bloqDel} onClose={() => setBloqDel(null)} onSaved={() => { setBloqDel(null); loadAgendamentos(); }} />}
     </div>
   );
 }
@@ -290,7 +292,7 @@ function Chip({ ag, onClick, compact }: { ag: any; onClick: () => void; compact?
 }
 
 // ── Visão Mês ───────────────────────────────────────────────────────────────
-function VisaoMes({ cursor, range, doDia, onEvento, onDia, bloqueios }: any) {
+function VisaoMes({ cursor, range, doDia, onEvento, onDia, bloqueios, onBloqueio }: any) {
   const dias = eachDayOfInterval({ start: range.start, end: range.end });
   const semanas: Date[][] = [];
   for (let i = 0; i < dias.length; i += 7) semanas.push(dias.slice(i, i + 7));
@@ -325,7 +327,12 @@ function VisaoMes({ cursor, range, doDia, onEvento, onDia, bloqueios }: any) {
                   {format(day, 'd')}
                 </button>
                 {bloqs.map((b: any) => (
-                  <div key={b.id} title={b.motivo || 'Bloqueado'} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: 'var(--rose-text)', background: 'rgba(139,68,68,0.08)', borderRadius: '4px', padding: '1px 5px', marginBottom: '3px', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                  <div
+                    key={b.id}
+                    title={onBloqueio ? 'Clique para desbloquear' : (b.motivo || 'Bloqueado')}
+                    onClick={onBloqueio ? (e) => { e.stopPropagation(); onBloqueio(b); } : undefined}
+                    style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: 'var(--rose-text)', background: 'rgba(139,68,68,0.08)', borderRadius: '4px', padding: '1px 5px', marginBottom: '3px', overflow: 'hidden', whiteSpace: 'nowrap', cursor: onBloqueio ? 'pointer' : 'default' }}
+                  >
                     <Ban size={9} style={{ flexShrink: 0 }} />
                     <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.dia_inteiro ? (b.motivo || 'Bloqueado') : `${format(parseISO(b.inicio), 'HH:mm')} ${b.motivo || 'bloqueado'}`}{b.agendas?.nome ? ` · ${b.agendas.nome}` : ''}</span>
                   </div>
@@ -346,7 +353,7 @@ function VisaoMes({ cursor, range, doDia, onEvento, onDia, bloqueios }: any) {
 }
 
 // ── Visão Semana ────────────────────────────────────────────────────────────
-function VisaoSemana({ range, doDia, onEvento, bloqueios }: any) {
+function VisaoSemana({ range, doDia, onEvento, bloqueios, onBloqueio }: any) {
   const dias = eachDayOfInterval({ start: range.start, end: range.end });
   return (
     <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: '12px', overflow: 'hidden' }}>
@@ -371,7 +378,11 @@ function VisaoSemana({ range, doDia, onEvento, bloqueios }: any) {
               return (
                 <div key={d.toISOString()} style={{ borderLeft: '1px solid var(--border)', padding: '3px', background: bloq ? 'repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(139,68,68,0.08) 5px, rgba(139,68,68,0.08) 10px)' : 'transparent' }}>
                   {bloq && eventos.length === 0 && (
-                    <div title={bloq.motivo || 'Bloqueado'} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--rose-text)', opacity: 0.7 }}><Ban size={11} /></div>
+                    <div
+                      title={onBloqueio ? 'Clique para desbloquear' : (bloq.motivo || 'Bloqueado')}
+                      onClick={onBloqueio ? () => onBloqueio(bloq) : undefined}
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--rose-text)', opacity: 0.7, cursor: onBloqueio ? 'pointer' : 'default' }}
+                    ><Ban size={11} /></div>
                   )}
                   {eventos.map((ag: any) => <Chip key={ag.id} ag={ag} onClick={() => onEvento(ag)} compact />)}
                 </div>
@@ -386,7 +397,7 @@ function VisaoSemana({ range, doDia, onEvento, bloqueios }: any) {
 
 // ── Visão Dia ───────────────────────────────────────────────────────────────
 // Com 'todas', uma coluna por profissional (agendas isoladas). Senão, coluna única.
-function VisaoDia({ cursor, agendas, profFiltro, doDia, onEvento, bloqueios }: any) {
+function VisaoDia({ cursor, agendas, profFiltro, doDia, onEvento, bloqueios, onBloqueio }: any) {
   const colunas = profFiltro === 'todas' ? agendas : agendas.filter((a: any) => a.id === profFiltro);
   const eventos = doDia(cursor);
   const cols = colunas.length > 0 ? colunas : [{ id: '__none__', nome: 'Sem profissional', cor: 'var(--sage)' }];
@@ -425,7 +436,11 @@ function VisaoDia({ cursor, agendas, profFiltro, doDia, onEvento, bloqueios }: a
               return (
                 <div key={c.id} style={{ borderLeft: '1px solid var(--border)', padding: '3px', position: 'relative', background: bloq ? 'repeating-linear-gradient(45deg, var(--bg), var(--bg) 6px, rgba(139,68,68,0.07) 6px, rgba(139,68,68,0.07) 12px)' : 'transparent' }}>
                   {bloq && evs.length === 0 && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: 'var(--rose-text)', padding: '4px 5px' }}>
+                    <div
+                      title={onBloqueio ? 'Clique para desbloquear' : (bloq.motivo || 'Bloqueado')}
+                      onClick={onBloqueio ? () => onBloqueio(bloq) : undefined}
+                      style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: 'var(--rose-text)', padding: '4px 5px', cursor: onBloqueio ? 'pointer' : 'default' }}
+                    >
                       <Ban size={10} /> {bloq.motivo || 'Bloqueado'}
                     </div>
                   )}
@@ -681,15 +696,18 @@ function BloqueioModal({ agendas, profPadrao, onClose, onSaved }: { agendas: any
     const iv = calcIntervalo();
     if (!iv) return;
     setBusy(true);
-    const { error: bErr } = await supabase.from('bloqueios').insert({
+    const { data: novoBloq, error: bErr } = await supabase.from('bloqueios').insert({
       agenda_id: agendaId, inicio: iv.inicio.toISOString(), fim: iv.fim.toISOString(),
       dia_inteiro: iv.diaInteiro, motivo: motivo || null, created_by: user?.id || null,
-    });
+    }).select('id').single();
     if (bErr) { setErro('Erro ao bloquear: ' + bErr.message); setBusy(false); return; }
 
     // Reflete o bloqueio no Cal.com (Out-of-Office) p/ ele não oferecer o horário. Best-effort.
+    // Guarda o ID do OOO para que o "Desbloquear" também o remova no Cal.com.
     try {
-      await supabase.functions.invoke('cal-sync', { body: { action: 'block', start: iv.inicio.toISOString(), end: iv.fim.toISOString(), reason: motivo || 'Bloqueado pela clínica' } });
+      const { data: r } = await supabase.functions.invoke('cal-sync', { body: { action: 'block', start: iv.inicio.toISOString(), end: iv.fim.toISOString(), reason: motivo || 'Bloqueado pela clínica' } });
+      const oooId = r?.calcom?.data?.id ?? r?.calcom?.id ?? null;
+      if (oooId && novoBloq?.id) await supabase.from('bloqueios').update({ calcom_ooo_id: String(oooId) }).eq('id', novoBloq.id);
     } catch (e) { console.error('cal-sync block falhou:', e); }
 
     if (notificar && afetados.length > 0) {
@@ -808,6 +826,59 @@ function BloqueioModal({ agendas, profPadrao, onClose, onSaved }: { agendas: any
             </div>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+// ── Modal Desbloquear ────────────────────────────────────────────────────────
+function DesbloquearModal({ bloqueio, onClose, onSaved }: { bloqueio: any; onClose: () => void; onSaved: () => void }) {
+  const { user } = useAuth();
+  const [busy, setBusy] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+
+  const quando = bloqueio.dia_inteiro
+    ? `${format(parseISO(bloqueio.inicio), "dd/MM/yyyy")}${bloqueio.fim && !isSameDay(parseISO(bloqueio.inicio), parseISO(bloqueio.fim)) ? ` – ${format(parseISO(bloqueio.fim), 'dd/MM/yyyy')}` : ''}`
+    : `${format(parseISO(bloqueio.inicio), "dd/MM/yyyy HH:mm")} – ${format(parseISO(bloqueio.fim), 'HH:mm')}`;
+
+  const desbloquear = async () => {
+    setBusy(true); setErro(null);
+    // Remove o Out-of-Office no Cal.com (se houver). Best-effort.
+    if (bloqueio.calcom_ooo_id) {
+      try { await supabase.functions.invoke('cal-sync', { body: { action: 'unblock', ooo_id: bloqueio.calcom_ooo_id } }); }
+      catch (e) { console.error('cal-sync unblock falhou:', e); }
+    }
+    const { error } = await supabase.from('bloqueios').delete().eq('id', bloqueio.id);
+    if (error) { setErro('Erro ao desbloquear: ' + error.message); setBusy(false); return; }
+    if (user) {
+      await supabase.from('audit_log').insert({
+        user_id: user.id, action: 'agenda_desbloqueada', record_id: bloqueio.agenda_id,
+        detalhes: { inicio: bloqueio.inicio, fim: bloqueio.fim, motivo: bloqueio.motivo || null },
+      });
+    }
+    setBusy(false);
+    onSaved();
+  };
+
+  return (
+    <div style={modalOverlay} onClick={() => !busy && onClose()}>
+      <div onClick={e => e.stopPropagation()} style={{ ...modalBox, maxWidth: '400px' }}>
+        <div style={modalHeader}>
+          <h3 className="font-cormorant" style={modalTitle}>Desbloquear</h3>
+          <button onClick={onClose} style={iconBtn}><X size={18} /></button>
+        </div>
+        {erro && <p style={{ fontSize: '12px', color: 'var(--rose-text)', background: 'var(--rose-light)', padding: '8px 11px', borderRadius: 'var(--r-xs)', marginBottom: '12px' }}>{erro}</p>}
+        <p style={{ fontSize: '13px', color: 'var(--ink)', lineHeight: 1.5 }}>
+          Remover este bloqueio? O horário volta a ficar disponível para agendamentos{bloqueio.calcom_ooo_id ? ' (no sistema e no Cal.com)' : ''}.
+        </p>
+        <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r-xs)', padding: '10px 12px', margin: '12px 0', fontSize: '12.5px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--rose-text)', fontWeight: 600 }}><Ban size={12} /> {bloqueio.motivo || 'Bloqueado'}</div>
+          <div style={{ color: 'var(--muted)', marginTop: '4px' }}>{quando}{bloqueio.agendas?.nome ? ` · ${bloqueio.agendas.nome}` : ''}</div>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+          <button onClick={onClose} disabled={busy} style={btnGhost}>Cancelar</button>
+          <button onClick={desbloquear} disabled={busy} style={{ ...btnPrimary, background: 'var(--rose-text)' }}>{busy && <Loader2 size={13} className="animate-spin" />} Desbloquear</button>
+        </div>
       </div>
     </div>
   );
@@ -1136,6 +1207,7 @@ function NovoAgendamentoModal({ agendas, profPadrao, dataPadrao, onClose, onSave
   const [leadId, setLeadId] = useState<string | null>(null);
   const [nome, setNome] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
+  const [email, setEmail] = useState('');
   const [procedimento, setProcedimento] = useState('');
   const [data, setData] = useState(dataPadrao);
   const [hora, setHora] = useState('09:00');
@@ -1147,7 +1219,7 @@ function NovoAgendamentoModal({ agendas, profPadrao, dataPadrao, onClose, onSave
     if (q.trim().length < 2) { setSugestoes([]); return; }
     const { data: leads } = await supabase
       .from('leads')
-      .select('id, nome_lead, whatsapp_lead')
+      .select('id, nome_lead, whatsapp_lead, email')
       .or(`nome_lead.ilike.%${q}%,whatsapp_lead.ilike.%${q}%`)
       .limit(6);
     setSugestoes(leads || []);
@@ -1155,7 +1227,7 @@ function NovoAgendamentoModal({ agendas, profPadrao, dataPadrao, onClose, onSave
   };
 
   const selecionar = (l: any) => {
-    setLeadId(l.id); setNome(l.nome_lead || ''); setWhatsapp(l.whatsapp_lead || '');
+    setLeadId(l.id); setNome(l.nome_lead || ''); setWhatsapp(l.whatsapp_lead || ''); setEmail(l.email || '');
     setBusca(l.nome_lead || ''); setSugestoes([]); setMostrarSug(false);
   };
 
@@ -1199,13 +1271,46 @@ function NovoAgendamentoModal({ agendas, profPadrao, dataPadrao, onClose, onSave
       leadCriado = true;
     }
 
-    const { error } = await supabase.from('agendamentos').insert({
+    // Insere localmente primeiro (assim o webhook do Cal.com vincula o uid em vez de duplicar).
+    const { data: novoAg, error } = await supabase.from('agendamentos').insert({
       agenda_id: agendaId, lead_id: leadFinal,
       nome_lead: nome.trim(), whatsapp_lead: whatsapp || null,
       procedimento_nome: procedimento || null,
       data_hora_inicio: inicio.toISOString(), status: 'agendado',
-    });
+    }).select('id').single();
     if (error) { setErro('Erro ao agendar: ' + error.message); setBusy(false); return; }
+
+    // Reflete a reserva no Cal.com (para o agente/Cal.com ficarem em sincronia).
+    const ag = agendas.find((a: any) => a.id === agendaId);
+    let avisoCalcom: string | null = null;
+    if (ag?.calcom_event_type_id) {
+      try {
+        const { data: r, error: cErr } = await supabase.functions.invoke('cal-sync', {
+          body: {
+            action: 'create',
+            eventTypeId: ag.calcom_event_type_id,
+            start: inicio.toISOString(),
+            attendee: { name: nome.trim(), email: email || undefined, phoneNumber: whatsapp || undefined, timeZone: 'America/Sao_Paulo' },
+          },
+        });
+        const booking = r?.calcom?.data || r?.calcom;
+        const uid = booking?.uid;
+        const link = booking?.meetingUrl || booking?.location || booking?.videoCallData?.url || null;
+        if (cErr || r?.error) {
+          avisoCalcom = 'Agendado no sistema, mas falhou criar no Cal.com: ' + (r?.error || cErr?.message || '');
+        } else if (uid && novoAg?.id) {
+          await supabase.from('agendamentos').update({
+            calcom_uid: uid,
+            link_reuniao: typeof link === 'string' && link.startsWith('http') ? link : null,
+            modalidade: typeof link === 'string' && link.startsWith('http') ? 'online' : 'presencial',
+          }).eq('id', novoAg.id);
+        }
+      } catch (e: any) {
+        avisoCalcom = 'Agendado no sistema, mas falhou criar no Cal.com: ' + (e?.message || '');
+      }
+    } else {
+      avisoCalcom = 'Agendado só no sistema (este profissional não tem "ID do Event-type" do Cal.com configurado).';
+    }
 
     if (!leadCriado && leadFinal) {
       await supabase.from('leads').update({ data_agendamento: inicio.toISOString(), status: 'agendado' }).eq('id', leadFinal);
@@ -1213,10 +1318,11 @@ function NovoAgendamentoModal({ agendas, profPadrao, dataPadrao, onClose, onSave
     if (user) {
       await supabase.from('audit_log').insert({
         user_id: user.id, action: 'agendamento_manual', record_id: leadFinal,
-        detalhes: { agenda_id: agendaId, paciente: nome, quando: inicio.toISOString(), lead_criado: leadCriado },
+        detalhes: { agenda_id: agendaId, paciente: nome, quando: inicio.toISOString(), lead_criado: leadCriado, calcom: !avisoCalcom },
       });
     }
     setBusy(false);
+    if (avisoCalcom) alert(avisoCalcom);
     onSaved();
   };
 
@@ -1259,6 +1365,7 @@ function NovoAgendamentoModal({ agendas, profPadrao, dataPadrao, onClose, onSave
             <div style={{ flex: 1 }}><label style={lbl}>Nome</label><input value={nome} onChange={e => { setNome(e.target.value); setLeadId(null); }} style={inp} /></div>
             <div style={{ flex: 1 }}><label style={lbl}>WhatsApp</label><input value={whatsapp} onChange={e => setWhatsapp(e.target.value)} style={inp} /></div>
           </div>
+          <div><label style={lbl}>Email <span style={{ textTransform: 'none', fontWeight: 400 }}>(p/ confirmação do Cal.com)</span></label><input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="opcional" style={inp} /></div>
           <div><label style={lbl}>Procedimento</label><input value={procedimento} onChange={e => setProcedimento(e.target.value)} placeholder="Ex: Consulta, retorno..." style={inp} /></div>
           <div style={{ display: 'flex', gap: '10px' }}>
             <div style={{ flex: 1 }}><label style={lbl}>Data</label><input type="date" value={data} onChange={e => setData(e.target.value)} style={inp} /></div>
