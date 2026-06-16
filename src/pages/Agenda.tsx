@@ -1297,7 +1297,13 @@ function NovoAgendamentoModal({ agendas, profPadrao, dataPadrao, onClose, onSave
         const uid = booking?.uid;
         const link = booking?.meetingUrl || booking?.location || booking?.videoCallData?.url || null;
         if (cErr || r?.error) {
-          avisoCalcom = 'Agendado no sistema, mas falhou criar no Cal.com: ' + (r?.error || cErr?.message || '');
+          // Tenta extrair a mensagem real do Cal.com (o invoke devolve só "non-2xx" por padrão).
+          let detalhe = r?.error || cErr?.message || '';
+          try { const body = await (cErr as any)?.context?.json?.(); if (body?.error) detalhe = body.error; } catch { /* ignore */ }
+          if (/minimum booking notice|too soon|scheduling window|too far/i.test(detalhe)) {
+            detalhe = 'esse horário viola as regras do event-type no Cal.com (antecedência mínima ou janela de disponibilidade). Ajuste em Cal.com → Tipos de Eventos → Limites → Antecedência mínima, ou escolha outro horário.';
+          }
+          avisoCalcom = 'Agendado no sistema, mas não criou no Cal.com: ' + detalhe;
         } else if (uid && novoAg?.id) {
           await supabase.from('agendamentos').update({
             calcom_uid: uid,
