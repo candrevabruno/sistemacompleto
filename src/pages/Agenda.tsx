@@ -687,6 +687,11 @@ function BloqueioModal({ agendas, profPadrao, onClose, onSaved }: { agendas: any
     });
     if (bErr) { setErro('Erro ao bloquear: ' + bErr.message); setBusy(false); return; }
 
+    // Reflete o bloqueio no Cal.com (Out-of-Office) p/ ele não oferecer o horário. Best-effort.
+    try {
+      await supabase.functions.invoke('cal-sync', { body: { action: 'block', start: iv.inicio.toISOString(), end: iv.fim.toISOString(), reason: motivo || 'Bloqueado pela clínica' } });
+    } catch (e) { console.error('cal-sync block falhou:', e); }
+
     if (notificar && afetados.length > 0) {
       // Handoff ao agente: uma tarefa por consulta afetada (o agente conduz o WhatsApp).
       const eventos = afetados.map(a => ({
@@ -1030,8 +1035,18 @@ function AgendamentoModal({ ag, agendas, podeEditar, onClose, onUpdated, onVerPa
       .not('status', 'in', '("cancelado","cancelou_agendamento","faltou")').neq('id', ag.id).limit(1);
     if (dup && dup.length > 0) { setErro('Já existe agendamento nesse horário.'); setBusy(false); return; }
 
+    // Reflete no Cal.com (se veio de lá). O reschedule gera um uid novo → atualizamos.
+    let novoUid = ag.calcom_uid;
+    if (ag.calcom_uid) {
+      try {
+        const { data } = await supabase.functions.invoke('cal-sync', { body: { action: 'reschedule', calcom_uid: ag.calcom_uid, start: inicio.toISOString(), reason: 'Reagendado pela clínica' } });
+        const u = data?.calcom?.data?.uid || data?.calcom?.uid;
+        if (u) novoUid = u;
+      } catch (e) { console.error('cal-sync reschedule falhou:', e); }
+    }
+
     const { error } = await supabase.from('agendamentos')
-      .update({ data_hora_inicio: inicio.toISOString(), status: 'reagendado' }).eq('id', ag.id);
+      .update({ data_hora_inicio: inicio.toISOString(), status: 'reagendado', calcom_uid: novoUid }).eq('id', ag.id);
     if (error) { setErro('Erro: ' + error.message); setBusy(false); return; }
     if (ag.lead_id) await supabase.from('leads').update({ data_agendamento: inicio.toISOString() }).eq('id', ag.lead_id);
     await auditar('agendamento_reagendado', { de: ag.data_hora_inicio, para: inicio.toISOString() });

@@ -112,7 +112,18 @@ Deno.serve(async (req: Request) => {
     // ── CRIAÇÃO (ou reschedule sem registro prévio) ──
     if (evt === 'BOOKING_CREATED' || evt === 'BOOKING_RESCHEDULED') {
       const { data: existe } = await db.from('agendamentos').select('id').eq('calcom_uid', uid).limit(1).maybeSingle();
-      if (existe) return ok(); // dedupe
+      if (existe) return ok(); // dedupe por uid
+      // Dedupe extra: se já há agendamento ativo no mesmo profissional/horário
+      // (ex.: reagendamento iniciado no painel que gerou este webhook), vincula o uid em vez de duplicar.
+      if (agenda_id && inicio) {
+        const { data: mesmo } = await db.from('agendamentos').select('id')
+          .eq('agenda_id', agenda_id).eq('data_hora_inicio', inicio)
+          .not('status', 'in', '("cancelado","cancelou_agendamento","faltou")').limit(1).maybeSingle();
+        if (mesmo) {
+          await db.from('agendamentos').update({ calcom_uid: uid, link_reuniao: link, modalidade }).eq('id', mesmo.id);
+          return ok();
+        }
+      }
       await db.from('agendamentos').insert({
         agenda_id, lead_id, nome_lead: nome, whatsapp_lead: phone || null,
         procedimento_nome: (p.title as string) || null,
