@@ -164,28 +164,27 @@ export function Agenda() {
   return (
     <div style={{ padding: '20px 24px', background: 'var(--bg)', minHeight: '100%' }}>
       {/* ── Toolbar ── */}
-      <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
-        <div className="font-display" style={{ fontSize: '24px', fontWeight: 300, fontStyle: 'italic', color: 'var(--ink)' }}>
-          Agenda
-        </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '16px' }}>
+        {/* Linha 1: título + navegação + seletor de visão */}
+        <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+          <div className="font-display" style={{ fontSize: '24px', fontWeight: 300, fontStyle: 'italic', color: 'var(--ink)' }}>
+            Agenda
+          </div>
 
-        {/* Navegação (oculta na lista de espera) */}
-        {view !== 'espera' && (
-          <>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <button onClick={() => navegar(-1)} style={navBtn}><ChevronLeft size={16} /></button>
-              <button onClick={() => setCursor(new Date())} style={{ ...navBtn, width: 'auto', padding: '0 12px', fontSize: '12px', fontWeight: 600 }}>Hoje</button>
-              <button onClick={() => navegar(1)} style={navBtn}><ChevronRight size={16} /></button>
-            </div>
-            <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--ink)', textTransform: 'capitalize', minWidth: '160px' }}>
-              {tituloPeriodo}
-            </div>
-          </>
-        )}
+          {view !== 'espera' && (
+            <>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <button onClick={() => navegar(-1)} style={navBtn}><ChevronLeft size={16} /></button>
+                <button onClick={() => setCursor(new Date())} style={{ ...navBtn, width: 'auto', padding: '0 12px', fontSize: '12px', fontWeight: 600 }}>Hoje</button>
+                <button onClick={() => navegar(1)} style={navBtn}><ChevronRight size={16} /></button>
+              </div>
+              <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--ink)', textTransform: 'capitalize', minWidth: '150px' }}>
+                {tituloPeriodo}
+              </div>
+            </>
+          )}
 
-        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-          {/* Seletor de visão */}
-          <div style={{ display: 'flex', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-xs)', overflow: 'hidden' }}>
+          <div style={{ marginLeft: 'auto', display: 'flex', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-xs)', overflow: 'hidden' }}>
             {([['mes', 'Mês'], ['semana', 'Semana'], ['dia', 'Dia'], ['lista', 'Lista'], ['espera', 'Espera']] as [View, string][]).map(([v, label]) => (
               <button
                 key={v}
@@ -200,35 +199,27 @@ export function Agenda() {
               </button>
             ))}
           </div>
+        </div>
 
-          {/* Filtro profissional */}
+        {/* Linha 2: filtro de profissional + ações */}
+        <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
           <select
             value={profFiltro}
             onChange={e => setProfFiltro(e.target.value)}
-            style={{ border: '1px solid var(--border-md)', borderRadius: 'var(--r-xs)', padding: '6px 10px', fontSize: '12px', color: 'var(--ink)', background: 'var(--white)', outline: 'none', fontFamily: 'inherit', cursor: 'pointer' }}
+            style={{ border: '1px solid var(--border-md)', borderRadius: 'var(--r-xs)', padding: '7px 10px', fontSize: '12px', color: 'var(--ink)', background: 'var(--white)', outline: 'none', fontFamily: 'inherit', cursor: 'pointer' }}
           >
             <option value="todas">Todos os profissionais</option>
             {agendas.map(a => <option key={a.id} value={a.id}>{a.nome}</option>)}
           </select>
 
           {podeEditar && (
-            <>
-              <button onClick={() => setShowNovoAg(true)} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', fontSize: '12px', fontWeight: 600, background: 'var(--sage-dark)', color: 'white', border: 'none', borderRadius: 'var(--r-xs)', cursor: 'pointer', fontFamily: 'inherit' }}>
-                <Plus size={14} /> Novo agendamento
-              </button>
-              <button onClick={() => setShowDisp(true)} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', fontSize: '12px', fontWeight: 500, background: 'var(--white)', color: 'var(--ink)', border: '1px solid var(--border-md)', borderRadius: 'var(--r-xs)', cursor: 'pointer', fontFamily: 'inherit' }}>
-                <Clock size={14} /> Disponibilidade
-              </button>
-              <button onClick={() => setShowBloqueio(true)} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', fontSize: '12px', fontWeight: 500, background: 'var(--white)', color: 'var(--rose-text)', border: '1px solid var(--border-md)', borderRadius: 'var(--r-xs)', cursor: 'pointer', fontFamily: 'inherit' }}>
-                <Ban size={14} /> Bloquear
-              </button>
-              <button onClick={() => setShowNova(true)} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', fontSize: '12px', fontWeight: 600, background: 'var(--sage-dark)', color: 'white', border: 'none', borderRadius: 'var(--r-xs)', cursor: 'pointer', fontFamily: 'inherit' }}>
-                <Plus size={14} /> Nova agenda
-              </button>
-              <button onClick={() => setShowGerenciar(true)} title="Gerenciar agendas (arquivar / apagar)" style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', fontSize: '12px', fontWeight: 500, background: 'var(--white)', color: 'var(--ink)', border: '1px solid var(--border-md)', borderRadius: 'var(--r-xs)', cursor: 'pointer', fontFamily: 'inherit' }}>
-                <Settings size={14} /> Gerenciar
-              </button>
-            </>
+            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <button onClick={() => setShowNovoAg(true)} style={tbPrimary}><Plus size={14} /> Novo agendamento</button>
+              <button onClick={() => setShowDisp(true)} style={tbGhost}><Clock size={14} /> Disponibilidade</button>
+              <button onClick={() => setShowBloqueio(true)} style={{ ...tbGhost, color: 'var(--rose-text)' }}><Ban size={14} /> Bloquear</button>
+              <button onClick={() => setShowNova(true)} style={tbPrimary}><Plus size={14} /> Nova agenda</button>
+              <button onClick={() => setShowGerenciar(true)} title="Gerenciar agendas (arquivar / apagar)" style={tbGhost}><Settings size={14} /> Gerenciar</button>
+            </div>
           )}
         </div>
       </div>
@@ -1041,7 +1032,7 @@ function GerenciarAgendasModal({ onClose, onChanged }: { onClose: () => void; on
         {confirmDel ? (
           <div>
             <div style={{ display: 'flex', gap: '12px', marginBottom: '14px' }}>
-              <div style={{ flexShrink: 0, padding: '8px', borderRadius: '50%', background: 'var(--rose-light)', color: 'var(--rose-text)' }}><AlertTriangle size={18} /></div>
+              <div style={{ flexShrink: 0, width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', background: 'var(--rose-light)', color: 'var(--rose-text)' }}><AlertTriangle size={18} /></div>
               <div>
                 <p style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--ink)' }}>Apagar "{confirmDel.nome}" definitivamente?</p>
                 <p style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '4px', lineHeight: 1.5 }}>
@@ -1607,5 +1598,7 @@ const acaoBtn: React.CSSProperties = { flex: 1, display: 'flex', alignItems: 'ce
 const miniBtn: React.CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'center', width: '28px', height: '28px', borderRadius: '6px', border: '1px solid var(--border-md)', background: 'transparent', color: 'var(--muted)', cursor: 'pointer' };
 
 const navBtn: React.CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', borderRadius: 'var(--r-xs)', border: '1px solid var(--border-md)', background: 'var(--white)', color: 'var(--ink)', cursor: 'pointer' };
+const tbPrimary: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: '6px', padding: '7px 12px', fontSize: '12px', fontWeight: 600, background: 'var(--sage-dark)', color: 'white', border: 'none', borderRadius: 'var(--r-xs)', cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' };
+const tbGhost: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: '6px', padding: '7px 12px', fontSize: '12px', fontWeight: 500, background: 'var(--white)', color: 'var(--ink)', border: '1px solid var(--border-md)', borderRadius: 'var(--r-xs)', cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' };
 const lbl: React.CSSProperties = { fontSize: '9.5px', fontWeight: 600, letterSpacing: '0.8px', textTransform: 'uppercase', color: 'var(--muted)', display: 'block', marginBottom: '5px' };
 const inp: React.CSSProperties = { width: '100%', padding: '8px 11px', border: '1px solid var(--border-md)', borderRadius: 'var(--r-xs)', fontSize: '12.5px', color: 'var(--ink)', fontFamily: 'inherit', background: 'var(--white)', outline: 'none', boxSizing: 'border-box' };
