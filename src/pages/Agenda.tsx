@@ -66,6 +66,7 @@ export function Agenda() {
   const [showNova, setShowNova] = useState(false);
   const [showDisp, setShowDisp] = useState(false);
   const [showBloqueio, setShowBloqueio] = useState(false);
+  const [showNovoAg, setShowNovoAg] = useState(false);
 
   // Intervalo visível conforme a visão
   const range = useMemo(() => {
@@ -194,6 +195,9 @@ export function Agenda() {
 
           {podeEditar && (
             <>
+              <button onClick={() => setShowNovoAg(true)} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', fontSize: '12px', fontWeight: 600, background: 'var(--sage-dark)', color: 'white', border: 'none', borderRadius: 'var(--r-xs)', cursor: 'pointer', fontFamily: 'inherit' }}>
+                <Plus size={14} /> Novo agendamento
+              </button>
               <button onClick={() => setShowDisp(true)} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', fontSize: '12px', fontWeight: 500, background: 'var(--white)', color: 'var(--ink)', border: '1px solid var(--border-md)', borderRadius: 'var(--r-xs)', cursor: 'pointer', fontFamily: 'inherit' }}>
                 <Clock size={14} /> Disponibilidade
               </button>
@@ -237,6 +241,7 @@ export function Agenda() {
       {showNova && <NovaAgendaModal coresUsadas={agendas.map(a => a.cor)} onClose={() => setShowNova(false)} onSaved={() => { setShowNova(false); loadAgendas(); }} />}
       {showDisp && <DisponibilidadeModal agendas={agendas} onClose={() => setShowDisp(false)} />}
       {showBloqueio && <BloqueioModal agendas={agendas} profPadrao={profFiltro !== 'todas' ? profFiltro : (agendas[0]?.id || '')} onClose={() => setShowBloqueio(false)} onSaved={() => { setShowBloqueio(false); loadAgendamentos(); }} />}
+      {showNovoAg && <NovoAgendamentoModal agendas={agendas} profPadrao={profFiltro !== 'todas' ? profFiltro : (agendas[0]?.id || '')} dataPadrao={format(cursor, 'yyyy-MM-dd')} onClose={() => setShowNovoAg(false)} onSaved={() => { setShowNovoAg(false); loadAgendamentos(); }} />}
     </div>
   );
 }
@@ -773,6 +778,137 @@ function BloqueioModal({ agendas, profPadrao, onClose, onSaved }: { agendas: any
             </div>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+// ── Modal Novo agendamento (manual, sem agente) ─────────────────────────────
+function NovoAgendamentoModal({ agendas, profPadrao, dataPadrao, onClose, onSaved }: { agendas: any[]; profPadrao: string; dataPadrao: string; onClose: () => void; onSaved: () => void }) {
+  const { user } = useAuth();
+  const [agendaId, setAgendaId] = useState(profPadrao || agendas[0]?.id || '');
+  const [busca, setBusca] = useState('');
+  const [sugestoes, setSugestoes] = useState<any[]>([]);
+  const [mostrarSug, setMostrarSug] = useState(false);
+  const [leadId, setLeadId] = useState<string | null>(null);
+  const [nome, setNome] = useState('');
+  const [whatsapp, setWhatsapp] = useState('');
+  const [procedimento, setProcedimento] = useState('');
+  const [data, setData] = useState(dataPadrao);
+  const [hora, setHora] = useState('09:00');
+  const [busy, setBusy] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+
+  const buscar = async (q: string) => {
+    setBusca(q); setLeadId(null);
+    if (q.trim().length < 2) { setSugestoes([]); return; }
+    const { data: leads } = await supabase
+      .from('leads')
+      .select('id, nome_lead, whatsapp_lead')
+      .or(`nome_lead.ilike.%${q}%,whatsapp_lead.ilike.%${q}%`)
+      .limit(6);
+    setSugestoes(leads || []);
+    setMostrarSug(true);
+  };
+
+  const selecionar = (l: any) => {
+    setLeadId(l.id); setNome(l.nome_lead || ''); setWhatsapp(l.whatsapp_lead || '');
+    setBusca(l.nome_lead || ''); setSugestoes([]); setMostrarSug(false);
+  };
+
+  const salvar = async () => {
+    setErro(null);
+    if (!agendaId) { setErro('Selecione o profissional.'); return; }
+    if (!nome.trim()) { setErro('Informe o nome do paciente.'); return; }
+    if (!data || !hora) { setErro('Informe data e hora.'); return; }
+    const inicio = new Date(`${data}T${hora}:00`);
+    if (isNaN(inicio.getTime())) { setErro('Data/hora inválida.'); return; }
+    setBusy(true);
+
+    // Proteção: horário bloqueado.
+    const { data: bloq } = await supabase
+      .from('bloqueios').select('id, dia_inteiro, inicio, fim')
+      .eq('agenda_id', agendaId).lte('inicio', inicio.toISOString()).gte('fim', inicio.toISOString());
+    if (bloq && bloq.length > 0) { setErro('Esse horário está bloqueado para o profissional.'); setBusy(false); return; }
+
+    // Proteção: slot já ocupado (faltou/cancelado liberam).
+    const { data: dup } = await supabase
+      .from('agendamentos').select('id')
+      .eq('agenda_id', agendaId).eq('data_hora_inicio', inicio.toISOString())
+      .not('status', 'in', '("cancelado","cancelou_agendamento","faltou")').limit(1);
+    if (dup && dup.length > 0) { setErro('Já existe agendamento nesse horário para o profissional.'); setBusy(false); return; }
+
+    const { error } = await supabase.from('agendamentos').insert({
+      agenda_id: agendaId, lead_id: leadId,
+      nome_lead: nome.trim(), whatsapp_lead: whatsapp || null,
+      procedimento_nome: procedimento || null,
+      data_hora_inicio: inicio.toISOString(), status: 'agendado',
+    });
+    if (error) { setErro('Erro ao agendar: ' + error.message); setBusy(false); return; }
+
+    if (leadId) {
+      await supabase.from('leads').update({ data_agendamento: inicio.toISOString(), status: 'agendado' }).eq('id', leadId);
+    }
+    if (user) {
+      await supabase.from('audit_log').insert({
+        user_id: user.id, action: 'agendamento_manual', record_id: leadId,
+        detalhes: { agenda_id: agendaId, paciente: nome, quando: inicio.toISOString() },
+      });
+    }
+    setBusy(false);
+    onSaved();
+  };
+
+  return (
+    <div style={modalOverlay} onClick={() => !busy && onClose()}>
+      <div onClick={e => e.stopPropagation()} style={{ ...modalBox, maxWidth: '460px' }}>
+        <div style={modalHeader}>
+          <h3 className="font-cormorant" style={modalTitle}>Novo agendamento</h3>
+          <button onClick={onClose} style={iconBtn}><X size={18} /></button>
+        </div>
+        {erro && <p style={{ fontSize: '12px', color: 'var(--rose-text)', background: 'var(--rose-light)', padding: '8px 11px', borderRadius: 'var(--r-xs)', marginBottom: '12px' }}>{erro}</p>}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div>
+            <label style={lbl}>Profissional</label>
+            <select value={agendaId} onChange={e => setAgendaId(e.target.value)} style={inp}>
+              {agendas.map(a => <option key={a.id} value={a.id}>{a.nome}</option>)}
+            </select>
+          </div>
+          <div style={{ position: 'relative' }}>
+            <label style={lbl}>Paciente (buscar existente)</label>
+            <input
+              value={busca}
+              onChange={e => buscar(e.target.value)}
+              onFocus={() => sugestoes.length > 0 && setMostrarSug(true)}
+              onBlur={() => setTimeout(() => setMostrarSug(false), 150)}
+              placeholder="Nome ou WhatsApp..."
+              style={inp}
+            />
+            {mostrarSug && sugestoes.length > 0 && (
+              <div style={{ position: 'absolute', zIndex: 20, top: 'calc(100% + 4px)', left: 0, right: 0, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-xs)', boxShadow: 'var(--shadow)', overflow: 'hidden' }}>
+                {sugestoes.map(s => (
+                  <button key={s.id} onMouseDown={() => selecionar(s)} style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 11px', fontSize: '12.5px', color: 'var(--ink)', background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
+                    {s.nome_lead || 'Sem nome'} <span style={{ color: 'var(--muted)' }}>· {s.whatsapp_lead || '—'}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <div style={{ flex: 1 }}><label style={lbl}>Nome</label><input value={nome} onChange={e => { setNome(e.target.value); setLeadId(null); }} style={inp} /></div>
+            <div style={{ flex: 1 }}><label style={lbl}>WhatsApp</label><input value={whatsapp} onChange={e => setWhatsapp(e.target.value)} style={inp} /></div>
+          </div>
+          <div><label style={lbl}>Procedimento</label><input value={procedimento} onChange={e => setProcedimento(e.target.value)} placeholder="Ex: Consulta, retorno..." style={inp} /></div>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <div style={{ flex: 1 }}><label style={lbl}>Data</label><input type="date" value={data} onChange={e => setData(e.target.value)} style={inp} /></div>
+            <div style={{ flex: 1 }}><label style={lbl}>Hora</label><input type="time" value={hora} onChange={e => setHora(e.target.value)} style={inp} /></div>
+          </div>
+          {leadId && <p style={{ fontSize: '11px', color: 'var(--sage-dark)' }}>✓ Vinculado ao paciente existente</p>}
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '20px' }}>
+          <button onClick={onClose} disabled={busy} style={btnGhost}>Cancelar</button>
+          <button onClick={salvar} disabled={busy} style={{ ...btnPrimary, opacity: busy ? 0.6 : 1 }}>{busy && <Loader2 size={13} className="animate-spin" />} Agendar</button>
+        </div>
       </div>
     </div>
   );
