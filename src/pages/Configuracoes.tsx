@@ -322,7 +322,7 @@ function AbaKanban() {
 function AbaAgendas() {
   const [agendas, setAgendas] = useState<any[]>([]);
   const [openNew, setOpenNew] = useState(false);
-  const [form, setForm] = useState({ nome: '', cor: '#C47E7E', calcom_link: '' });
+  const [form, setForm] = useState({ nome: '', cor: '#C47E7E', calcom_link: '', calcom_event_type_id: '' });
   const [loading, setLoading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -341,13 +341,15 @@ function AbaAgendas() {
       res = await supabase.from('agendas').update({
         nome: form.nome,
         cor: form.cor,
-        calcom_link: form.calcom_link
+        calcom_link: form.calcom_link,
+        calcom_event_type_id: form.calcom_event_type_id || null
       }).eq('id', editingId);
     } else {
       res = await supabase.from('agendas').insert({
         nome: form.nome,
         cor: form.cor,
         calcom_link: form.calcom_link,
+        calcom_event_type_id: form.calcom_event_type_id || null,
         ativo: true
       });
     }
@@ -358,14 +360,14 @@ function AbaAgendas() {
       return;
     }
     
-    setForm({ nome: '', cor: '#C47E7E', calcom_link: '' });
+    setForm({ nome: '', cor: '#C47E7E', calcom_link: '', calcom_event_type_id: '' });
     setEditingId(null);
     setOpenNew(false);
     loadAgendas();
   };
 
   const handleEdit = (ag: any) => {
-    setForm({ nome: ag.nome, cor: ag.cor, calcom_link: ag.calcom_link || '' });
+    setForm({ nome: ag.nome, cor: ag.cor, calcom_link: ag.calcom_link || '', calcom_event_type_id: ag.calcom_event_type_id || '' });
     setEditingId(ag.id);
     setOpenNew(true);
   };
@@ -423,7 +425,7 @@ function AbaAgendas() {
 
         <Modal 
           isOpen={openNew} 
-          onClose={() => { setOpenNew(false); setEditingId(null); setForm({ nome: '', cor: '#C47E7E', calcom_link: '' }); }} 
+          onClose={() => { setOpenNew(false); setEditingId(null); setForm({ nome: '', cor: '#C47E7E', calcom_link: '', calcom_event_type_id: '' }); }} 
           title={editingId ? "Editar Agenda" : "Adicionar Agenda"}
         >
           <div className="space-y-4">
@@ -438,6 +440,17 @@ function AbaAgendas() {
                  onChange={e=>setForm({...form, calcom_link: e.target.value})}
                />
                <p className="text-xs text-[var(--muted)] mt-1">Copie e cole o link público oficial do "Event Type" criado no Cal.com.</p>
+            </div>
+            <div>
+               <label className="block text-sm font-medium text-[var(--ink)] mb-1">ID do Event-type (sincronização)</label>
+               <input
+                 type="text"
+                 className="w-full border border-[var(--border)] rounded-[8px] px-3 py-2 text-sm bg-[var(--bg)] text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--sage-dark)]"
+                 placeholder="Ex: 123456"
+                 value={form.calcom_event_type_id}
+                 onChange={e=>setForm({...form, calcom_event_type_id: e.target.value})}
+               />
+               <p className="text-xs text-[var(--muted)] mt-1">O ID numérico do Event-type no Cal.com. É por ele que o webhook sabe de qual profissional é a reserva.</p>
             </div>
             <div>
                <label className="block text-sm font-medium text-[var(--ink)] mb-1">Cor de identificação</label>

@@ -51,3 +51,6 @@ verify_jwt = false
 
 [functions.webhook-meta]
 verify_jwt = false
+
+[functions.cal-webhook]
+verify_jwt = false

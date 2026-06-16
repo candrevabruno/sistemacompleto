@@ -496,12 +496,13 @@ function NovaAgendaModal({ coresUsadas, onClose, onSaved }: { coresUsadas: strin
   const [nome, setNome] = useState('');
   const [cor, setCor] = useState(proxCor);
   const [calcomLink, setCalcomLink] = useState('');
+  const [calcomEventTypeId, setCalcomEventTypeId] = useState('');
   const [salvando, setSalvando] = useState(false);
 
   const salvar = async () => {
     if (!nome.trim()) return;
     setSalvando(true);
-    const { error } = await supabase.from('agendas').insert({ nome: nome.trim(), cor, calcom_link: calcomLink || null, ativo: true });
+    const { error } = await supabase.from('agendas').insert({ nome: nome.trim(), cor, calcom_link: calcomLink || null, calcom_event_type_id: calcomEventTypeId || null, ativo: true });
     setSalvando(false);
     if (error) { alert('Erro: ' + error.message); return; }
     onSaved();
@@ -530,6 +531,10 @@ function NovaAgendaModal({ coresUsadas, onClose, onSaved }: { coresUsadas: strin
           <div>
             <label style={lbl}>Link do Cal.com (opcional)</label>
             <input value={calcomLink} onChange={e => setCalcomLink(e.target.value)} style={inp} placeholder="https://cal.com/..." />
+          </div>
+          <div>
+            <label style={lbl}>ID do Event-type no Cal.com (p/ sincronizar)</label>
+            <input value={calcomEventTypeId} onChange={e => setCalcomEventTypeId(e.target.value)} style={inp} placeholder="Ex: 123456" />
           </div>
         </div>
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '20px' }}>
