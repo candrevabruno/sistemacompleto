@@ -33,7 +33,7 @@ Deno.serve(async (req: Request) => {
     try { if (parseJwt(reqAuth.slice(7)).role !== 'authenticated') return json({ error: 'Unauthorized' }, 401); }
     catch { return json({ error: 'Unauthorized' }, 401); }
 
-    const { action, calcom_uid, start, end, reason, eventTypeId, attendee, timeZone, ooo_id, scheduleId, availability } = await req.json();
+    const { action, calcom_uid, start, end, reason, eventTypeId, attendee, timeZone, ooo_id, scheduleId, availability, title, slug, lengthInMinutes, location } = await req.json();
 
     const db = createAdminClient();
     const { data: cfg } = await db.from('clinic_config').select('calcom_api_key').eq('id', 1).single();
@@ -100,6 +100,19 @@ Deno.serve(async (req: Request) => {
       const ptext = await pres.text();
       if (!pres.ok) { console.error('cal-sync set-availability:', pres.status, ptext.slice(0, 400)); return json({ error: `Cal.com ${pres.status}: ${ptext.slice(0, 400)}` }, 502); }
       return json({ success: true, scheduleId: schedId, calcom: JSON.parse(ptext || '{}') });
+    } else if (action === 'create-event-type') {
+      // Cria o event-type no Cal.com (ao criar uma agenda/profissional no sistema).
+      if (!title || !slug || !lengthInMinutes) return json({ error: 'title, slug e lengthInMinutes obrigatórios' }, 400);
+      const locs = location === 'cal-video' ? [{ type: 'integration', integration: 'cal-video' }]
+        : location === 'google-meet' ? [{ type: 'integration', integration: 'google-meet' }]
+        : undefined;
+      const body: Record<string, unknown> = { lengthInMinutes: Number(lengthInMinutes), title, slug };
+      if (locs) body.locations = locs;
+      res = await fetch(`${CAL_BASE}/event-types`, {
+        method: 'POST',
+        headers: { Authorization: apiAuth, 'cal-api-version': CAL_VERSION_EVT, 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
     } else if (action === 'delete-event-type') {
       // Apaga o event-type no Cal.com (quando a agenda/profissional é apagada no sistema).
       if (!eventTypeId) return json({ error: 'eventTypeId obrigatório' }, 400);

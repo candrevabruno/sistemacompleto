@@ -522,14 +522,46 @@ function NovaAgendaModal({ coresUsadas, onClose, onSaved }: { coresUsadas: strin
   const proxCor = CORES_PADRAO.find(c => !coresUsadas.includes(c)) || CORES_PADRAO[0];
   const [nome, setNome] = useState('');
   const [cor, setCor] = useState(proxCor);
-  const [calcomLink, setCalcomLink] = useState('');
+  const [criarNoCalcom, setCriarNoCalcom] = useState(true);
+  const [duracao, setDuracao] = useState(60);
+  const [local, setLocal] = useState<'google-meet' | 'cal-video' | 'presencial' | 'nenhum'>('google-meet');
   const [calcomEventTypeId, setCalcomEventTypeId] = useState('');
   const [salvando, setSalvando] = useState(false);
+
+  const slugify = (s: string) =>
+    s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim()
+      .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40)
+      || 'agenda';
 
   const salvar = async () => {
     if (!nome.trim()) return;
     setSalvando(true);
-    const { error } = await supabase.from('agendas').insert({ nome: nome.trim(), cor, calcom_link: calcomLink || null, calcom_event_type_id: calcomEventTypeId || null, ativo: true });
+    let eventTypeId: string | null = calcomEventTypeId || null;
+
+    // Cria o event-type no Cal.com automaticamente (se marcado e sem ID manual).
+    if (criarNoCalcom && !calcomEventTypeId) {
+      const slug = `${slugify(nome)}-${Math.random().toString(36).slice(2, 6)}`;
+      try {
+        const { data: r, error: cErr } = await supabase.functions.invoke('cal-sync', {
+          body: { action: 'create-event-type', title: nome.trim(), slug, lengthInMinutes: duracao, location: local === 'nenhum' ? undefined : local },
+        });
+        if (cErr || r?.error) {
+          let detalhe = r?.error || cErr?.message || '';
+          try { const body = await (cErr as any)?.context?.json?.(); if (body?.error) detalhe = body.error; } catch { /* ignore */ }
+          setSalvando(false);
+          alert('Não consegui criar o event-type no Cal.com: ' + detalhe + '\n\nA agenda não foi criada. Verifique a API key do Cal.com e tente de novo.');
+          return;
+        }
+        const evt = r?.calcom?.data || r?.calcom;
+        eventTypeId = evt?.id ? String(evt.id) : null;
+      } catch (e: any) {
+        setSalvando(false);
+        alert('Não consegui criar o event-type no Cal.com: ' + (e?.message || ''));
+        return;
+      }
+    }
+
+    const { error } = await supabase.from('agendas').insert({ nome: nome.trim(), cor, calcom_event_type_id: eventTypeId, ativo: true });
     setSalvando(false);
     if (error) { alert('Erro: ' + error.message); return; }
     onSaved();
@@ -555,14 +587,35 @@ function NovaAgendaModal({ coresUsadas, onClose, onSaved }: { coresUsadas: strin
               ))}
             </div>
           </div>
-          <div>
-            <label style={lbl}>Link do Cal.com (opcional)</label>
-            <input value={calcomLink} onChange={e => setCalcomLink(e.target.value)} style={inp} placeholder="https://cal.com/..." />
-          </div>
-          <div>
-            <label style={lbl}>ID do Event-type no Cal.com (p/ sincronizar)</label>
-            <input value={calcomEventTypeId} onChange={e => setCalcomEventTypeId(e.target.value)} style={inp} placeholder="Ex: 123456" />
-          </div>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: 'var(--ink)', cursor: 'pointer' }}>
+            <input type="checkbox" checked={criarNoCalcom} onChange={e => setCriarNoCalcom(e.target.checked)} />
+            Criar o tipo de evento no Cal.com automaticamente
+          </label>
+
+          {criarNoCalcom && !calcomEventTypeId ? (
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <div style={{ flex: 1 }}>
+                <label style={lbl}>Duração</label>
+                <select value={duracao} onChange={e => setDuracao(Number(e.target.value))} style={inp}>
+                  {[15, 20, 30, 40, 45, 50, 60, 90].map(m => <option key={m} value={m}>{m} min</option>)}
+                </select>
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={lbl}>Local</label>
+                <select value={local} onChange={e => setLocal(e.target.value as any)} style={inp}>
+                  <option value="google-meet">Google Meet (online)</option>
+                  <option value="cal-video">Cal Video (online)</option>
+                  <option value="presencial">Presencial</option>
+                  <option value="nenhum">Definir depois</option>
+                </select>
+              </div>
+            </div>
+          ) : (
+            <div>
+              <label style={lbl}>ID do Event-type no Cal.com (já existente)</label>
+              <input value={calcomEventTypeId} onChange={e => setCalcomEventTypeId(e.target.value)} style={inp} placeholder="Ex: 123456" />
+            </div>
+          )}
         </div>
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '20px' }}>
           <button onClick={onClose} disabled={salvando} style={{ padding: '8px 16px', fontSize: '12.5px', fontWeight: 500, borderRadius: 'var(--r-xs)', border: '1px solid var(--border-md)', background: 'transparent', color: 'var(--ink)', cursor: 'pointer', fontFamily: 'inherit' }}>Cancelar</button>
