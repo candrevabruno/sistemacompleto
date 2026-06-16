@@ -979,7 +979,6 @@ function AgendamentoModal({ ag, agendas, podeEditar, onClose, onUpdated, onVerPa
   const [busy, setBusy] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [modoReag, setModoReag] = useState(false);
-  const [faltaOpen, setFaltaOpen] = useState(false);
   const [novaData, setNovaData] = useState(format(parseISO(ag.data_hora_inicio), 'yyyy-MM-dd'));
   const [novaHora, setNovaHora] = useState(format(parseISO(ag.data_hora_inicio), 'HH:mm'));
   const cor = ag.agendas?.cor || 'var(--sage)';
@@ -990,7 +989,7 @@ function AgendamentoModal({ ag, agendas, podeEditar, onClose, onUpdated, onVerPa
     await supabase.from('audit_log').insert({ user_id: user.id, action, record_id: ag.lead_id, detalhes: { agendamento_id: ag.id, ...detalhes } });
   };
 
-  const mudarStatus = async (novo: string, notificarFalta = false) => {
+  const mudarStatus = async (novo: string) => {
     setBusy(true); setErro(null);
     const { error } = await supabase.from('agendamentos').update({ status: novo }).eq('id', ag.id);
     if (error) { setErro('Erro: ' + error.message); setBusy(false); return; }
@@ -998,30 +997,21 @@ function AgendamentoModal({ ag, agendas, podeEditar, onClose, onUpdated, onVerPa
     if (novo === 'compareceu' && ag.lead_id && ag.leads?.status !== 'converteu') {
       await supabase.from('leads').update({ status: 'converteu', converteu_em: new Date().toISOString() }).eq('id', ag.lead_id);
     }
-    // Slot liberado (cancelou/faltou) → aciona o agente para oferecer ao próximo da fila.
-    if (novo === 'cancelado' || novo === 'faltou') {
+    // Cancelamento → libera o slot e aciona o agente para oferecer ao próximo da fila.
+    // (Falta não dispara: o agente já tem fluxo próprio de no-show; o motor já trata o horário como livre.)
+    if (novo === 'cancelado') {
       await supabase.from('agente_eventos').insert({
         tipo: 'slot_liberado', agendamento_id: ag.id, lead_id: ag.lead_id, agenda_id: ag.agenda_id,
         payload: { motivo: novo, quando: ag.data_hora_inicio, procedimento: ag.procedimento_nome || null, profissional: ag.agendas?.nome || null },
       });
+      // Reflete o cancelamento no Cal.com (se a reserva veio de lá). Best-effort.
+      if (ag.calcom_uid) {
+        try {
+          await supabase.functions.invoke('cal-sync', { body: { action: 'cancel', calcom_uid: ag.calcom_uid, reason: 'Cancelado pela clínica' } });
+        } catch (e) { console.error('cal-sync cancel falhou:', e); }
+      }
     }
-    // Falta + avisar → agente manda mensagem ao paciente (ex.: reagendar).
-    if (novo === 'faltou' && notificarFalta) {
-      await supabase.from('agente_eventos').insert({
-        tipo: 'falta_paciente', agendamento_id: ag.id, lead_id: ag.lead_id, agenda_id: ag.agenda_id,
-        payload: {
-          paciente: nome, whatsapp: ag.whatsapp_lead || ag.leads?.whatsapp_lead || null,
-          consulta_em: ag.data_hora_inicio, procedimento: ag.procedimento_nome || null, profissional: ag.agendas?.nome || null,
-        },
-      });
-    }
-    // Reflete o cancelamento no Cal.com (se a reserva veio de lá). Best-effort.
-    if (novo === 'cancelado' && ag.calcom_uid) {
-      try {
-        await supabase.functions.invoke('cal-sync', { body: { action: 'cancel', calcom_uid: ag.calcom_uid, reason: 'Cancelado pela clínica' } });
-      } catch (e) { console.error('cal-sync cancel falhou:', e); }
-    }
-    await auditar('agendamento_status', { de: ag.status, para: novo, notificou_falta: novo === 'faltou' ? notificarFalta : undefined });
+    await auditar('agendamento_status', { de: ag.status, para: novo });
     setBusy(false); onUpdated();
   };
 
@@ -1099,22 +1089,11 @@ function AgendamentoModal({ ag, agendas, podeEditar, onClose, onUpdated, onVerPa
               <button onClick={reagendar} disabled={busy} style={{ ...btnPrimary, opacity: busy ? 0.6 : 1 }}>{busy && <Loader2 size={13} className="animate-spin" />} Confirmar reagendamento</button>
             </div>
           </div>
-        ) : faltaOpen ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <p style={{ fontSize: '12.5px', color: 'var(--muted)', lineHeight: 1.5 }}>
-              Marcar <strong>{nome}</strong> como falta. Quer avisar o paciente? O agente envia uma mensagem no WhatsApp (ex.: oferecer reagendamento).
-            </p>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button onClick={() => mudarStatus('faltou', false)} disabled={busy} style={{ ...acaoBtn }}>{busy && <Loader2 size={12} className="animate-spin" />} Só marcar falta</button>
-              <button onClick={() => mudarStatus('faltou', true)} disabled={busy} style={{ ...acaoBtn, color: 'white', background: 'var(--sage-dark)', borderColor: 'var(--sage-dark)' }}>{busy && <Loader2 size={12} className="animate-spin" />} Marcar e avisar</button>
-            </div>
-            <button onClick={() => setFaltaOpen(false)} disabled={busy} style={{ ...btnGhost, justifyContent: 'center' }}>Voltar</button>
-          </div>
         ) : podeEditar ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <div style={{ display: 'flex', gap: '8px' }}>
               <button onClick={() => mudarStatus('compareceu')} disabled={busy} style={{ ...acaoBtn, color: 'var(--sage-dark)', borderColor: 'var(--sage)' }}><Check size={14} /> Compareceu</button>
-              <button onClick={() => setFaltaOpen(true)} disabled={busy} style={{ ...acaoBtn, color: 'var(--champ-text)', borderColor: 'var(--champ)' }}><UserX size={14} /> Faltou</button>
+              <button onClick={() => mudarStatus('faltou')} disabled={busy} style={{ ...acaoBtn, color: 'var(--champ-text)', borderColor: 'var(--champ)' }}><UserX size={14} /> Faltou</button>
             </div>
             <div style={{ display: 'flex', gap: '8px' }}>
               <button onClick={() => setModoReag(true)} disabled={busy} style={{ ...acaoBtn }}><Clock size={14} /> Reagendar</button>
