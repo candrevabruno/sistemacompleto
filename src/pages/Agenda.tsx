@@ -7,7 +7,7 @@ import {
   addMonths, addWeeks, addDays, eachDayOfInterval, getHours,
 } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, Plus, CalendarDays, Loader2, X, Ban, Clock, AlertTriangle, Check, UserX, User, ListChecks, ArrowUp, Trash2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, CalendarDays, Loader2, X, Ban, Clock, AlertTriangle, Check, UserX, User, ListChecks, ArrowUp, Trash2, Video } from 'lucide-react';
 import { LeadDetailsModal } from '../components/crm/LeadDetailsModal';
 
 const DIAS_SEMANA: { key: string; label: string }[] = [
@@ -1054,6 +1054,20 @@ function AgendamentoModal({ ag, agendas, podeEditar, onClose, onUpdated, onVerPa
             {STATUS_LABEL[ag.status] || ag.status}
           </span>
         </div>
+
+        {/* Reunião online */}
+        {ag.modalidade === 'online' && (
+          ag.link_reuniao ? (
+            <a href={ag.link_reuniao} target="_blank" rel="noopener noreferrer"
+               style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '10px', marginBottom: '16px', borderRadius: 'var(--r-xs)', background: 'var(--sage-dark)', color: 'white', fontSize: '12.5px', fontWeight: 600, textDecoration: 'none', fontFamily: 'inherit' }}>
+              <Video size={15} /> Entrar na reunião
+            </a>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', marginBottom: '16px', borderRadius: 'var(--r-xs)', background: 'var(--champ-light)', color: 'var(--champ-text)', fontSize: '11.5px' }}>
+              <Video size={14} /> Consulta online — link da reunião ainda não disponível.
+            </div>
+          )
+        )}
 
         {erro && <p style={{ fontSize: '12px', color: 'var(--rose-text)', background: 'var(--rose-light)', padding: '8px 11px', borderRadius: 'var(--r-xs)', marginBottom: '12px' }}>{erro}</p>}
 
