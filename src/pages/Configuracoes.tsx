@@ -373,8 +373,9 @@ function AbaAgendas() {
   };
 
   const deleteAgenda = async (id: string) => {
-    if (!window.confirm("Atenção: Excluir esta agenda pode afetar os agendamentos vinculados a ela. Tem certeza?")) return;
-    await supabase.from('agendas').delete().eq('id', id);
+    if (!window.confirm("Atenção: isto apaga a agenda E todos os agendamentos/bloqueios vinculados a ela (histórico incluso). Esta ação é irreversível. Para apenas ocultar, edite e marque como inativa. Tem certeza?")) return;
+    const { error } = await supabase.rpc('apagar_agenda_completa', { p_agenda_id: id });
+    if (error) { alert('Erro ao apagar: ' + error.message); return; }
     loadAgendas();
   };
 

@@ -7,7 +7,7 @@ import {
   addMonths, addWeeks, addDays, eachDayOfInterval, getHours,
 } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, Plus, CalendarDays, Loader2, X, Ban, Clock, AlertTriangle, Check, UserX, User, ListChecks, ArrowUp, Trash2, Video } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, CalendarDays, Loader2, X, Ban, Clock, AlertTriangle, Check, UserX, User, ListChecks, ArrowUp, Trash2, Video, Settings, Archive, RotateCcw } from 'lucide-react';
 import { LeadDetailsModal } from '../components/crm/LeadDetailsModal';
 
 const DIAS_SEMANA: { key: string; label: string }[] = [
@@ -68,6 +68,7 @@ export function Agenda() {
   const [showDisp, setShowDisp] = useState(false);
   const [showBloqueio, setShowBloqueio] = useState(false);
   const [showNovoAg, setShowNovoAg] = useState(false);
+  const [showGerenciar, setShowGerenciar] = useState(false);
   const [bloqDel, setBloqDel] = useState<any>(null);
 
   // Intervalo visível conforme a visão
@@ -87,18 +88,25 @@ export function Agenda() {
     setLoading(true);
     const start = new Date(range.start); start.setHours(0, 0, 0, 0);
     const end = new Date(range.end); end.setHours(23, 59, 59, 999);
-    // Mostra só os ativos/pendentes; resolvidos (compareceu/faltou/cancelado) saem do calendário
-    // — o histórico fica no perfil do paciente e nos KPIs.
+    // Cancelados/reagendados saem do calendário na hora. compareceu/faltou continuam
+    // visíveis enquanto a consulta não chegou (evita sumir por engano); só saem depois
+    // que o horário passa — aí o histórico fica no perfil do paciente e nos KPIs.
     let q = supabase
       .from('agendamentos')
       .select('*, agendas(nome, cor), leads:lead_id(*)')
       .gte('data_hora_inicio', start.toISOString())
       .lte('data_hora_inicio', end.toISOString())
-      .not('status', 'in', '("cancelado","cancelou_agendamento","faltou","compareceu")')
+      .not('status', 'in', '("cancelado","cancelou_agendamento","reagendado")')
       .order('data_hora_inicio', { ascending: true });
     if (profFiltro !== 'todas') q = q.eq('agenda_id', profFiltro);
     const { data } = await q;
-    setAgendamentos(data || []);
+    const agora = Date.now();
+    const visiveis = (data || []).filter(a => {
+      const resolvido = a.status === 'compareceu' || a.status === 'faltou';
+      // resolvido e já passou do horário → sai do calendário
+      return !(resolvido && new Date(a.data_hora_inicio).getTime() < agora);
+    });
+    setAgendamentos(visiveis);
 
     // Bloqueios que tocam o intervalo visível.
     let qb = supabase
@@ -217,6 +225,9 @@ export function Agenda() {
               <button onClick={() => setShowNova(true)} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', fontSize: '12px', fontWeight: 600, background: 'var(--sage-dark)', color: 'white', border: 'none', borderRadius: 'var(--r-xs)', cursor: 'pointer', fontFamily: 'inherit' }}>
                 <Plus size={14} /> Nova agenda
               </button>
+              <button onClick={() => setShowGerenciar(true)} title="Gerenciar agendas (arquivar / apagar)" style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', fontSize: '12px', fontWeight: 500, background: 'var(--white)', color: 'var(--ink)', border: '1px solid var(--border-md)', borderRadius: 'var(--r-xs)', cursor: 'pointer', fontFamily: 'inherit' }}>
+                <Settings size={14} /> Gerenciar
+              </button>
             </>
           )}
         </div>
@@ -264,6 +275,7 @@ export function Agenda() {
       {showBloqueio && <BloqueioModal agendas={agendas} profPadrao={profFiltro !== 'todas' ? profFiltro : (agendas[0]?.id || '')} onClose={() => setShowBloqueio(false)} onSaved={() => { setShowBloqueio(false); loadAgendamentos(); }} />}
       {showNovoAg && <NovoAgendamentoModal agendas={agendas} profPadrao={profFiltro !== 'todas' ? profFiltro : (agendas[0]?.id || '')} dataPadrao={format(cursor, 'yyyy-MM-dd')} onClose={() => setShowNovoAg(false)} onSaved={() => { setShowNovoAg(false); loadAgendamentos(); }} />}
       {bloqDel && <DesbloquearModal bloqueio={bloqDel} onClose={() => setBloqDel(null)} onSaved={() => { setBloqDel(null); loadAgendamentos(); }} />}
+      {showGerenciar && <GerenciarAgendasModal onClose={() => setShowGerenciar(false)} onChanged={() => { loadAgendas(); loadAgendamentos(); }} />}
     </div>
   );
 }
@@ -879,6 +891,109 @@ function DesbloquearModal({ bloqueio, onClose, onSaved }: { bloqueio: any; onClo
           <button onClick={onClose} disabled={busy} style={btnGhost}>Cancelar</button>
           <button onClick={desbloquear} disabled={busy} style={{ ...btnPrimary, background: 'var(--rose-text)' }}>{busy && <Loader2 size={13} className="animate-spin" />} Desbloquear</button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Modal Gerenciar Agendas (arquivar / reativar / apagar) ───────────────────
+function GerenciarAgendasModal({ onClose, onChanged }: { onClose: () => void; onChanged: () => void }) {
+  const { user } = useAuth();
+  const [agendas, setAgendas] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [erro, setErro] = useState<string | null>(null);
+  const [confirmDel, setConfirmDel] = useState<any>(null);
+  const [qtdVinc, setQtdVinc] = useState<number>(0);
+
+  const load = async () => {
+    setLoading(true);
+    const { data } = await supabase.from('agendas').select('*').order('ativo', { ascending: false }).order('nome');
+    setAgendas(data || []);
+    setLoading(false);
+  };
+  useEffect(() => { load(); }, []);
+
+  const toggleAtivo = async (ag: any) => {
+    setBusyId(ag.id); setErro(null);
+    const { error } = await supabase.from('agendas').update({ ativo: !ag.ativo }).eq('id', ag.id);
+    if (error) setErro('Erro: ' + error.message);
+    if (user) await supabase.from('audit_log').insert({ user_id: user.id, action: ag.ativo ? 'agenda_arquivada' : 'agenda_reativada', record_id: ag.id, detalhes: { nome: ag.nome } });
+    setBusyId(null);
+    await load(); onChanged();
+  };
+
+  const pedirApagar = async (ag: any) => {
+    setErro(null);
+    const { count } = await supabase.from('agendamentos').select('id', { count: 'exact', head: true }).eq('agenda_id', ag.id);
+    setQtdVinc(count || 0);
+    setConfirmDel(ag);
+  };
+
+  const apagar = async () => {
+    if (!confirmDel) return;
+    setBusyId(confirmDel.id); setErro(null);
+    const { error } = await supabase.rpc('apagar_agenda_completa', { p_agenda_id: confirmDel.id });
+    if (error) { setErro('Erro ao apagar: ' + error.message); setBusyId(null); return; }
+    if (user) await supabase.from('audit_log').insert({ user_id: user.id, action: 'agenda_apagada', record_id: confirmDel.id, detalhes: { nome: confirmDel.nome, agendamentos: qtdVinc } });
+    setBusyId(null); setConfirmDel(null);
+    await load(); onChanged();
+  };
+
+  return (
+    <div style={modalOverlay} onClick={() => !busyId && onClose()}>
+      <div onClick={e => e.stopPropagation()} style={{ ...modalBox, maxWidth: '460px' }}>
+        <div style={modalHeader}>
+          <h3 className="font-cormorant" style={modalTitle}>Gerenciar agendas</h3>
+          <button onClick={onClose} style={iconBtn}><X size={18} /></button>
+        </div>
+        {erro && <p style={{ fontSize: '12px', color: 'var(--rose-text)', background: 'var(--rose-light)', padding: '8px 11px', borderRadius: 'var(--r-xs)', marginBottom: '12px' }}>{erro}</p>}
+
+        {confirmDel ? (
+          <div>
+            <div style={{ display: 'flex', gap: '12px', marginBottom: '14px' }}>
+              <div style={{ flexShrink: 0, padding: '8px', borderRadius: '50%', background: 'var(--rose-light)', color: 'var(--rose-text)' }}><AlertTriangle size={18} /></div>
+              <div>
+                <p style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--ink)' }}>Apagar "{confirmDel.nome}" definitivamente?</p>
+                <p style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '4px', lineHeight: 1.5 }}>
+                  {qtdVinc > 0
+                    ? `Esta agenda tem ${qtdVinc} agendamento${qtdVinc > 1 ? 's' : ''} vinculado${qtdVinc > 1 ? 's' : ''} (incluindo histórico/KPIs), que também ${qtdVinc > 1 ? 'serão apagados' : 'será apagado'}. Esta ação é irreversível.`
+                    : 'Esta ação é irreversível. Se quiser apenas tirar da agenda sem perder histórico, use Arquivar.'}
+                </p>
+              </div>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+              <button onClick={() => setConfirmDel(null)} disabled={!!busyId} style={btnGhost}>Cancelar</button>
+              <button onClick={apagar} disabled={!!busyId} style={{ ...btnPrimary, background: 'var(--rose-text)' }}>{busyId && <Loader2 size={13} className="animate-spin" />} Apagar definitivamente</button>
+            </div>
+          </div>
+        ) : loading ? (
+          <div style={{ padding: '40px', textAlign: 'center', color: 'var(--muted)' }}><Loader2 size={18} className="animate-spin" /></div>
+        ) : agendas.length === 0 ? (
+          <p style={{ fontSize: '13px', color: 'var(--muted)', textAlign: 'center', padding: '24px' }}>Nenhuma agenda cadastrada.</p>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {agendas.map(ag => (
+              <div key={ag.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r-xs)', opacity: ag.ativo ? 1 : 0.6 }}>
+                <span style={{ width: '11px', height: '11px', borderRadius: '3px', background: ag.cor || 'var(--sage)', flexShrink: 0 }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)' }}>{ag.nome}</div>
+                  {!ag.ativo && <div style={{ fontSize: '10.5px', color: 'var(--muted)' }}>Arquivada</div>}
+                </div>
+                <button onClick={() => toggleAtivo(ag)} disabled={busyId === ag.id} title={ag.ativo ? 'Arquivar' : 'Reativar'} style={miniBtn}>
+                  {busyId === ag.id ? <Loader2 size={13} className="animate-spin" /> : ag.ativo ? <Archive size={14} /> : <RotateCcw size={14} />}
+                </button>
+                <button onClick={() => pedirApagar(ag)} disabled={busyId === ag.id} title="Apagar definitivamente" style={{ ...miniBtn, color: 'var(--rose-text)' }}>
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            ))}
+            <p style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '4px', lineHeight: 1.5 }}>
+              <Archive size={11} style={{ verticalAlign: '-1px' }} /> Arquivar tira a agenda da visão sem perder o histórico (reversível).
+              <Trash2 size={11} style={{ verticalAlign: '-1px', marginLeft: '6px' }} /> Apagar remove tudo definitivamente.
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
