@@ -86,11 +86,14 @@ export function Agenda() {
     setLoading(true);
     const start = new Date(range.start); start.setHours(0, 0, 0, 0);
     const end = new Date(range.end); end.setHours(23, 59, 59, 999);
+    // Mostra só os ativos/pendentes; resolvidos (compareceu/faltou/cancelado) saem do calendário
+    // — o histórico fica no perfil do paciente e nos KPIs.
     let q = supabase
       .from('agendamentos')
       .select('*, agendas(nome, cor), leads:lead_id(*)')
       .gte('data_hora_inicio', start.toISOString())
       .lte('data_hora_inicio', end.toISOString())
+      .not('status', 'in', '("cancelado","cancelou_agendamento","faltou","compareceu")')
       .order('data_hora_inicio', { ascending: true });
     if (profFiltro !== 'todas') q = q.eq('agenda_id', profFiltro);
     const { data } = await q;
@@ -960,21 +963,39 @@ function NovoAgendamentoModal({ agendas, profPadrao, dataPadrao, onClose, onSave
       .not('status', 'in', '("cancelado","cancelou_agendamento","faltou")').limit(1);
     if (dup && dup.length > 0) { setErro('Já existe agendamento nesse horário para o profissional.'); setBusy(false); return; }
 
+    // Paciente avulso (novo) → cria o lead na base para ser acompanhado no funil.
+    let leadFinal = leadId;
+    let leadCriado = false;
+    if (!leadFinal) {
+      const { data: novoLead, error: lErr } = await supabase.from('leads').insert({
+        nome_lead: nome.trim(),
+        whatsapp_lead: whatsapp || null,
+        procedimento_interesse: procedimento || null,
+        status: 'agendado',
+        origem: 'agendamento_manual',
+        inicio_atendimento: new Date().toISOString(),
+        data_agendamento: inicio.toISOString(),
+      }).select('id').single();
+      if (lErr || !novoLead) { setErro('Erro ao criar lead: ' + (lErr?.message || '')); setBusy(false); return; }
+      leadFinal = novoLead.id;
+      leadCriado = true;
+    }
+
     const { error } = await supabase.from('agendamentos').insert({
-      agenda_id: agendaId, lead_id: leadId,
+      agenda_id: agendaId, lead_id: leadFinal,
       nome_lead: nome.trim(), whatsapp_lead: whatsapp || null,
       procedimento_nome: procedimento || null,
       data_hora_inicio: inicio.toISOString(), status: 'agendado',
     });
     if (error) { setErro('Erro ao agendar: ' + error.message); setBusy(false); return; }
 
-    if (leadId) {
-      await supabase.from('leads').update({ data_agendamento: inicio.toISOString(), status: 'agendado' }).eq('id', leadId);
+    if (!leadCriado && leadFinal) {
+      await supabase.from('leads').update({ data_agendamento: inicio.toISOString(), status: 'agendado' }).eq('id', leadFinal);
     }
     if (user) {
       await supabase.from('audit_log').insert({
-        user_id: user.id, action: 'agendamento_manual', record_id: leadId,
-        detalhes: { agenda_id: agendaId, paciente: nome, quando: inicio.toISOString() },
+        user_id: user.id, action: 'agendamento_manual', record_id: leadFinal,
+        detalhes: { agenda_id: agendaId, paciente: nome, quando: inicio.toISOString(), lead_criado: leadCriado },
       });
     }
     setBusy(false);
