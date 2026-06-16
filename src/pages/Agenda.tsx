@@ -791,11 +791,18 @@ function BloqueioModal({ agendas, profPadrao, onClose, onSaved }: { agendas: any
 
     // Reflete o bloqueio no Cal.com (Out-of-Office) p/ ele não oferecer o horário. Best-effort.
     // Guarda o ID do OOO para que o "Desbloquear" também o remova no Cal.com.
+    let avisoCalcom: string | null = null;
     try {
-      const { data: r } = await supabase.functions.invoke('cal-sync', { body: { action: 'block', start: iv.inicio.toISOString(), end: iv.fim.toISOString(), reason: motivo || 'Bloqueado pela clínica' } });
-      const oooId = r?.calcom?.data?.id ?? r?.calcom?.id ?? null;
-      if (oooId && novoBloq?.id) await supabase.from('bloqueios').update({ calcom_ooo_id: String(oooId) }).eq('id', novoBloq.id);
-    } catch (e) { console.error('cal-sync block falhou:', e); }
+      const { data: r, error: cErr } = await supabase.functions.invoke('cal-sync', { body: { action: 'block', start: iv.inicio.toISOString(), end: iv.fim.toISOString(), reason: motivo || 'Bloqueado pela clínica' } });
+      if (cErr || r?.error) {
+        let detalhe = r?.error || cErr?.message || '';
+        try { const body = await (cErr as any)?.context?.json?.(); if (body?.error) detalhe = body.error; } catch { /* ignore */ }
+        avisoCalcom = detalhe;
+      } else {
+        const oooId = r?.calcom?.data?.id ?? r?.calcom?.id ?? null;
+        if (oooId && novoBloq?.id) await supabase.from('bloqueios').update({ calcom_ooo_id: String(oooId) }).eq('id', novoBloq.id);
+      }
+    } catch (e: any) { avisoCalcom = e?.message || String(e); }
 
     if (notificar && afetados.length > 0) {
       // Handoff ao agente: uma tarefa por consulta afetada (o agente conduz o WhatsApp).
@@ -819,6 +826,9 @@ function BloqueioModal({ agendas, profPadrao, onClose, onSaved }: { agendas: any
       });
     }
     setBusy(false);
+    if (avisoCalcom) {
+      alert('Bloqueado no sistema, mas NÃO refletiu no Cal.com:\n\n' + avisoCalcom + '\n\nDica: confirme se o cal-sync foi atualizado (supabase functions deploy cal-sync --use-api).');
+    }
     onSaved();
   };
 
