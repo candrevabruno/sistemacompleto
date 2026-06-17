@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import { useClinic } from '../contexts/ClinicContext';
 import { useAuth } from '../contexts/AuthContext';
 import {
-  Gift, Cake, Megaphone, Send, Archive, Plus, Loader2, Lock, Sparkles, X, RotateCcw, Calendar, Pencil, Trash2, AlertTriangle, CheckCircle2,
+  Gift, Cake, Megaphone, Archive, Plus, Loader2, Lock, Sparkles, X, RotateCcw, Calendar, Pencil, Trash2, AlertTriangle, CheckCircle2, RefreshCw,
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -101,24 +101,22 @@ function UpgradeGate() {
 }
 
 // ── Aniversariantes do mês ───────────────────────────────────────────────────
-// Mensagem configurada diretamente no n8n. O painel só lista quem são e aciona o disparo.
+// Painel read-only: mostra quem são os aniversariantes e o status do disparo do mês.
+// O n8n dispara automaticamente (agendado) e chama eventos-dispatch?action=registrar_disparo.
 function Aniversariantes() {
-  const { canEdit } = useAuth();
-  const podeDisparar = canEdit('feature:eventos:disparos');
+  const { config, refreshConfig } = useClinic();
   const [itens, setItens] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [enviando, setEnviando] = useState(false);
-  const [feedback, setFeedback] = useState<{ ok: boolean; msg: string } | null>(null);
+  const [atualizando, setAtualizando] = useState(false);
 
-  const mesAtual = new Date().getMonth(); // 0-11
-  const mesChave = `hl_bday_${new Date().getFullYear()}-${String(mesAtual + 1).padStart(2, '0')}`;
+  const agora = new Date();
+  const mesAtual = agora.getMonth(); // 0-11
+  const mesChave = `${agora.getFullYear()}-${String(mesAtual + 1).padStart(2, '0')}`;
 
-  // IDs já enviados neste mês (localStorage)
-  const getSentIds = (): string[] => {
-    try { return JSON.parse(localStorage.getItem(mesChave) || '[]'); } catch { return []; }
-  };
-  const [sentIds, setSentIds] = useState<string[]>(getSentIds);
+  // Status do último disparo (salvo pelo n8n via registrar_disparo)
+  const dispatch: { mes?: string; enviado_em?: string; total?: number } | null =
+    (config as any)?.aniversario_last_dispatch ?? null;
+  const disparadoEsteMes = dispatch?.mes === mesChave;
 
   const load = async () => {
     setLoading(true);
@@ -136,57 +134,52 @@ function Aniversariantes() {
     setItens(lista);
     setLoading(false);
   };
-  useEffect(() => { load(); }, []);
 
-  const enviar = async () => {
-    setConfirmOpen(false); setEnviando(true); setFeedback(null);
-    try {
-      const pacientes = itens.map(l => ({ lead_id: l.id, nome: l.nome_lead, whatsapp: l.whatsapp_lead, data_nascimento: l.data_nascimento }));
-      const { data, error } = await supabase.functions.invoke('eventos-dispatch', { body: { action: 'aniversario', pacientes } });
-      if (error || data?.error) {
-        setFeedback({ ok: false, msg: data?.error || error?.message || 'Falha no envio.' });
-      } else {
-        const novosIds = itens.map(l => l.id);
-        localStorage.setItem(mesChave, JSON.stringify(novosIds));
-        setSentIds(novosIds);
-        setFeedback({ ok: true, msg: `Disparo enviado para ${data?.total ?? itens.length} aniversariante(s). O n8n envia um a um com intervalo.` });
-      }
-    } catch (e: any) { setFeedback({ ok: false, msg: e?.message || 'Falha no envio.' }); }
-    setEnviando(false);
+  const atualizar = async () => {
+    setAtualizando(true);
+    await refreshConfig();
+    setAtualizando(false);
   };
 
-  const totalEnviados = itens.filter(l => sentIds.includes(l.id)).length;
+  useEffect(() => { load(); }, []);
 
   return (
     <div style={{ maxWidth: '640px' }}>
+      {/* Status do disparo */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px', background: disparadoEsteMes ? 'var(--sage-xlight)' : 'var(--white)', border: `1px solid ${disparadoEsteMes ? 'var(--sage-light)' : 'var(--border)'}`, borderRadius: '10px', padding: '12px 14px' }}>
+        {disparadoEsteMes
+          ? <CheckCircle2 size={16} style={{ color: 'var(--sage-dark)', flexShrink: 0 }} />
+          : <Cake size={16} style={{ color: 'var(--muted)', flexShrink: 0 }} />
+        }
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {disparadoEsteMes ? (
+            <span style={{ fontSize: '12.5px', color: 'var(--sage-dark)', fontWeight: 600 }}>
+              Disparado em {format(new Date(dispatch!.enviado_em!), “dd/MM/yyyy 'às' HH:mm”, { locale: ptBR })}
+              {dispatch!.total != null ? ` — ${dispatch!.total} paciente${dispatch!.total !== 1 ? 's' : ''}` : ''}
+            </span>
+          ) : (
+            <span style={{ fontSize: '12.5px', color: 'var(--muted)' }}>
+              Nenhum disparo registrado em <strong>{MESES[mesAtual]}</strong> — o n8n dispara automaticamente no dia configurado.
+            </span>
+          )}
+        </div>
+        <button
+          onClick={atualizar}
+          disabled={atualizando}
+          title=”Atualizar status”
+          style={{ flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', padding: '4px', display: 'flex' }}
+        >
+          <RefreshCw size={14} className={atualizando ? 'animate-spin' : ''} />
+        </button>
+      </div>
+
       {/* Card da lista */}
       <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: '12px', overflow: 'hidden' }}>
         <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Cake size={15} style={{ color: 'var(--sage-dark)' }} />
           <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)' }}>Aniversariantes de {MESES[mesAtual]}</span>
-          {totalEnviados > 0 && (
-            <span style={{ fontSize: '11px', color: 'var(--sage-dark)', background: 'var(--sage-xlight)', padding: '2px 8px', borderRadius: '20px', fontWeight: 600 }}>
-              {totalEnviados} enviado{totalEnviados !== 1 ? 's' : ''}
-            </span>
-          )}
           <span style={{ marginLeft: 'auto', fontSize: '12px', color: 'var(--muted)' }}>{itens.length} paciente{itens.length !== 1 ? 's' : ''}</span>
-          {podeDisparar && itens.length > 0 && (
-            <button
-              onClick={() => setConfirmOpen(true)}
-              disabled={enviando}
-              style={{ ...btnPrimary, padding: '6px 12px', fontSize: '12px' }}
-            >
-              {enviando ? <Loader2 size={13} className=”animate-spin” /> : <Send size={13} />}
-              Disparar
-            </button>
-          )}
         </div>
-
-        {feedback && (
-          <div style={{ padding: '10px 16px', borderBottom: '1px solid var(--border)', fontSize: '12.5px', lineHeight: 1.5, color: feedback.ok ? 'var(--sage-dark)' : 'var(--rose-text)', background: feedback.ok ? 'var(--sage-xlight)' : 'var(--rose-light)' }}>
-            {feedback.ok ? '✅ ' : '❌ '}{feedback.msg}
-          </div>
-        )}
 
         {loading ? (
           <div style={{ padding: '48px', textAlign: 'center', color: 'var(--muted)' }}><Loader2 size={18} className=”animate-spin” /></div>
@@ -197,54 +190,27 @@ function Aniversariantes() {
           </div>
         ) : (
           <div>
-            {itens.map(l => {
-              const enviado = sentIds.includes(l.id);
-              return (
-                <div key={l.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 16px', borderBottom: '1px solid var(--border)' }}>
-                  <div style={{ width: '34px', height: '34px', flexShrink: 0, borderRadius: '50%', background: 'var(--sage-light)', color: 'var(--sage-dark)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>
-                    <span style={{ fontSize: '13px', fontWeight: 700 }}>{String(l.data_nascimento).slice(8, 10)}</span>
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)' }}>{l.nome_lead || 'Paciente'}</div>
-                    <div style={{ fontSize: '11.5px', color: 'var(--muted)' }}>{l.whatsapp_lead || 'sem WhatsApp'}</div>
-                  </div>
-                  {enviado && (
-                    <CheckCircle2 size={16} style={{ color: 'var(--sage-dark)', flexShrink: 0 }} title=”Mensagem enviada neste mês” />
-                  )}
+            {itens.map(l => (
+              <div key={l.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 16px', borderBottom: '1px solid var(--border)' }}>
+                <div style={{ width: '34px', height: '34px', flexShrink: 0, borderRadius: '50%', background: 'var(--sage-light)', color: 'var(--sage-dark)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>
+                  <span style={{ fontSize: '13px', fontWeight: 700 }}>{String(l.data_nascimento).slice(8, 10)}</span>
                 </div>
-              );
-            })}
-          </div>
-        )}
-
-        {!podeDisparar && itens.length > 0 && (
-          <div style={{ padding: '10px 16px', borderTop: '1px solid var(--border)', fontSize: '12px', color: 'var(--muted)', textAlign: 'center' }}>
-            Você não tem permissão para disparar mensagens.
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)' }}>{l.nome_lead || 'Paciente'}</div>
+                  <div style={{ fontSize: '11.5px', color: 'var(--muted)' }}>{l.whatsapp_lead || 'sem WhatsApp'}</div>
+                </div>
+                {disparadoEsteMes && (
+                  <CheckCircle2 size={15} style={{ color: 'var(--sage-dark)', opacity: 0.6, flexShrink: 0 }} title=”Mensagem enviada este mês” />
+                )}
+              </div>
+            ))}
           </div>
         )}
       </div>
 
       <p style={{ fontSize: '11.5px', color: 'var(--muted)', marginTop: '10px', lineHeight: 1.6 }}>
-        A mensagem de parabéns é configurada no fluxo do n8n (webhook de Aniversário). O disparo aciona o n8n, que envia individualmente para cada paciente com intervalo.
+        O n8n dispara as mensagens automaticamente e registra o status acima. Configure o agendamento e a mensagem no fluxo de Aniversário do n8n.
       </p>
-
-      {confirmOpen && (
-        <div style={modalOverlay} onClick={() => setConfirmOpen(false)}>
-          <div onClick={e => e.stopPropagation()} style={{ ...modalBox, maxWidth: '400px' }}>
-            <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
-              <div style={{ flexShrink: 0, width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', background: 'var(--sage-xlight)', color: 'var(--sage-dark)' }}><Send size={16} /></div>
-              <div>
-                <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--ink)' }}>Confirmar disparo</p>
-                <p style={{ fontSize: '12.5px', color: 'var(--muted)', marginTop: '4px', lineHeight: 1.5 }}>Você vai enviar para <strong>{itens.length}</strong> paciente{itens.length !== 1 ? 's' : ''}. Confirmar?</p>
-              </div>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-              <button onClick={() => setConfirmOpen(false)} style={btnGhost}>Cancelar</button>
-              <button onClick={enviar} disabled={enviando} style={btnPrimary}>{enviando && <Loader2 size={13} className=”animate-spin” />} Confirmar e enviar</button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

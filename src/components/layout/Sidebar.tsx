@@ -9,6 +9,7 @@ import {
   Users,
   ClipboardList,
   Kanban,
+  MessageSquare,
   UsersRound,
   Settings,
   LogOut,
@@ -23,7 +24,8 @@ const NAV_SECTIONS = [
     links: [
       { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, perm: 'modulo:dashboard' },
       { to: '/crm', label: 'CRM', icon: Kanban, perm: 'modulo:crm' },
-      { to: '/leads', label: 'Inbox Leads', icon: Users, perm: 'modulo:leads' },
+      { to: '/inbox', label: 'Inbox', icon: MessageSquare, perm: 'modulo:inbox' },
+      { to: '/leads', label: 'Leads', icon: Users, perm: 'modulo:leads' },
     ],
   },
   {

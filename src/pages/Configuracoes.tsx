@@ -935,10 +935,10 @@ function AbaWebhooks() {
     },
     {
       key: 'upgrade' as const, campo: 'upgrade_webhook_url',
-      titulo: 'Notificação de upgrade — Heroic Leap (e-mail)',
-      desc: 'Quando uma clínica sem o módulo Eventos pede para liberar, envia um e-mail à Heroic Leap (via fluxo de e-mail do n8n). Configurado pela Heroic Leap.',
-      valor: config?.upgrade_webhook_url || '', placeholder: 'https://n8n.heroicleap.com/webhook/upgrade-eventos',
-      label: 'URL do fluxo de e-mail (n8n)',
+      titulo: 'Notificação de upgrade — Heroic Leap',
+      desc: 'Quando uma clínica solicita liberar Eventos ou Experiência Premium, dispara este webhook do n8n — que envia um e-mail pelo Gmail (SMTP/App Password) para a Heroic Leap. Configurado pela Heroic Leap.',
+      valor: config?.upgrade_webhook_url || '', placeholder: 'https://n8n.heroicleap.com/webhook/upgrade',
+      label: 'URL do webhook n8n (envia e-mail via Gmail)',
     },
   ];
 

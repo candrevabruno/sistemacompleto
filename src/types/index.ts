@@ -32,6 +32,8 @@ export interface ClinicConfig {
   upgrade_webhook_url?: string | null;
   // Permissões de abas de Configurações para admins (super_admin define; null = todas liberadas)
   admin_config_tabs?: string[] | null;
+  // Status do último disparo de aniversário (atualizado pelo n8n via registrar_disparo)
+  aniversario_last_dispatch?: { mes: string; enviado_em: string; total: number | null } | null;
 }
 
 export interface Conversa {
