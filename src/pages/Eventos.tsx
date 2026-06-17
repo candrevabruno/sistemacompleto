@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import { useClinic } from '../contexts/ClinicContext';
 import { useAuth } from '../contexts/AuthContext';
 import {
-  Gift, Cake, Megaphone, Send, Archive, Plus, Loader2, Lock, Sparkles, X, RotateCcw, Calendar, Pencil, Trash2, AlertTriangle,
+  Gift, Cake, Megaphone, Send, Archive, Plus, Loader2, Lock, Sparkles, X, RotateCcw, Calendar, Pencil, Trash2, AlertTriangle, CheckCircle2,
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -101,17 +101,24 @@ function UpgradeGate() {
 }
 
 // ── Aniversariantes do mês ───────────────────────────────────────────────────
+// Mensagem configurada diretamente no n8n. O painel só lista quem são e aciona o disparo.
 function Aniversariantes() {
   const { canEdit } = useAuth();
   const podeDisparar = canEdit('feature:eventos:disparos');
   const [itens, setItens] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [mensagem, setMensagem] = useState('');
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [enviando, setEnviando] = useState(false);
-  const [feedback, setFeedback] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<{ ok: boolean; msg: string } | null>(null);
 
   const mesAtual = new Date().getMonth(); // 0-11
+  const mesChave = `hl_bday_${new Date().getFullYear()}-${String(mesAtual + 1).padStart(2, '0')}`;
+
+  // IDs já enviados neste mês (localStorage)
+  const getSentIds = (): string[] => {
+    try { return JSON.parse(localStorage.getItem(mesChave) || '[]'); } catch { return []; }
+  };
+  const [sentIds, setSentIds] = useState<string[]>(getSentIds);
 
   const load = async () => {
     setLoading(true);
@@ -135,24 +142,54 @@ function Aniversariantes() {
     setConfirmOpen(false); setEnviando(true); setFeedback(null);
     try {
       const pacientes = itens.map(l => ({ lead_id: l.id, nome: l.nome_lead, whatsapp: l.whatsapp_lead, data_nascimento: l.data_nascimento }));
-      const { data, error } = await supabase.functions.invoke('eventos-dispatch', { body: { action: 'aniversario', mensagem, pacientes } });
-      if (error || data?.error) { setFeedback('❌ ' + (data?.error || error?.message || 'Falha no envio.')); }
-      else setFeedback(`✅ Disparo enviado para ${data?.total ?? itens.length} aniversariante(s). O agente envia um a um com intervalo.`);
-    } catch (e: any) { setFeedback('❌ ' + (e?.message || 'Falha no envio.')); }
+      const { data, error } = await supabase.functions.invoke('eventos-dispatch', { body: { action: 'aniversario', pacientes } });
+      if (error || data?.error) {
+        setFeedback({ ok: false, msg: data?.error || error?.message || 'Falha no envio.' });
+      } else {
+        const novosIds = itens.map(l => l.id);
+        localStorage.setItem(mesChave, JSON.stringify(novosIds));
+        setSentIds(novosIds);
+        setFeedback({ ok: true, msg: `Disparo enviado para ${data?.total ?? itens.length} aniversariante(s). O n8n envia um a um com intervalo.` });
+      }
+    } catch (e: any) { setFeedback({ ok: false, msg: e?.message || 'Falha no envio.' }); }
     setEnviando(false);
   };
 
+  const totalEnviados = itens.filter(l => sentIds.includes(l.id)).length;
+
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 320px', gap: '18px', alignItems: 'start' }}>
-      {/* Lista */}
+    <div style={{ maxWidth: '640px' }}>
+      {/* Card da lista */}
       <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: '12px', overflow: 'hidden' }}>
         <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Cake size={15} style={{ color: 'var(--sage-dark)' }} />
           <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)' }}>Aniversariantes de {MESES[mesAtual]}</span>
+          {totalEnviados > 0 && (
+            <span style={{ fontSize: '11px', color: 'var(--sage-dark)', background: 'var(--sage-xlight)', padding: '2px 8px', borderRadius: '20px', fontWeight: 600 }}>
+              {totalEnviados} enviado{totalEnviados !== 1 ? 's' : ''}
+            </span>
+          )}
           <span style={{ marginLeft: 'auto', fontSize: '12px', color: 'var(--muted)' }}>{itens.length} paciente{itens.length !== 1 ? 's' : ''}</span>
+          {podeDisparar && itens.length > 0 && (
+            <button
+              onClick={() => setConfirmOpen(true)}
+              disabled={enviando}
+              style={{ ...btnPrimary, padding: '6px 12px', fontSize: '12px' }}
+            >
+              {enviando ? <Loader2 size={13} className=”animate-spin” /> : <Send size={13} />}
+              Disparar
+            </button>
+          )}
         </div>
+
+        {feedback && (
+          <div style={{ padding: '10px 16px', borderBottom: '1px solid var(--border)', fontSize: '12.5px', lineHeight: 1.5, color: feedback.ok ? 'var(--sage-dark)' : 'var(--rose-text)', background: feedback.ok ? 'var(--sage-xlight)' : 'var(--rose-light)' }}>
+            {feedback.ok ? '✅ ' : '❌ '}{feedback.msg}
+          </div>
+        )}
+
         {loading ? (
-          <div style={{ padding: '48px', textAlign: 'center', color: 'var(--muted)' }}><Loader2 size={18} className="animate-spin" /></div>
+          <div style={{ padding: '48px', textAlign: 'center', color: 'var(--muted)' }}><Loader2 size={18} className=”animate-spin” /></div>
         ) : itens.length === 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '56px', gap: '8px' }}>
             <Cake size={36} style={{ opacity: 0.2, color: 'var(--muted)' }} />
@@ -160,50 +197,36 @@ function Aniversariantes() {
           </div>
         ) : (
           <div>
-            {itens.map(l => (
-              <div key={l.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 16px', borderBottom: '1px solid var(--border)' }}>
-                <div style={{ width: '34px', height: '34px', flexShrink: 0, borderRadius: '50%', background: 'var(--sage-light)', color: 'var(--sage-dark)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>
-                  <span style={{ fontSize: '13px', fontWeight: 700 }}>{String(l.data_nascimento).slice(8, 10)}</span>
+            {itens.map(l => {
+              const enviado = sentIds.includes(l.id);
+              return (
+                <div key={l.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 16px', borderBottom: '1px solid var(--border)' }}>
+                  <div style={{ width: '34px', height: '34px', flexShrink: 0, borderRadius: '50%', background: 'var(--sage-light)', color: 'var(--sage-dark)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>
+                    <span style={{ fontSize: '13px', fontWeight: 700 }}>{String(l.data_nascimento).slice(8, 10)}</span>
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)' }}>{l.nome_lead || 'Paciente'}</div>
+                    <div style={{ fontSize: '11.5px', color: 'var(--muted)' }}>{l.whatsapp_lead || 'sem WhatsApp'}</div>
+                  </div>
+                  {enviado && (
+                    <CheckCircle2 size={16} style={{ color: 'var(--sage-dark)', flexShrink: 0 }} title=”Mensagem enviada neste mês” />
+                  )}
                 </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)' }}>{l.nome_lead || 'Paciente'}</div>
-                  <div style={{ fontSize: '11.5px', color: 'var(--muted)' }}>{l.whatsapp_lead || 'sem WhatsApp'}</div>
-                </div>
-              </div>
-            ))}
+              );
+            })}
+          </div>
+        )}
+
+        {!podeDisparar && itens.length > 0 && (
+          <div style={{ padding: '10px 16px', borderTop: '1px solid var(--border)', fontSize: '12px', color: 'var(--muted)', textAlign: 'center' }}>
+            Você não tem permissão para disparar mensagens.
           </div>
         )}
       </div>
 
-      {/* Composer */}
-      <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: '12px', padding: '16px', position: 'sticky', top: '0' }}>
-        <label style={lbl}>Mensagem / oferta de parabéns</label>
-        <textarea
-          value={mensagem}
-          onChange={e => setMensagem(e.target.value)}
-          placeholder={'Ex: Feliz aniversário, {nome}! 🎉 Para comemorar, você tem 15% de desconto em qualquer procedimento neste mês.'}
-          rows={11}
-          style={{ ...inp, resize: 'vertical', minHeight: '200px', lineHeight: 1.55 }}
-          disabled={!podeDisparar}
-        />
-        <div style={{ fontSize: '11px', color: 'var(--muted)', margin: '8px 0 12px', lineHeight: 1.55, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r-xs)', padding: '9px 11px' }}>
-          💡 <strong>Não escreva o nome do paciente.</strong> Escreva <code style={{ background: 'var(--white)', border: '1px solid var(--border-md)', padding: '1px 5px', borderRadius: '3px', fontWeight: 600 }}>{'{nome}'}</code> (exatamente assim, com as chaves) onde quiser que o nome apareça — o sistema troca automaticamente pelo nome de cada paciente no envio. Ex.: <em>“Feliz aniversário, {'{nome}'}!”</em> chega como <em>“Feliz aniversário, Maria!”</em>.
-        </div>
-
-        {feedback && <p style={{ fontSize: '12px', color: feedback.startsWith('✅') ? 'var(--sage-dark)' : 'var(--rose-text)', background: feedback.startsWith('✅') ? 'var(--sage-xlight)' : 'var(--rose-light)', padding: '9px 11px', borderRadius: 'var(--r-xs)', marginBottom: '10px', lineHeight: 1.5 }}>{feedback}</p>}
-
-        {podeDisparar ? (
-          <button
-            onClick={() => setConfirmOpen(true)}
-            disabled={enviando || itens.length === 0 || !mensagem.trim()}
-            style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '11px', fontSize: '13px', fontWeight: 600, background: 'var(--sage-dark)', color: 'white', border: 'none', borderRadius: 'var(--r-xs)', cursor: 'pointer', fontFamily: 'inherit', opacity: (enviando || itens.length === 0 || !mensagem.trim()) ? 0.5 : 1 }}
-          >
-            {enviando ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />} Enviar para aniversariantes
-          </button>
-        ) : (
-          <p style={{ fontSize: '12px', color: 'var(--muted)', textAlign: 'center', padding: '8px' }}>Você não tem permissão para disparar mensagens.</p>
-        )}
-      </div>
+      <p style={{ fontSize: '11.5px', color: 'var(--muted)', marginTop: '10px', lineHeight: 1.6 }}>
+        A mensagem de parabéns é configurada no fluxo do n8n (webhook de Aniversário). O disparo aciona o n8n, que envia individualmente para cada paciente com intervalo.
+      </p>
 
       {confirmOpen && (
         <div style={modalOverlay} onClick={() => setConfirmOpen(false)}>
@@ -217,7 +240,7 @@ function Aniversariantes() {
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
               <button onClick={() => setConfirmOpen(false)} style={btnGhost}>Cancelar</button>
-              <button onClick={enviar} style={btnPrimary}>Confirmar e enviar</button>
+              <button onClick={enviar} disabled={enviando} style={btnPrimary}>{enviando && <Loader2 size={13} className=”animate-spin” />} Confirmar e enviar</button>
             </div>
           </div>
         </div>

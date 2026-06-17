@@ -30,6 +30,8 @@ export interface ClinicConfig {
   // ETAPA 6C — Eventos (webhooks n8n)
   aniversario_webhook_url?: string | null;
   upgrade_webhook_url?: string | null;
+  // Permissões de abas de Configurações para admins (super_admin define; null = todas liberadas)
+  admin_config_tabs?: string[] | null;
 }
 
 export interface Conversa {

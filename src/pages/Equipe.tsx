@@ -66,6 +66,7 @@ export function Equipe() {
 
   const [updatingRole, setUpdatingRole] = useState<string | null>(null);
   const [savingFlag, setSavingFlag] = useState<string | null>(null);
+  const [savingConfigTab, setSavingConfigTab] = useState(false);
 
   useEffect(() => { load(); }, []);
 
@@ -176,6 +177,33 @@ export function Equipe() {
     setSavingFlag(null);
   }
 
+  // ── Permissões de abas de Configurações para admins ──────────────────────────
+  const CONFIG_TABS = [
+    { id: 'geral', label: 'Geral' },
+    { id: 'agendas', label: 'Agendas (Cal.com)' },
+    { id: 'servicos', label: 'Serviços' },
+    { id: 'kanban', label: 'Kanban' },
+    { id: 'whatsapp', label: 'WhatsApp' },
+    { id: 'webhooks', label: 'Webhooks' },
+    { id: 'kpis', label: 'KPIs & Marketing' },
+  ];
+  const ALL_TAB_IDS = CONFIG_TABS.map(t => t.id);
+  // null = todas liberadas; array = apenas as listadas
+  const currentAllowed: string[] = config?.admin_config_tabs?.length
+    ? config.admin_config_tabs
+    : ALL_TAB_IDS;
+
+  async function toggleConfigTab(tabId: string, allow: boolean) {
+    setSavingConfigTab(true);
+    const updated = allow
+      ? [...currentAllowed.filter(t => t !== tabId), tabId]
+      : currentAllowed.filter(t => t !== tabId);
+    const toSave = updated.length === ALL_TAB_IDS.length ? null : updated;
+    await supabase.from('clinic_config').update({ admin_config_tabs: toSave }).eq('id', 1);
+    await refreshConfig();
+    setSavingConfigTab(false);
+  }
+
   const cardBase = 'rounded-[12px] border border-[var(--border)] bg-[var(--white)] shadow-[0_1px_4px_rgba(4,52,44,0.04)]';
   const divider = <div className="flex-1 h-px" style={{ background: 'var(--border)' }} />;
 
@@ -236,6 +264,44 @@ export function Equipe() {
                 </div>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {/* ── Permissões de Configurações para Administradores (só super_admin) ── */}
+      {isSuperAdmin && (
+        <div>
+          <div className="flex items-center gap-3 mb-4">
+            <span className="text-[10px] font-semibold uppercase tracking-[1.3px] flex-shrink-0 flex items-center gap-1.5" style={{ color: 'var(--muted)' }}>
+              <SlidersHorizontal className="w-3 h-3" /> Abas visíveis para administradores
+            </span>
+            {divider}
+          </div>
+          <div className={cardBase + ' p-4'}>
+            <p className="text-xs mb-3" style={{ color: 'var(--muted)' }}>
+              Defina quais abas de <strong>Configurações</strong> os usuários com papel <em>Administrador</em> podem acessar. O super_admin (Heroic Leap) sempre vê tudo.
+            </p>
+            <div className="space-y-2">
+              {CONFIG_TABS.map(tab => {
+                const allowed = currentAllowed.includes(tab.id);
+                return (
+                  <div key={tab.id} className="flex items-center justify-between gap-3 py-1">
+                    <span className="text-sm" style={{ color: 'var(--ink)' }}>{tab.label}</span>
+                    <button
+                      onClick={() => !savingConfigTab && toggleConfigTab(tab.id, !allowed)}
+                      disabled={savingConfigTab}
+                      className="relative flex-shrink-0 rounded-full transition-colors disabled:opacity-40"
+                      style={{ width: 36, height: 20, background: allowed ? 'var(--sage-dark)' : 'var(--border-md)' }}
+                    >
+                      <span
+                        className="absolute top-[3px] rounded-full bg-white transition-all"
+                        style={{ width: 14, height: 14, left: allowed ? 19 : 3 }}
+                      />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       )}

@@ -43,9 +43,13 @@ function PremiumGate() {
           <Sparkles size={26} style={{ color: 'var(--sage-dark)' }} />
         </div>
         <h2 className="font-display" style={{ fontSize: '21px', fontStyle: 'italic', color: 'var(--ink)', marginBottom: '8px' }}>Experiência Premium</h2>
-        <p style={{ fontSize: '13.5px', color: 'var(--muted)', lineHeight: 1.6, marginBottom: '20px' }}>
-          Um recurso premium da Heroic Leap para elevar o atendimento e a jornada do paciente. Ainda não está liberado para esta clínica.
+        <p style={{ fontSize: '13.5px', color: 'var(--muted)', lineHeight: 1.6, marginBottom: '6px' }}>
+          Automações de acompanhamento pré e pós-consulta da Heroic Leap:
         </p>
+        <ul style={{ fontSize: '12.5px', color: 'var(--muted)', lineHeight: 1.8, marginBottom: '20px', textAlign: 'left', paddingLeft: '20px' }}>
+          <li><strong style={{ color: 'var(--ink)' }}>Pré-consulta</strong> — envio automático de anamnese personalizada ao paciente.</li>
+          <li><strong style={{ color: 'var(--ink)' }}>Pós-consulta</strong> — resumo da consulta + CSAT (2 dias) + Check-in (15 dias) + Evolução (30 dias) + NPS (45 dias) + Reativação (60 e 180 dias).</li>
+        </ul>
         {enviado ? (
           <div style={{ fontSize: '13px', color: 'var(--sage-dark)', background: 'var(--sage-xlight)', borderRadius: 'var(--r-xs)', padding: '12px 14px', lineHeight: 1.5 }}>
             <Sparkles size={14} style={{ verticalAlign: '-2px' }} /> Solicitação enviada à Heroic Leap! Em breve entraremos em contato.

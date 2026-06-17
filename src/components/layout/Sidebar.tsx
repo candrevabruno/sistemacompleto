@@ -9,7 +9,6 @@ import {
   Users,
   ClipboardList,
   Kanban,
-  MessageSquare,
   UsersRound,
   Settings,
   LogOut,
@@ -23,16 +22,15 @@ const NAV_SECTIONS = [
     label: 'Visão Geral',
     links: [
       { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, perm: 'modulo:dashboard' },
-      { to: '/central-agendamentos', label: 'Agenda', icon: CalendarCheck, perm: 'modulo:agenda' },
+      { to: '/crm', label: 'CRM', icon: Kanban, perm: 'modulo:crm' },
+      { to: '/leads', label: 'Inbox Leads', icon: Users, perm: 'modulo:leads' },
     ],
   },
   {
     label: 'Pacientes',
     links: [
-      { to: '/leads', label: 'Leads', icon: Users, perm: 'modulo:leads' },
       { to: '/pacientes', label: 'Pacientes', icon: ClipboardList, perm: 'modulo:pacientes' },
-      { to: '/crm', label: 'CRM Kanban', icon: Kanban, perm: 'modulo:crm' },
-      { to: '/inbox', label: 'Inbox', icon: MessageSquare, perm: 'modulo:inbox' },
+      { to: '/central-agendamentos', label: 'Agenda', icon: CalendarCheck, perm: 'modulo:agenda' },
       { to: '/eventos', label: 'Eventos', icon: Gift, perm: 'feature:eventos' },
     ],
   },
@@ -115,16 +113,13 @@ export function Sidebar() {
               {config?.nome || 'Heroic Leap'}
             </div>
             {config?.subtitulo && (
-              <div style={{ fontSize: '9px', color: 'var(--muted)', letterSpacing: '0.3px', marginTop: '1px' }}>
+              <div
+                className="text-[10px] uppercase tracking-[1.4px] mt-[2px] font-medium truncate"
+                style={{ color: 'var(--muted)' }}
+              >
                 {config.subtitulo}
               </div>
             )}
-            <div
-              className="text-[10px] uppercase tracking-[1.4px] mt-[2px] font-medium truncate"
-              style={{ color: 'var(--muted)' }}
-            >
-              ClinicOS
-            </div>
           </div>
         </div>
       </div>

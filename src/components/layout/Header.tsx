@@ -1,13 +1,13 @@
 import React from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Bell, MessageSquare } from 'lucide-react';
+import { MessageSquare } from 'lucide-react';
 
 const PAGE_TITLES: Record<string, string> = {
   '/crm': 'CRM Kanban',
-  '/leads': 'Leads',
+  '/leads': 'Inbox Leads',
   '/pacientes': 'Pacientes',
   '/inbox': 'Inbox',
   '/central-agendamentos': 'Agenda',
@@ -24,6 +24,7 @@ function getSaudacao(nome: string | undefined | null) {
 
 export function Header() {
   const location = useLocation();
+  const navigate = useNavigate();
   const { user } = useAuth();
 
   const isDashboard = location.pathname === '/dashboard';
@@ -80,32 +81,10 @@ export function Header() {
         </div>
       )}
 
-      {/* Right: action buttons */}
+      {/* Right: inbox shortcut */}
       <div className="flex items-center gap-2">
         <button
-          className="relative flex items-center justify-center rounded-[var(--r-xs)] transition-colors hover:bg-[var(--sage-xlight)]"
-          style={{
-            width: '34px',
-            height: '34px',
-            border: '1px solid var(--border-md)',
-            color: 'var(--muted)',
-          }}
-          title="Notificações"
-        >
-          <Bell style={{ width: '17px', height: '17px' }} />
-          <span
-            className="absolute rounded-full"
-            style={{
-              top: '7px',
-              right: '7px',
-              width: '5px',
-              height: '5px',
-              background: 'var(--sage-dark)',
-              border: '1.5px solid var(--white)',
-            }}
-          />
-        </button>
-        <button
+          onClick={() => navigate('/inbox')}
           className="flex items-center justify-center rounded-[var(--r-xs)] transition-colors hover:bg-[var(--sage-xlight)]"
           style={{
             width: '34px',
@@ -113,7 +92,7 @@ export function Header() {
             border: '1px solid var(--border-md)',
             color: 'var(--muted)',
           }}
-          title="Mensagens"
+          title="Inbox"
         >
           <MessageSquare style={{ width: '17px', height: '17px' }} />
         </button>

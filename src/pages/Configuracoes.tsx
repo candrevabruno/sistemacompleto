@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useClinic } from '../contexts/ClinicContext';
+import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
@@ -8,19 +9,29 @@ import { Badge } from '../components/ui/Badge';
 import { Modal } from '../components/ui/Modal';
 import { Copy, Plus, Trash2, Pencil, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 
-// For simplicity in this giant file, we will put everything here.
+const ALL_TABS = [
+  { id: 'geral', label: 'Geral' },
+  { id: 'agendas', label: 'Agendas (Cal.com)' },
+  { id: 'servicos', label: 'Serviços' },
+  { id: 'kanban', label: 'Kanban' },
+  { id: 'whatsapp', label: 'WhatsApp' },
+  { id: 'webhooks', label: 'Webhooks' },
+  { id: 'kpis', label: 'KPIs & Marketing' },
+];
+
 export function Configuracoes() {
+  const { user } = useAuth();
+  const { config } = useClinic();
   const [activeTab, setActiveTab] = useState('geral');
 
-  const tabs = [
-    { id: 'geral', label: 'Geral' },
-    { id: 'agendas', label: 'Agendas (Cal.com)' },
-    { id: 'servicos', label: 'Serviços' },
-    { id: 'kanban', label: 'Kanban' },
-    { id: 'whatsapp', label: 'WhatsApp' },
-    { id: 'webhooks', label: 'Webhooks' },
-    { id: 'kpis', label: 'KPIs & Marketing' },
-  ];
+  const isSuperAdmin = user?.role === 'super_admin';
+  const isAdmin = user?.role === 'admin';
+
+  // super_admin vê tudo; admin vê somente as abas liberadas (ou todas se nenhuma restrição)
+  const allowedTabIds: string[] = config?.admin_config_tabs?.length
+    ? config.admin_config_tabs
+    : ALL_TABS.map(t => t.id);
+  const tabs = isSuperAdmin ? ALL_TABS : ALL_TABS.filter(t => allowedTabIds.includes(t.id));
 
   return (
     <div className="space-y-6">
@@ -55,40 +66,11 @@ function AbaGeral() {
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
-  const [hours, setHours] = useState<any[]>([]);
-  const [loadingHours, setLoadingHours] = useState(false);
 
   useEffect(() => {
     setNome(config?.nome || 'Heroic Leap');
     setSubtitulo(config?.subtitulo || '');
   }, [config]);
-
-  useEffect(() => {
-    loadHours();
-  }, []);
-
-  const loadHours = async () => {
-    setLoadingHours(true);
-    try {
-      const order = ['domingo', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado'];
-      const { data } = await supabase.from('clinic_hours').select('*');
-      if (data) {
-        if (data.length === 0) {
-          const defaults = order.map(dia => ({ dia, aberto: dia !== 'domingo' && dia !== 'sabado', hora_inicio: '08:00', hora_fim: '18:00' }));
-          const { data: inserted } = await supabase.from('clinic_hours').insert(defaults).select('*');
-          if (inserted) {
-            inserted.sort((a: any, b: any) => order.indexOf(a.dia) - order.indexOf(b.dia));
-            setHours(inserted);
-          }
-        } else {
-          data.sort((a,b) => order.indexOf(a.dia) - order.indexOf(b.dia));
-          setHours(data);
-        }
-      }
-    } finally {
-      setLoadingHours(false);
-    }
-  };
 
   const saveGeral = async () => {
     setLoading(true);
@@ -116,20 +98,6 @@ function AbaGeral() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const saveHours = async () => {
-    setLoadingHours(true);
-    for (const h of hours) {
-      await supabase.from('clinic_hours').update({ aberto: h.aberto, hora_inicio: h.hora_inicio, hora_fim: h.hora_fim }).eq('id', h.id);
-    }
-    setLoadingHours(false);
-    alert('Horários salvos!');
-  };
-
-  const diasPT: Record<string, string> = {
-    domingo: 'Domingo', segunda: 'Segunda-feira', terca: 'Terça-feira',
-    quarta: 'Quarta-feira', quinta: 'Quinta-feira', sexta: 'Sexta-feira', sabado: 'Sábado'
   };
 
   return (
@@ -190,67 +158,6 @@ function AbaGeral() {
           </div>
 
           <Button onClick={saveGeral} loading={loading}>Salvar alterações</Button>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader><CardTitle>Horário de Funcionamento</CardTitle></CardHeader>
-        <CardContent>
-          {loadingHours ? (
-            <p className="text-sm text-[var(--muted)] py-4">Carregando horários...</p>
-          ) : (
-            <div className="divide-y divide-[var(--border)]">
-              {hours.map((h, i) => (
-                <div key={h.id} className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 py-4 sm:py-3">
-                  <div className="flex items-center justify-between w-full sm:w-auto">
-                    {/* Dia */}
-                    <div className="w-32 sm:w-36 text-sm font-medium text-[var(--ink)]">
-                      {diasPT[h.dia] || h.dia}
-                    </div>
-
-                    {/* Toggle Aberto/Fechado */}
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => {
-                          const newH = [...hours]; newH[i].aberto = !newH[i].aberto; setHours(newH);
-                        }}
-                        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 focus:outline-none flex-shrink-0 ${h.aberto ? 'bg-[var(--sage-dark)]' : 'bg-gray-300'}`}
-                      >
-                        <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform duration-200 ${h.aberto ? 'translate-x-4' : 'translate-x-1'}`} />
-                      </button>
-                      <span className={`text-xs w-14 ${h.aberto ? 'text-[var(--sage-dark)] font-medium' : 'text-[var(--muted)]'}`}>
-                        {h.aberto ? 'Aberto' : 'Fechado'}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Horários */}
-                  {h.aberto ? (
-                    <div className="flex items-center gap-2 w-full sm:flex-1 mt-1 sm:mt-0 justify-between sm:justify-start">
-                      <input
-                        type="time"
-                        value={h.hora_inicio || '08:00'}
-                        onChange={e => { const newH = [...hours]; newH[i].hora_inicio = e.target.value; setHours(newH); }}
-                        className="border border-[var(--border)] flex-1 sm:flex-none w-full sm:w-auto rounded-lg px-2 sm:px-3 py-1.5 text-sm text-[var(--ink)] bg-white focus:outline-none focus:border-[var(--sage-dark)] transition-colors"
-                      />
-                      <span className="text-sm text-[var(--muted)]">até</span>
-                      <input
-                        type="time"
-                        value={h.hora_fim || '18:00'}
-                        onChange={e => { const newH = [...hours]; newH[i].hora_fim = e.target.value; setHours(newH); }}
-                        className="border border-[var(--border)] flex-1 sm:flex-none w-full sm:w-auto rounded-lg px-2 sm:px-3 py-1.5 text-sm text-[var(--ink)] bg-white focus:outline-none focus:border-[var(--sage-dark)] transition-colors"
-                      />
-                    </div>
-                  ) : (
-                    <span className="text-sm text-[var(--muted)] italic mt-1 sm:mt-0">Não atende neste dia</span>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-          <div className="pt-4 border-t border-[var(--border)] mt-2">
-            <Button onClick={saveHours} loading={loadingHours}>Salvar horários</Button>
-          </div>
         </CardContent>
       </Card>
     </div>
