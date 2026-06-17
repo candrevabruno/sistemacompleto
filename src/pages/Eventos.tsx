@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import { useClinic } from '../contexts/ClinicContext';
 import { useAuth } from '../contexts/AuthContext';
 import {
-  Gift, Cake, Megaphone, Send, Archive, Plus, Loader2, Lock, Sparkles, X, RotateCcw, Calendar,
+  Gift, Cake, Megaphone, Send, Archive, Plus, Loader2, Lock, Sparkles, X, RotateCcw, Calendar, Pencil, Trash2, AlertTriangle,
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -182,11 +182,13 @@ function Aniversariantes() {
           value={mensagem}
           onChange={e => setMensagem(e.target.value)}
           placeholder={'Ex: Feliz aniversário, {nome}! 🎉 Para comemorar, você tem 15% de desconto em qualquer procedimento neste mês.'}
-          rows={6}
-          style={{ ...inp, resize: 'vertical', minHeight: '110px', lineHeight: 1.5 }}
+          rows={11}
+          style={{ ...inp, resize: 'vertical', minHeight: '200px', lineHeight: 1.55 }}
           disabled={!podeDisparar}
         />
-        <p style={{ fontSize: '10.5px', color: 'var(--muted)', margin: '6px 0 12px' }}>Use <code style={{ background: 'var(--bg)', padding: '1px 4px', borderRadius: '3px' }}>{'{nome}'}</code> para personalizar com o nome do paciente.</p>
+        <div style={{ fontSize: '11px', color: 'var(--muted)', margin: '8px 0 12px', lineHeight: 1.55, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r-xs)', padding: '9px 11px' }}>
+          💡 <strong>Não escreva o nome do paciente.</strong> Escreva <code style={{ background: 'var(--white)', border: '1px solid var(--border-md)', padding: '1px 5px', borderRadius: '3px', fontWeight: 600 }}>{'{nome}'}</code> (exatamente assim, com as chaves) onde quiser que o nome apareça — o sistema troca automaticamente pelo nome de cada paciente no envio. Ex.: <em>“Feliz aniversário, {'{nome}'}!”</em> chega como <em>“Feliz aniversário, Maria!”</em>.
+        </div>
 
         {feedback && <p style={{ fontSize: '12px', color: feedback.startsWith('✅') ? 'var(--sage-dark)' : 'var(--rose-text)', background: feedback.startsWith('✅') ? 'var(--sage-xlight)' : 'var(--rose-light)', padding: '9px 11px', borderRadius: 'var(--r-xs)', marginBottom: '10px', lineHeight: 1.5 }}>{feedback}</p>}
 
@@ -232,6 +234,8 @@ function AcoesDoMes() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editando, setEditando] = useState<any>(null);
+  const [confirmDel, setConfirmDel] = useState<any>(null);
+  const [apagando, setApagando] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -249,6 +253,13 @@ function AcoesDoMes() {
     load();
   };
   const reutilizar = (c: any) => { setEditando({ titulo: c.titulo, oferta: c.oferta, descricao: c.descricao, data_inicio: '', data_fim: '', _reuse: true }); setShowForm(true); };
+  const apagar = async () => {
+    if (!confirmDel) return;
+    setApagando(true);
+    await supabase.from('clinic_campaigns').delete().eq('id', confirmDel.id);
+    setApagando(false); setConfirmDel(null);
+    load();
+  };
 
   return (
     <div style={{ maxWidth: '760px' }}>
@@ -265,13 +276,31 @@ function AcoesDoMes() {
         <div style={{ padding: '48px', textAlign: 'center', color: 'var(--muted)' }}><Loader2 size={18} className="animate-spin" /></div>
       ) : (
         <>
-          <SecaoCampanhas titulo="Ativas" itens={ativas} vazio="Nenhuma campanha ativa." podeEditar={podeEditar} onArquivar={arquivar} onReutilizar={reutilizar} onEditar={(c: any) => { setEditando(c); setShowForm(true); }} />
+          <SecaoCampanhas titulo="Ativas" itens={ativas} vazio="Nenhuma campanha ativa." podeEditar={podeEditar} onArquivar={arquivar} onApagar={setConfirmDel} onEditar={(c: any) => { setEditando(c); setShowForm(true); }} />
           {arquivadas.length > 0 && (
             <div style={{ marginTop: '24px' }}>
-              <SecaoCampanhas titulo="Arquivadas" itens={arquivadas} vazio="" arquivada podeEditar={podeEditar} onReutilizar={reutilizar} />
+              <SecaoCampanhas titulo="Arquivadas" itens={arquivadas} vazio="" arquivada podeEditar={podeEditar} onReutilizar={reutilizar} onApagar={setConfirmDel} />
             </div>
           )}
         </>
+      )}
+
+      {confirmDel && (
+        <div style={modalOverlay} onClick={() => !apagando && setConfirmDel(null)}>
+          <div onClick={e => e.stopPropagation()} style={{ ...modalBox, maxWidth: '400px' }}>
+            <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
+              <div style={{ flexShrink: 0, width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', background: 'var(--rose-light)', color: 'var(--rose-text)' }}><AlertTriangle size={16} /></div>
+              <div>
+                <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--ink)' }}>Apagar "{confirmDel.titulo}"?</p>
+                <p style={{ fontSize: '12.5px', color: 'var(--muted)', marginTop: '4px', lineHeight: 1.5 }}>Esta ação é permanente. Se quiser manter para histórico/reuso, use Arquivar.</p>
+              </div>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+              <button onClick={() => setConfirmDel(null)} disabled={apagando} style={btnGhost}>Cancelar</button>
+              <button onClick={apagar} disabled={apagando} style={{ ...btnPrimary, background: 'var(--rose-text)' }}>{apagando && <Loader2 size={13} className="animate-spin" />} Apagar</button>
+            </div>
+          </div>
+        </div>
       )}
 
       {showForm && podeEditar && (
@@ -286,7 +315,7 @@ function AcoesDoMes() {
   );
 }
 
-function SecaoCampanhas({ titulo, itens, vazio, arquivada, podeEditar, onArquivar, onReutilizar, onEditar }: any) {
+function SecaoCampanhas({ titulo, itens, vazio, arquivada, podeEditar, onArquivar, onReutilizar, onEditar, onApagar }: any) {
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
@@ -315,9 +344,10 @@ function SecaoCampanhas({ titulo, itens, vazio, arquivada, podeEditar, onArquiva
                 </div>
                 {podeEditar && (
                   <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
-                    {!arquivada && <button onClick={() => onEditar(c)} title="Editar" style={miniBtn}>✎</button>}
+                    {!arquivada && <button onClick={() => onEditar(c)} title="Editar" style={miniBtn}><Pencil size={13} /></button>}
                     {!arquivada && <button onClick={() => onArquivar(c)} title="Arquivar" style={miniBtn}><Archive size={14} /></button>}
-                    <button onClick={() => onReutilizar(c)} title="Reutilizar" style={miniBtn}><RotateCcw size={14} /></button>
+                    {arquivada && <button onClick={() => onReutilizar(c)} title="Reutilizar" style={miniBtn}><RotateCcw size={14} /></button>}
+                    <button onClick={() => onApagar(c)} title="Apagar" style={{ ...miniBtn, color: 'var(--rose-text)' }}><Trash2 size={14} /></button>
                   </div>
                 )}
               </div>
