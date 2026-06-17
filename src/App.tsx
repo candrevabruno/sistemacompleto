@@ -12,6 +12,7 @@ import { Configuracoes } from './pages/Configuracoes';
 import { Inbox } from './pages/Inbox';
 import { Pacientes } from './pages/Pacientes';
 import { Equipe } from './pages/Equipe';
+import { Eventos } from './pages/Eventos';
 import { AceitarConvite } from './pages/AceitarConvite';
 import { PERM_ITEMS } from './lib/permissions';
 
@@ -58,6 +59,7 @@ export function App() {
                 <Route path="/inbox" element={<PermRoute perm="modulo:inbox"><Inbox /></PermRoute>} />
                 <Route path="/pacientes" element={<PermRoute perm="modulo:pacientes"><Pacientes /></PermRoute>} />
                 <Route path="/equipe" element={<PermRoute perm="modulo:equipe"><Equipe /></PermRoute>} />
+                <Route path="/eventos" element={<PermRoute perm="feature:eventos"><Eventos /></PermRoute>} />
                 <Route path="/configuracoes" element={<PermRoute perm="modulo:configuracoes"><Configuracoes /></PermRoute>} />
               </Route>
             </Routes>

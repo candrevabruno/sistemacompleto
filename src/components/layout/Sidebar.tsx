@@ -15,6 +15,7 @@ import {
   LogOut,
   Menu,
   X,
+  Gift,
 } from 'lucide-react';
 
 const NAV_SECTIONS = [
@@ -32,6 +33,7 @@ const NAV_SECTIONS = [
       { to: '/pacientes', label: 'Pacientes', icon: ClipboardList, perm: 'modulo:pacientes' },
       { to: '/crm', label: 'CRM Kanban', icon: Kanban, perm: 'modulo:crm' },
       { to: '/inbox', label: 'Inbox', icon: MessageSquare, perm: 'modulo:inbox' },
+      { to: '/eventos', label: 'Eventos', icon: Gift, perm: 'feature:eventos' },
     ],
   },
   {

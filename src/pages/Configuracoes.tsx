@@ -660,6 +660,12 @@ function AbaWhatsApp() {
   const [notaModalOpen, setNotaModalOpen] = useState(false);
   const [notaSaving, setNotaSaving] = useState(false);
 
+  // ETAPA 6C — Webhooks de Eventos (aniversário + upgrade Heroic Leap)
+  const [aniversarioWebhook, setAniversarioWebhook] = useState(config?.aniversario_webhook_url || '');
+  const [upgradeWebhook, setUpgradeWebhook] = useState(config?.upgrade_webhook_url || '');
+  const [eventosModalOpen, setEventosModalOpen] = useState(false);
+  const [eventosSaving, setEventosSaving] = useState(false);
+
   // Modal de credenciais + URL gerada
   const [credModalOpen, setCredModalOpen] = useState(false);
   const [webhookGerada, setWebhookGerada] = useState(false);
@@ -729,6 +735,8 @@ function AbaWhatsApp() {
       setEvoServerUrl(config.evolution_server_url || '');
       setEvoInstance(config.evolution_instance_name || '');
       setNotaWebhook(config.nota_webhook_url || '');
+      setAniversarioWebhook(config.aniversario_webhook_url || '');
+      setUpgradeWebhook(config.upgrade_webhook_url || '');
     }
   }, [config]);
 
@@ -793,6 +801,16 @@ function AbaWhatsApp() {
     if (error) { alert('Erro ao salvar: ' + error.message); return; }
     await refreshConfig();
     setNotaModalOpen(false);
+  };
+
+  const salvarEventos = async () => {
+    setEventosSaving(true);
+    const { error } = await supabase.from('clinic_config')
+      .update({ aniversario_webhook_url: aniversarioWebhook || null, upgrade_webhook_url: upgradeWebhook || null }).eq('id', 1);
+    setEventosSaving(false);
+    if (error) { alert('Erro ao salvar: ' + error.message); return; }
+    await refreshConfig();
+    setEventosModalOpen(false);
   };
 
   return (
@@ -987,6 +1005,28 @@ function AbaWhatsApp() {
         </CardContent>
       </Card>
 
+      {/* ETAPA 6C — Webhooks do módulo Eventos */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle>Webhooks — Eventos</CardTitle>
+            <button
+              onClick={() => setEventosModalOpen(true)}
+              className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-[8px] border border-[var(--border-md)] hover:bg-[var(--bg)] transition-colors text-[var(--ink)]"
+            >
+              <Pencil className="w-3.5 h-3.5" /> Editar
+            </button>
+          </div>
+          <p className="text-sm text-[var(--muted)] mt-1">
+            <strong>Aniversário:</strong> recebe a lista de aniversariantes + a mensagem para o n8n disparar um a um. <strong>Upgrade:</strong> notifica a Heroic Leap quando uma clínica sem o módulo pede para liberar.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <MaskedRow label="Webhook de Aniversário (n8n)" value={aniversarioWebhook} />
+          <MaskedRow label="Webhook de Upgrade (Heroic Leap)" value={upgradeWebhook} />
+        </CardContent>
+      </Card>
+
       {/* ── Modal: credenciais do provedor ── */}
       <Modal
         isOpen={credModalOpen}
@@ -1044,6 +1084,27 @@ function AbaWhatsApp() {
           />
           <Button className="w-full" loading={notaSaving} onClick={salvarNota}>
             Salvar webhook
+          </Button>
+        </div>
+      </Modal>
+
+      {/* ── Modal: webhooks de Eventos ── */}
+      <Modal isOpen={eventosModalOpen} onClose={() => setEventosModalOpen(false)} title="Webhooks — Eventos">
+        <div className="space-y-4">
+          <Input
+            label="Webhook de Aniversário (n8n)"
+            placeholder="Ex: https://n8n.seudominio.com/webhook/aniversario"
+            value={aniversarioWebhook}
+            onChange={e => setAniversarioWebhook(e.target.value)}
+          />
+          <Input
+            label="Webhook de Upgrade — Heroic Leap"
+            placeholder="Ex: https://n8n.heroicleap.com/webhook/upgrade-eventos"
+            value={upgradeWebhook}
+            onChange={e => setUpgradeWebhook(e.target.value)}
+          />
+          <Button className="w-full" loading={eventosSaving} onClick={salvarEventos}>
+            Salvar webhooks
           </Button>
         </div>
       </Modal>
