@@ -154,7 +154,7 @@ function Aniversariantes() {
         <div style={{ flex: 1, minWidth: 0 }}>
           {disparadoEsteMes ? (
             <span style={{ fontSize: '12.5px', color: 'var(--sage-dark)', fontWeight: 600 }}>
-              Disparado em {format(new Date(dispatch!.enviado_em!), “dd/MM/yyyy 'às' HH:mm”, { locale: ptBR })}
+              Disparado em {format(new Date(dispatch!.enviado_em!), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
               {dispatch!.total != null ? ` — ${dispatch!.total} paciente${dispatch!.total !== 1 ? 's' : ''}` : ''}
             </span>
           ) : (
@@ -166,7 +166,7 @@ function Aniversariantes() {
         <button
           onClick={atualizar}
           disabled={atualizando}
-          title=”Atualizar status”
+          title="Atualizar status"
           style={{ flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', padding: '4px', display: 'flex' }}
         >
           <RefreshCw size={14} className={atualizando ? 'animate-spin' : ''} />
@@ -182,7 +182,7 @@ function Aniversariantes() {
         </div>
 
         {loading ? (
-          <div style={{ padding: '48px', textAlign: 'center', color: 'var(--muted)' }}><Loader2 size={18} className=”animate-spin” /></div>
+          <div style={{ padding: '48px', textAlign: 'center', color: 'var(--muted)' }}><Loader2 size={18} className="animate-spin" /></div>
         ) : itens.length === 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '56px', gap: '8px' }}>
             <Cake size={36} style={{ opacity: 0.2, color: 'var(--muted)' }} />
@@ -200,7 +200,7 @@ function Aniversariantes() {
                   <div style={{ fontSize: '11.5px', color: 'var(--muted)' }}>{l.whatsapp_lead || 'sem WhatsApp'}</div>
                 </div>
                 {disparadoEsteMes && (
-                  <CheckCircle2 size={15} style={{ color: 'var(--sage-dark)', opacity: 0.6, flexShrink: 0 }} title=”Mensagem enviada este mês” />
+                  <span title="Mensagem enviada este mês" style={{ display: 'flex', flexShrink: 0 }}><CheckCircle2 size={15} style={{ color: 'var(--sage-dark)', opacity: 0.6 }} /></span>
                 )}
               </div>
             ))}
