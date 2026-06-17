@@ -92,7 +92,7 @@ function UpgradeGate() {
             <button onClick={solicitar} disabled={busy} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '11px 22px', fontSize: '13px', fontWeight: 600, background: 'var(--sage-dark)', color: 'white', border: 'none', borderRadius: 'var(--r-xs)', cursor: 'pointer', fontFamily: 'inherit', opacity: busy ? 0.6 : 1 }}>
               {busy && <Loader2 size={14} className="animate-spin" />} Solicitar liberação
             </button>
-            <p style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '12px' }}>Avisaremos a Heroic Leap no WhatsApp sobre seu interesse.</p>
+            <p style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '12px' }}>Avisaremos a Heroic Leap por e-mail sobre seu interesse.</p>
           </>
         )}
       </div>

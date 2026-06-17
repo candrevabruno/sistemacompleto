@@ -18,6 +18,7 @@ export function Configuracoes() {
     { id: 'servicos', label: 'Serviços' },
     { id: 'kanban', label: 'Kanban' },
     { id: 'whatsapp', label: 'WhatsApp' },
+    { id: 'webhooks', label: 'Webhooks' },
     { id: 'kpis', label: 'KPIs & Marketing' },
   ];
 
@@ -40,6 +41,7 @@ export function Configuracoes() {
         {activeTab === 'servicos' && <AbaServicos />}
         {activeTab === 'kanban' && <AbaKanban />}
         {activeTab === 'whatsapp' && <AbaWhatsApp />}
+        {activeTab === 'webhooks' && <AbaWebhooks />}
         {activeTab === 'kpis' && <AbaKpis />}
       </div>
     </div>
@@ -655,17 +657,6 @@ function AbaWhatsApp() {
   const [evoApiKey, setEvoApiKey] = useState('');
   const [evoInstance, setEvoInstance] = useState(config?.evolution_instance_name || '');
 
-  // Webhook Resumo Pós-Consulta (antigo "Nota Médica")
-  const [notaWebhook, setNotaWebhook] = useState(config?.nota_webhook_url || '');
-  const [notaModalOpen, setNotaModalOpen] = useState(false);
-  const [notaSaving, setNotaSaving] = useState(false);
-
-  // ETAPA 6C — Webhooks de Eventos (aniversário + upgrade Heroic Leap)
-  const [aniversarioWebhook, setAniversarioWebhook] = useState(config?.aniversario_webhook_url || '');
-  const [upgradeWebhook, setUpgradeWebhook] = useState(config?.upgrade_webhook_url || '');
-  const [eventosModalOpen, setEventosModalOpen] = useState(false);
-  const [eventosSaving, setEventosSaving] = useState(false);
-
   // Modal de credenciais + URL gerada
   const [credModalOpen, setCredModalOpen] = useState(false);
   const [webhookGerada, setWebhookGerada] = useState(false);
@@ -734,9 +725,6 @@ function AbaWhatsApp() {
       setMetaBusinessId(config.meta_business_account_id || '');
       setEvoServerUrl(config.evolution_server_url || '');
       setEvoInstance(config.evolution_instance_name || '');
-      setNotaWebhook(config.nota_webhook_url || '');
-      setAniversarioWebhook(config.aniversario_webhook_url || '');
-      setUpgradeWebhook(config.upgrade_webhook_url || '');
     }
   }, [config]);
 
@@ -791,26 +779,6 @@ function AbaWhatsApp() {
     await refreshConfig();
     await fetchSensitiveConfig();
     setWebhookGerada(true); // mostra a URL de webhook para copiar
-  };
-
-  const salvarNota = async () => {
-    setNotaSaving(true);
-    const { error } = await supabase.from('clinic_config')
-      .update({ nota_webhook_url: notaWebhook || null }).eq('id', 1);
-    setNotaSaving(false);
-    if (error) { alert('Erro ao salvar: ' + error.message); return; }
-    await refreshConfig();
-    setNotaModalOpen(false);
-  };
-
-  const salvarEventos = async () => {
-    setEventosSaving(true);
-    const { error } = await supabase.from('clinic_config')
-      .update({ aniversario_webhook_url: aniversarioWebhook || null, upgrade_webhook_url: upgradeWebhook || null }).eq('id', 1);
-    setEventosSaving(false);
-    if (error) { alert('Erro ao salvar: ' + error.message); return; }
-    await refreshConfig();
-    setEventosModalOpen(false);
   };
 
   return (
@@ -984,49 +952,6 @@ function AbaWhatsApp() {
         </Card>
       )}
 
-      {/* Webhook Resumo Pós-Consulta (item 3) — mascarado + Editar */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Webhook — Resumo Pós-Consulta</CardTitle>
-            <button
-              onClick={() => setNotaModalOpen(true)}
-              className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-[8px] border border-[var(--border-md)] hover:bg-[var(--bg)] transition-colors text-[var(--ink)]"
-            >
-              <Pencil className="w-3.5 h-3.5" /> Editar
-            </button>
-          </div>
-          <p className="text-sm text-[var(--muted)] mt-1">
-            Quando o profissional autorizado salvar o resumo pós-consulta no perfil do paciente, este webhook é disparado para o n8n. A IA lê o resumo e envia a mensagem ao paciente via WhatsApp.
-          </p>
-        </CardHeader>
-        <CardContent>
-          <MaskedRow label="URL do Webhook (n8n)" value={notaWebhook} />
-        </CardContent>
-      </Card>
-
-      {/* ETAPA 6C — Webhooks do módulo Eventos */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Webhooks — Eventos</CardTitle>
-            <button
-              onClick={() => setEventosModalOpen(true)}
-              className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-[8px] border border-[var(--border-md)] hover:bg-[var(--bg)] transition-colors text-[var(--ink)]"
-            >
-              <Pencil className="w-3.5 h-3.5" /> Editar
-            </button>
-          </div>
-          <p className="text-sm text-[var(--muted)] mt-1">
-            <strong>Aniversário:</strong> recebe a lista de aniversariantes + a mensagem para o n8n disparar um a um. <strong>Upgrade:</strong> notifica a Heroic Leap quando uma clínica sem o módulo pede para liberar.
-          </p>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <MaskedRow label="Webhook de Aniversário (n8n)" value={aniversarioWebhook} />
-          <MaskedRow label="Webhook de Upgrade (Heroic Leap)" value={upgradeWebhook} />
-        </CardContent>
-      </Card>
-
       {/* ── Modal: credenciais do provedor ── */}
       <Modal
         isOpen={credModalOpen}
@@ -1073,39 +998,85 @@ function AbaWhatsApp() {
         )}
       </Modal>
 
-      {/* ── Modal: webhook Resumo Pós-Consulta ── */}
-      <Modal isOpen={notaModalOpen} onClose={() => setNotaModalOpen(false)} title="Webhook — Resumo Pós-Consulta">
-        <div className="space-y-4">
-          <Input
-            label="URL do Webhook (n8n)"
-            placeholder="Ex: https://n8n.seudominio.com/webhook/resumo-paciente"
-            value={notaWebhook}
-            onChange={e => setNotaWebhook(e.target.value)}
-          />
-          <Button className="w-full" loading={notaSaving} onClick={salvarNota}>
-            Salvar webhook
-          </Button>
-        </div>
-      </Modal>
+    </div>
+  );
+}
 
-      {/* ── Modal: webhooks de Eventos ── */}
-      <Modal isOpen={eventosModalOpen} onClose={() => setEventosModalOpen(false)} title="Webhooks — Eventos">
+// ── AbaWebhooks ──────────────────────────────────────────────────────────────
+// Integrações via n8n, separadas da aba WhatsApp (evita confusão). Cada item
+// abre um popup próprio para editar.
+function AbaWebhooks() {
+  const { config, refreshConfig } = useClinic();
+  const [editando, setEditando] = useState<null | 'nota' | 'aniversario' | 'upgrade'>(null);
+  const [valor, setValor] = useState('');
+  const [salvando, setSalvando] = useState(false);
+
+  const itens = [
+    {
+      key: 'nota' as const, campo: 'nota_webhook_url',
+      titulo: 'Resumo Pós-Consulta',
+      desc: 'Quando o profissional salva o resumo pós-consulta no perfil do paciente, dispara para o n8n — a IA lê e envia a mensagem ao paciente.',
+      valor: config?.nota_webhook_url || '', placeholder: 'https://n8n.seudominio.com/webhook/resumo-paciente',
+      label: 'URL do Webhook (n8n)',
+    },
+    {
+      key: 'aniversario' as const, campo: 'aniversario_webhook_url',
+      titulo: 'Aniversário (Eventos)',
+      desc: 'Recebe a lista de aniversariantes + a mensagem para o n8n disparar um a um pelo WhatsApp.',
+      valor: config?.aniversario_webhook_url || '', placeholder: 'https://n8n.seudominio.com/webhook/aniversario',
+      label: 'URL do Webhook (n8n)',
+    },
+    {
+      key: 'upgrade' as const, campo: 'upgrade_webhook_url',
+      titulo: 'Notificação de upgrade — Heroic Leap (e-mail)',
+      desc: 'Quando uma clínica sem o módulo Eventos pede para liberar, envia um e-mail à Heroic Leap (via fluxo de e-mail do n8n). Configurado pela Heroic Leap.',
+      valor: config?.upgrade_webhook_url || '', placeholder: 'https://n8n.heroicleap.com/webhook/upgrade-eventos',
+      label: 'URL do fluxo de e-mail (n8n)',
+    },
+  ];
+
+  const abrir = (it: typeof itens[number]) => { setValor(it.valor); setEditando(it.key); };
+  const atual = itens.find(i => i.key === editando);
+
+  const salvar = async () => {
+    if (!atual) return;
+    setSalvando(true);
+    const { error } = await supabase.from('clinic_config').update({ [atual.campo]: valor || null }).eq('id', 1);
+    setSalvando(false);
+    if (error) { alert('Erro ao salvar: ' + error.message); return; }
+    await refreshConfig();
+    setEditando(null);
+  };
+
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-[var(--muted)]">
+        Integrações com o n8n. Clique em <strong>Editar</strong> para configurar cada uma.
+      </p>
+      {itens.map(it => (
+        <Card key={it.key}>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>{it.titulo}</CardTitle>
+              <button
+                onClick={() => abrir(it)}
+                className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-[8px] border border-[var(--border-md)] hover:bg-[var(--bg)] transition-colors text-[var(--ink)]"
+              >
+                <Pencil className="w-3.5 h-3.5" /> Editar
+              </button>
+            </div>
+            <p className="text-sm text-[var(--muted)] mt-1">{it.desc}</p>
+          </CardHeader>
+          <CardContent>
+            <MaskedRow label={it.label} value={it.valor} />
+          </CardContent>
+        </Card>
+      ))}
+
+      <Modal isOpen={!!editando} onClose={() => setEditando(null)} title={atual?.titulo || ''}>
         <div className="space-y-4">
-          <Input
-            label="Webhook de Aniversário (n8n)"
-            placeholder="Ex: https://n8n.seudominio.com/webhook/aniversario"
-            value={aniversarioWebhook}
-            onChange={e => setAniversarioWebhook(e.target.value)}
-          />
-          <Input
-            label="Webhook de Upgrade — Heroic Leap"
-            placeholder="Ex: https://n8n.heroicleap.com/webhook/upgrade-eventos"
-            value={upgradeWebhook}
-            onChange={e => setUpgradeWebhook(e.target.value)}
-          />
-          <Button className="w-full" loading={eventosSaving} onClick={salvarEventos}>
-            Salvar webhooks
-          </Button>
+          <Input label={atual?.label || 'URL'} placeholder={atual?.placeholder} value={valor} onChange={e => setValor(e.target.value)} />
+          <Button className="w-full" loading={salvando} onClick={salvar}>Salvar</Button>
         </div>
       </Modal>
     </div>

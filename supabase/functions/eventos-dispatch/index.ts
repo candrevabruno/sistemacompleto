@@ -23,7 +23,7 @@ Deno.serve(async (req: Request) => {
     try { if (parseJwt(auth.slice(7)).role !== 'authenticated') return json({ error: 'Unauthorized' }, 401); }
     catch { return json({ error: 'Unauthorized' }, 401); }
 
-    const { action, mensagem, pacientes, solicitante } = await req.json();
+    const { action, mensagem, pacientes, solicitante, recurso } = await req.json();
     const db = createAdminClient();
     const { data: cfg } = await db.from('clinic_config')
       .select('nome, aniversario_webhook_url, upgrade_webhook_url, whatsapp_provider')
@@ -54,7 +54,7 @@ Deno.serve(async (req: Request) => {
           const res = await fetch(cfg.upgrade_webhook_url, {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              tipo: 'upgrade_eventos', clinica: cfg.nome || null,
+              tipo: 'upgrade', recurso: recurso || 'eventos', clinica: cfg.nome || null,
               solicitante: solicitante || null, solicitado_em: new Date().toISOString(),
             }),
           });

@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useClinic } from '../contexts/ClinicContext';
-import { Search, Users, MessageSquare, CalendarPlus, ClipboardList, ExternalLink, Check, X, Clock, Loader2, Upload, UserPlus, MoreVertical, Archive, ArchiveRestore, Trash2, AlertTriangle } from 'lucide-react';
+import { Search, Users, MessageSquare, CalendarPlus, ClipboardList, ExternalLink, Check, X, Clock, Loader2, Upload, UserPlus, MoreVertical, Archive, ArchiveRestore, Trash2, AlertTriangle, Sparkles } from 'lucide-react';
 import { DadosTab } from '../components/pacientes/DadosTab';
 import { ConsultasTab } from '../components/pacientes/ConsultasTab';
 import { ProcedimentosTab } from '../components/pacientes/ProcedimentosTab';
@@ -15,6 +15,54 @@ import { ImportarPacientesModal } from '../components/pacientes/ImportarPaciente
 import { NovoPacienteModal } from '../components/pacientes/NovoPacienteModal';
 
 type Tab = 'dados' | 'consultas' | 'procedimentos' | 'comportamento' | 'profissional' | 'premium';
+
+// Mostrado quando a Experiência Premium ainda não foi liberada pela Heroic Leap
+// (mesmo padrão da tela de upgrade do módulo Eventos — não some, mostra a mensagem).
+function PremiumGate() {
+  const { user } = useAuth();
+  const [busy, setBusy] = useState(false);
+  const [enviado, setEnviado] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+
+  const solicitar = async () => {
+    setBusy(true); setErro(null);
+    try {
+      const { data, error } = await supabase.functions.invoke('eventos-dispatch', {
+        body: { action: 'upgrade', recurso: 'premium', solicitante: user?.nome || user?.email || null },
+      });
+      if (error || data?.error) { setErro(data?.error || error?.message || 'Falha ao enviar.'); setBusy(false); return; }
+      setEnviado(true);
+    } catch (e: any) { setErro(e?.message || 'Falha ao enviar.'); }
+    setBusy(false);
+  };
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 16px' }}>
+      <div style={{ maxWidth: '440px', textAlign: 'center', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: '16px', padding: '36px 30px', boxShadow: 'var(--shadow)' }}>
+        <div style={{ width: '58px', height: '58px', borderRadius: '50%', background: 'var(--sage-xlight)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+          <Sparkles size={26} style={{ color: 'var(--sage-dark)' }} />
+        </div>
+        <h2 className="font-display" style={{ fontSize: '21px', fontStyle: 'italic', color: 'var(--ink)', marginBottom: '8px' }}>Experiência Premium</h2>
+        <p style={{ fontSize: '13.5px', color: 'var(--muted)', lineHeight: 1.6, marginBottom: '20px' }}>
+          Um recurso premium da Heroic Leap para elevar o atendimento e a jornada do paciente. Ainda não está liberado para esta clínica.
+        </p>
+        {enviado ? (
+          <div style={{ fontSize: '13px', color: 'var(--sage-dark)', background: 'var(--sage-xlight)', borderRadius: 'var(--r-xs)', padding: '12px 14px', lineHeight: 1.5 }}>
+            <Sparkles size={14} style={{ verticalAlign: '-2px' }} /> Solicitação enviada à Heroic Leap! Em breve entraremos em contato.
+          </div>
+        ) : (
+          <>
+            {erro && <p style={{ fontSize: '12px', color: 'var(--rose-text)', background: 'var(--rose-light)', padding: '8px 11px', borderRadius: 'var(--r-xs)', marginBottom: '12px' }}>{erro}</p>}
+            <button onClick={solicitar} disabled={busy} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '11px 22px', fontSize: '13px', fontWeight: 600, background: 'var(--sage-dark)', color: 'white', border: 'none', borderRadius: 'var(--r-xs)', cursor: 'pointer', fontFamily: 'inherit', opacity: busy ? 0.6 : 1 }}>
+              {busy && <Loader2 size={14} className="animate-spin" />} Solicitar liberação
+            </button>
+            <p style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '12px' }}>Avisaremos a Heroic Leap por e-mail sobre seu interesse.</p>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
 
 function getIniciais(nome: string | null | undefined): string {
   if (!nome) return '?';
@@ -28,7 +76,8 @@ export function Pacientes() {
   // Importação de pacientes exige poder editar o módulo.
   const canImport = canEdit('modulo:pacientes');
   const canProfissional = can('paciente_tab:profissional');
-  const canPremium = Boolean(config?.premium_enabled) && can('feature:premium');
+  const canPremium = can('feature:premium');                 // tem permissão de ver a aba
+  const premiumLiberado = Boolean(config?.premium_enabled);  // Heroic Leap liberou o recurso
 
   const [leads, setLeads] = useState<any[]>([]);
   const [leadSelecionado, setLeadSelecionado] = useState<any | null>(null);
@@ -722,11 +771,15 @@ export function Pacientes() {
                   <AnotacoesProfissionalTab pacienteId={pacienteId} />
                 )}
                 {activeTab === 'premium' && pacienteId && canPremium && (
-                  <ExperienciaPremiumTab
-                    pacienteId={pacienteId}
-                    leadId={leadSelecionado?.id}
-                    nomePaciente={leadSelecionado?.nome_lead}
-                  />
+                  premiumLiberado ? (
+                    <ExperienciaPremiumTab
+                      pacienteId={pacienteId}
+                      leadId={leadSelecionado?.id}
+                      nomePaciente={leadSelecionado?.nome_lead}
+                    />
+                  ) : (
+                    <PremiumGate />
+                  )
                 )}
               </>
             )}
