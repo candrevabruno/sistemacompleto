@@ -54,22 +54,9 @@ export function Eventos() {
 
 // ── Tela de upgrade (sem o plano) ────────────────────────────────────────────
 function UpgradeGate() {
-  const { user } = useAuth();
-  const [busy, setBusy] = useState(false);
-  const [enviado, setEnviado] = useState(false);
-  const [erro, setErro] = useState<string | null>(null);
-
-  const solicitar = async () => {
-    setBusy(true); setErro(null);
-    try {
-      const { data, error } = await supabase.functions.invoke('eventos-dispatch', {
-        body: { action: 'upgrade', solicitante: user?.nome || user?.email || null },
-      });
-      if (error || data?.error) { setErro(data?.error || error?.message || 'Falha ao enviar.'); setBusy(false); return; }
-      setEnviado(true);
-    } catch (e: any) { setErro(e?.message || 'Falha ao enviar.'); }
-    setBusy(false);
-  };
+  const { config } = useClinic();
+  const wa = config?.heroic_leap_whatsapp || '5511999999999';
+  const msg = encodeURIComponent('Olá! Gostaria de solicitar a liberação do Módulo Eventos no sistema da clínica.');
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '60px 24px', minHeight: '100%' }}>
@@ -81,20 +68,15 @@ function UpgradeGate() {
         <p style={{ fontSize: '13.5px', color: 'var(--muted)', lineHeight: 1.6, marginBottom: '22px' }}>
           Envie mensagens de parabéns aos aniversariantes do mês e crie campanhas sazonais que o agente menciona naturalmente no atendimento. Um recurso premium da Heroic Leap.
         </p>
-
-        {enviado ? (
-          <div style={{ fontSize: '13px', color: 'var(--sage-dark)', background: 'var(--sage-xlight)', borderRadius: 'var(--r-xs)', padding: '12px 14px', lineHeight: 1.5 }}>
-            <Sparkles size={14} style={{ verticalAlign: '-2px' }} /> Solicitação enviada à Heroic Leap! Em breve entraremos em contato para liberar o módulo.
-          </div>
-        ) : (
-          <>
-            {erro && <p style={{ fontSize: '12px', color: 'var(--rose-text)', background: 'var(--rose-light)', padding: '8px 11px', borderRadius: 'var(--r-xs)', marginBottom: '12px' }}>{erro}</p>}
-            <button onClick={solicitar} disabled={busy} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '11px 22px', fontSize: '13px', fontWeight: 600, background: 'var(--sage-dark)', color: 'white', border: 'none', borderRadius: 'var(--r-xs)', cursor: 'pointer', fontFamily: 'inherit', opacity: busy ? 0.6 : 1 }}>
-              {busy && <Loader2 size={14} className="animate-spin" />} Solicitar liberação
-            </button>
-            <p style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '12px' }}>Avisaremos a Heroic Leap por e-mail sobre seu interesse.</p>
-          </>
-        )}
+        <a
+          href={`https://wa.me/${wa}?text=${msg}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '11px 22px', fontSize: '13px', fontWeight: 600, background: 'var(--sage-dark)', color: 'white', borderRadius: 'var(--r-xs)', textDecoration: 'none', fontFamily: 'inherit' }}
+        >
+          <Sparkles size={14} /> Solicitar liberação
+        </a>
+        <p style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '12px' }}>Entraremos em contato via WhatsApp para liberar o módulo.</p>
       </div>
     </div>
   );

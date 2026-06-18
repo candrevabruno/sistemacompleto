@@ -388,41 +388,65 @@ function AbaAgendas() {
 
 function AbaServicos() {
   const [servicos, setServicos] = useState<any[]>([]);
-  const [openNew, setOpenNew] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editando, setEditando] = useState<any | null>(null); // null = novo
   const [nome, setNome] = useState('');
   const [valor, setValor] = useState('');
+  const [descricao, setDescricao] = useState('');
   const [loading, setLoading] = useState(false);
 
   const loadServicos = async () => {
     const { data } = await supabase.from('servicos').select('*').order('created_at', { ascending: true });
-    if (data) setServicos(data);
+    // filtra arquivados em JS para ser resiliente caso a coluna ainda não exista
+    if (data) setServicos(data.filter((s: any) => !s.arquivado));
   };
 
   useEffect(() => { loadServicos(); }, []);
 
-  const fecharModal = () => { setOpenNew(false); setNome(''); setValor(''); };
+  const fecharModal = () => {
+    setModalOpen(false); setEditando(null);
+    setNome(''); setValor(''); setDescricao('');
+  };
+
+  const abrirNovo = () => { setEditando(null); setNome(''); setValor(''); setDescricao(''); setModalOpen(true); };
+
+  const abrirEditar = (srv: any) => {
+    setEditando(srv);
+    setNome(srv.nome || '');
+    setValor(srv.valor != null ? String(srv.valor).replace('.', ',') : '');
+    setDescricao(srv.descricao || '');
+    setModalOpen(true);
+  };
 
   const saveServico = async () => {
     if (!nome) return;
     setLoading(true);
-
     const valorNum = valor ? parseFloat(valor.replace(',', '.')) : null;
-    const { error } = await supabase.from('servicos').insert({ nome, valor: valorNum });
-
-    setLoading(false);
-    if (error) {
-      alert(`Erro: ${error.message}`);
-      return;
+    const payload = { nome, valor: valorNum, descricao: descricao || null };
+    let error;
+    if (editando) {
+      ({ error } = await supabase.from('servicos').update(payload).eq('id', editando.id));
+    } else {
+      ({ error } = await supabase.from('servicos').insert(payload));
     }
-
+    setLoading(false);
+    if (error) { alert(`Erro: ${error.message}`); return; }
     fecharModal();
     loadServicos();
   };
 
-  const deleteServico = async (id: string) => {
-    if (!window.confirm("Tem certeza que deseja excluir este serviço?")) return;
-    await supabase.from('servicos').delete().eq('id', id);
+  const arquivarServico = async (id: string) => {
+    if (!window.confirm('Deseja remover este serviço da lista? O histórico dos pacientes é preservado.')) return;
+    const { error } = await supabase.from('servicos').update({ arquivado: true }).eq('id', id);
+    if (error) { alert(`Erro ao remover: ${error.message}`); return; }
     loadServicos();
+  };
+
+  const taStyle: React.CSSProperties = {
+    width: '100%', padding: '8px 10px', fontSize: '13px',
+    border: '1px solid var(--border)', borderRadius: 'var(--r-xs)',
+    fontFamily: 'inherit', color: 'var(--ink)', background: 'var(--bg)',
+    resize: 'vertical', outline: 'none', boxSizing: 'border-box', lineHeight: 1.5,
   };
 
   return (
@@ -431,40 +455,50 @@ function AbaServicos() {
         <div className="flex justify-between items-center">
           <div>
             <CardTitle>Serviços Prestados</CardTitle>
-            <p className="text-sm text-[var(--muted)] mt-1">Cadastre os serviços que serão selecionados quando uma venda for fechada.</p>
+            <p className="text-sm text-[var(--muted)] mt-1">Cadastre os serviços selecionados nos agendamentos e procedimentos dos pacientes.</p>
           </div>
-          <Button onClick={() => setOpenNew(true)} size="sm"><Plus className="w-4 h-4 mr-2"/> Novo Serviço</Button>
+          <Button onClick={abrirNovo} size="sm"><Plus className="w-4 h-4 mr-2"/> Novo Serviço</Button>
         </div>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           {servicos.map(srv => (
-            <div key={srv.id} className="border border-[var(--border)] rounded-[12px] p-4 flex justify-between items-center bg-[var(--bg)] group">
-              <div className="min-w-0 pr-2">
-                <span className="block font-medium text-[var(--ink)] truncate">{srv.nome}</span>
-                <span className="block text-xs mt-0.5" style={{ color: srv.valor ? 'var(--sage-dark)' : 'var(--muted)' }}>
-                  {srv.valor != null
-                    ? Number(srv.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-                    : 'Sem valor'}
-                </span>
+            <div key={srv.id} className="border border-[var(--border)] rounded-[12px] p-4 bg-[var(--bg)] group flex flex-col gap-1.5">
+              <div className="flex justify-between items-start gap-2">
+                <div className="min-w-0 flex-1">
+                  <span className="block font-medium text-[var(--ink)] truncate">{srv.nome}</span>
+                  <span className="block text-xs mt-0.5" style={{ color: srv.valor ? 'var(--sage-dark)' : 'var(--muted)' }}>
+                    {srv.valor != null
+                      ? Number(srv.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+                      : 'Sem valor'}
+                  </span>
+                </div>
+                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                  <button
+                    onClick={() => abrirEditar(srv)}
+                    className="p-1.5 text-gray-400 hover:bg-blue-50 hover:text-blue-500 transition-colors rounded"
+                    title="Editar"
+                  ><Pencil className="w-3.5 h-3.5" /></button>
+                  <button
+                    onClick={() => arquivarServico(srv.id)}
+                    className="p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors rounded"
+                    title="Remover da lista (histórico preservado)"
+                  ><Trash2 className="w-3.5 h-3.5" /></button>
+                </div>
               </div>
-              <button
-                onClick={() => deleteServico(srv.id)}
-                className="p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors rounded opacity-0 group-hover:opacity-100"
-                title="Excluir"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
+              {srv.descricao && (
+                <p className="text-xs leading-relaxed" style={{ color: 'var(--muted)' }}>{srv.descricao}</p>
+              )}
             </div>
           ))}
           {servicos.length === 0 && (
-             <div className="col-span-1 sm:col-span-2 md:col-span-3 text-center py-8 text-[var(--muted)] border border-dashed border-[var(--border)] rounded-lg">
-               Nenhum serviço cadastrado.
-             </div>
+            <div className="col-span-1 sm:col-span-2 md:col-span-3 text-center py-8 text-[var(--muted)] border border-dashed border-[var(--border)] rounded-lg">
+              Nenhum serviço cadastrado.
+            </div>
           )}
         </div>
 
-        <Modal isOpen={openNew} onClose={fecharModal} title="Adicionar Serviço">
+        <Modal isOpen={modalOpen} onClose={fecharModal} title={editando ? 'Editar Serviço' : 'Adicionar Serviço'}>
           <div className="space-y-4">
             <Input
               label="Nome do Serviço"
@@ -479,11 +513,20 @@ function AbaServicos() {
               value={valor}
               onChange={e => setValor(e.target.value)}
             />
-            <p className="text-xs text-[var(--muted)] -mt-2">
-              Esse valor preenche automaticamente o procedimento do paciente ao selecionar o serviço.
-            </p>
+            <div>
+              <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--muted)' }}>
+                Descrição (opcional)
+              </label>
+              <textarea
+                placeholder="Breve descrição do serviço para referência da equipe..."
+                value={descricao}
+                onChange={e => setDescricao(e.target.value)}
+                rows={2}
+                style={taStyle}
+              />
+            </div>
             <Button className="w-full" disabled={!nome || loading} onClick={saveServico}>
-              {loading ? 'Salvando...' : 'Salvar'}
+              {loading ? 'Salvando...' : editando ? 'Salvar alterações' : 'Criar serviço'}
             </Button>
           </div>
         </Modal>

@@ -17,24 +17,10 @@ import { NovoPacienteModal } from '../components/pacientes/NovoPacienteModal';
 type Tab = 'dados' | 'consultas' | 'procedimentos' | 'comportamento' | 'profissional' | 'premium';
 
 // Mostrado quando a Experiência Premium ainda não foi liberada pela Heroic Leap
-// (mesmo padrão da tela de upgrade do módulo Eventos — não some, mostra a mensagem).
 function PremiumGate() {
-  const { user } = useAuth();
-  const [busy, setBusy] = useState(false);
-  const [enviado, setEnviado] = useState(false);
-  const [erro, setErro] = useState<string | null>(null);
-
-  const solicitar = async () => {
-    setBusy(true); setErro(null);
-    try {
-      const { data, error } = await supabase.functions.invoke('eventos-dispatch', {
-        body: { action: 'upgrade', recurso: 'premium', solicitante: user?.nome || user?.email || null },
-      });
-      if (error || data?.error) { setErro(data?.error || error?.message || 'Falha ao enviar.'); setBusy(false); return; }
-      setEnviado(true);
-    } catch (e: any) { setErro(e?.message || 'Falha ao enviar.'); }
-    setBusy(false);
-  };
+  const { config } = useClinic();
+  const wa = config?.heroic_leap_whatsapp || '5511999999999';
+  const msg = encodeURIComponent('Olá! Gostaria de solicitar acesso à Experiência Premium no sistema da clínica.');
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 16px' }}>
@@ -50,19 +36,15 @@ function PremiumGate() {
           <li><strong style={{ color: 'var(--ink)' }}>Pré-consulta</strong> — envio automático de anamnese personalizada ao paciente.</li>
           <li><strong style={{ color: 'var(--ink)' }}>Pós-consulta</strong> — resumo da consulta + CSAT (2 dias) + Check-in (15 dias) + Evolução (30 dias) + NPS (45 dias) + Reativação (60 e 180 dias).</li>
         </ul>
-        {enviado ? (
-          <div style={{ fontSize: '13px', color: 'var(--sage-dark)', background: 'var(--sage-xlight)', borderRadius: 'var(--r-xs)', padding: '12px 14px', lineHeight: 1.5 }}>
-            <Sparkles size={14} style={{ verticalAlign: '-2px' }} /> Solicitação enviada à Heroic Leap! Em breve entraremos em contato.
-          </div>
-        ) : (
-          <>
-            {erro && <p style={{ fontSize: '12px', color: 'var(--rose-text)', background: 'var(--rose-light)', padding: '8px 11px', borderRadius: 'var(--r-xs)', marginBottom: '12px' }}>{erro}</p>}
-            <button onClick={solicitar} disabled={busy} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '11px 22px', fontSize: '13px', fontWeight: 600, background: 'var(--sage-dark)', color: 'white', border: 'none', borderRadius: 'var(--r-xs)', cursor: 'pointer', fontFamily: 'inherit', opacity: busy ? 0.6 : 1 }}>
-              {busy && <Loader2 size={14} className="animate-spin" />} Solicitar liberação
-            </button>
-            <p style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '12px' }}>Avisaremos a Heroic Leap por e-mail sobre seu interesse.</p>
-          </>
-        )}
+        <a
+          href={`https://wa.me/${wa}?text=${msg}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '11px 22px', fontSize: '13px', fontWeight: 600, background: 'var(--sage-dark)', color: 'white', borderRadius: 'var(--r-xs)', textDecoration: 'none', fontFamily: 'inherit' }}
+        >
+          <Sparkles size={14} /> Solicitar liberação
+        </a>
+        <p style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '12px' }}>Entraremos em contato via WhatsApp para liberar o recurso.</p>
       </div>
     </div>
   );
@@ -315,7 +297,7 @@ export function Pacientes() {
       {/* ── Lista lateral ── */}
       <div
         style={{
-          width: '240px',
+          width: '280px',
           flexShrink: 0,
           display: 'flex',
           flexDirection: 'column',
@@ -747,6 +729,15 @@ export function Pacientes() {
                 </div>
               )}
             </div>
+
+            {/* Fechar perfil */}
+            <button
+              onClick={() => { setLeadSelecionado(null); setPacienteId(null); }}
+              title="Fechar perfil"
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '30px', height: '30px', borderRadius: 'var(--r-xs)', border: '1px solid var(--border)', background: 'transparent', color: 'var(--muted)', cursor: 'pointer', flexShrink: 0 }}
+            >
+              <X style={{ width: '14px', height: '14px' }} />
+            </button>
           </div>
 
           {/* ── Tabs ── */}

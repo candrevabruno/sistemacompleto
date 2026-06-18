@@ -1488,6 +1488,13 @@ function NovoAgendamentoModal({ agendas, profPadrao, dataPadrao, onClose, onSave
   const [hora, setHora] = useState('09:00');
   const [busy, setBusy] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+  const [servicosOpts, setServicosOpts] = useState<string[]>([]);
+
+  useEffect(() => {
+    supabase.from('servicos').select('nome').order('nome').then(({ data: srv }) => {
+      if (srv) setServicosOpts(srv.filter((s: any) => !s.arquivado).map((s: any) => s.nome));
+    });
+  }, []);
 
   const buscar = async (q: string) => {
     setBusca(q); setLeadId(null);
@@ -1647,7 +1654,13 @@ function NovoAgendamentoModal({ agendas, profPadrao, dataPadrao, onClose, onSave
             <div style={{ flex: 1 }}><label style={lbl}>WhatsApp</label><input value={whatsapp} onChange={e => setWhatsapp(e.target.value)} style={inp} /></div>
           </div>
           <div><label style={lbl}>Email <span style={{ textTransform: 'none', fontWeight: 400 }}>(p/ confirmação do Cal.com)</span></label><input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="opcional" style={inp} /></div>
-          <div><label style={lbl}>Procedimento</label><input value={procedimento} onChange={e => setProcedimento(e.target.value)} placeholder="Ex: Consulta, retorno..." style={inp} /></div>
+          <div>
+            <label style={lbl}>Procedimento</label>
+            <input list="novo-ag-servicos" value={procedimento} onChange={e => setProcedimento(e.target.value)} placeholder="Ex: Consulta, retorno..." style={inp} />
+            <datalist id="novo-ag-servicos">
+              {servicosOpts.map(s => <option key={s} value={s} />)}
+            </datalist>
+          </div>
           <div style={{ display: 'flex', gap: '10px' }}>
             <div style={{ flex: 1 }}><label style={lbl}>Data</label><input type="date" value={data} onChange={e => setData(e.target.value)} style={inp} /></div>
             <div style={{ flex: 1 }}><label style={lbl}>Hora</label><input type="time" value={hora} onChange={e => setHora(e.target.value)} style={inp} /></div>
