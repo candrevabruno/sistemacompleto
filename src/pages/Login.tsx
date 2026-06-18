@@ -5,18 +5,19 @@ import { useAuth } from '../contexts/AuthContext';
 
 const GOLD = '#C9A84C';
 const GREEN_DARK = '#1A2C1A';
-const CREAM = '#FAF9F7';
+const CREAM = '#F5F0E8';
 
-function GridLogo() {
+function LeapCareLogo() {
   return (
-    <svg width="46" height="48" viewBox="0 0 46 48" fill="none">
-      {[0,1,2,3].map(col => [0,1].map(row => (
-        <rect key={`${col}-${row}`} x={col * 12} y={row * 12} width="10" height="10" rx="1.5"
-          fill="none" stroke={GOLD} strokeWidth="1.5"/>
-      )))}
-      <rect x="26" y="24" width="10" height="10" rx="1.5" fill="none" stroke={GOLD} strokeWidth="1.5"/>
-      <rect x="38" y="24" width="10" height="10" rx="1.5" fill="none" stroke={GOLD} strokeWidth="1.5"/>
-      <rect x="0" y="36" width="13" height="12" rx="2" fill={GOLD}/>
+    <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
+      {/* SQ1 — topo esquerdo, vazado */}
+      <rect x="0" y="0" width="16" height="16" rx="4" fill="none" stroke="#DCCFB5" strokeWidth="1.8"/>
+      {/* SQ2 — topo direito, vazado */}
+      <rect x="19" y="0" width="16" height="16" rx="4" fill="none" stroke="#DCCFB5" strokeWidth="1.8"/>
+      {/* SQ3 — meio direito (abaixo SQ2), vazado */}
+      <rect x="19" y="19" width="16" height="16" rx="4" fill="none" stroke="#DCCFB5" strokeWidth="1.8"/>
+      {/* SQ4 — inferior esquerdo com gap maior, preenchido */}
+      <rect x="0" y="28" width="16" height="16" rx="4" fill="#8FAE9A"/>
     </svg>
   );
 }
@@ -224,8 +225,8 @@ export function Login() {
           width: 100%;
           height: 52px;
           background: #fff;
-          border: 1.5px solid #E4DED7;
-          border-radius: 10px;
+          border: 1.5px solid #E2D9C8;
+          border-radius: 8px;
           font-family: 'DM Sans', sans-serif;
           font-size: 15px;
           font-weight: 500;
@@ -246,8 +247,8 @@ export function Login() {
           gap: 12px;
           margin-bottom: 22px;
         }
-        .lc-or-line { flex: 1; height: 1px; background: #E4DED7; }
-        .lc-or-text { font-size: 12px; color: #BBBBBB; letter-spacing: 0.5px; }
+        .lc-or-line { flex: 1; height: 1px; background: #E2D9C8; }
+        .lc-or-text { font-size: 12px; color: #9A9080; letter-spacing: 0.5px; }
 
         .lc-field { margin-bottom: 16px; }
         .lc-label {
@@ -264,7 +265,7 @@ export function Login() {
           display: flex;
           align-items: center;
           background: #fff;
-          border: 1.5px solid #E4DED7;
+          border: 1.5px solid #E2D9C8;
           border-radius: 8px;
           height: 48px;
           padding: 0 14px;
@@ -281,7 +282,7 @@ export function Login() {
           font-weight: 400;
           outline: none;
         }
-        .lc-input-wrap input::placeholder { color: #C8C4C0; }
+        .lc-input-wrap input::placeholder { color: #C5BAA0; }
         .lc-eye-btn {
           background: none; border: none; cursor: pointer;
           padding: 0; display: flex; align-items: center;
@@ -327,10 +328,10 @@ export function Login() {
         .lc-submit {
           width: 100%;
           height: 52px;
-          background: #1A1A1A;
-          color: #fff;
+          background: #1C2B24;
+          color: #F5EDD8;
           border: none;
-          border-radius: 10px;
+          border-radius: 8px;
           font-family: 'DM Sans', sans-serif;
           font-size: 16px;
           font-weight: 500;
@@ -359,10 +360,13 @@ export function Login() {
           display: flex;
           align-items: center;
           gap: 12px;
+          background: #EDE8DE;
+          border-radius: 10px;
+          padding: 12px 16px;
         }
         .lc-lock-icon {
           width: 38px; height: 38px;
-          background: rgba(201,168,76,0.12);
+          background: rgba(143,174,154,0.2);
           border-radius: 50%;
           display: flex;
           align-items: center;
@@ -370,8 +374,8 @@ export function Login() {
           flex-shrink: 0;
         }
         .lc-restricted-text { display: flex; flex-direction: column; gap: 2px; }
-        .lc-restricted-text strong { font-size: 13px; color: #3A3A3A; font-weight: 600; }
-        .lc-restricted-text span { font-size: 12px; color: #8A8A8A; }
+        .lc-restricted-text strong { font-size: 13px; color: #5A6B5E; font-weight: 600; }
+        .lc-restricted-text span { font-size: 12px; color: #4A5E50; font-weight: 500; }
 
         /* Mobile */
         @media (max-width: 768px) {
@@ -385,7 +389,7 @@ export function Login() {
         {/* ── LEFT PANEL ── */}
         <div className="lc-left">
           <div className="lc-left-brand">
-            <GridLogo />
+            <LeapCareLogo />
             <div className="lc-brand-text">
               <span className="lc-brand-name">LeapCare</span>
               <span className="lc-brand-sub">Plataforma de Gestão Clínica</span>
@@ -477,7 +481,7 @@ export function Login() {
           {/* Restricted notice */}
           <div className="lc-restricted">
             <div className="lc-lock-icon">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="1.8">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5A6B5E" strokeWidth="1.8">
                 <rect x="3" y="11" width="18" height="11" rx="2"/>
                 <path d="M7 11V7a5 5 0 0110 0v4"/>
               </svg>
