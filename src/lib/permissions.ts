@@ -58,6 +58,9 @@ export const PERM_ITEMS: PermItem[] = [
   { key: 'feature:premium',          label: 'Experiência Premium',       group: 'feature', editable: true, featureFlag: 'premium_enabled' },
   { key: 'feature:eventos',          label: 'Módulo Eventos',            group: 'feature', editable: true, featureFlag: 'eventos_enabled' },
   { key: 'feature:eventos:disparos', label: 'Controlar disparos e ações', group: 'feature', editable: true, featureFlag: 'eventos_enabled', parentKey: 'feature:eventos' },
+
+  // ── Admin-only (admin/super_admin têm bypass automático; membro=none por padrão) ─
+  { key: 'modulo:auditoria', label: 'Auditoria', group: 'modulo', editable: false, route: '/auditoria' },
 ];
 
 export const PERM_ITEM_BY_KEY: Record<string, PermItem> = Object.fromEntries(
