@@ -5,7 +5,7 @@ import { ScrollText, ChevronDown, ChevronRight, ChevronLeft, Search } from 'luci
 const PAGE_SIZE = 25;
 
 interface AuditRow {
-  id: string;
+  log_id: string;
   user_id: string | null;
   actor_email: string | null;
   action: string;
@@ -223,12 +223,12 @@ export function Auditoria() {
               <tbody>
                 {rows.map(row => {
                   const modulo = moduloLabel(row);
-                  const isExpanded = expanded.has(row.id);
+                  const isExpanded = expanded.has(row.log_id);
                   const hasDetails = !!(row.detalhes || row.valor_anterior || row.valor_novo);
                   return (
-                    <React.Fragment key={row.id}>
+                    <React.Fragment key={row.log_id}>
                       <tr
-                        onClick={() => hasDetails && toggleExpand(row.id)}
+                        onClick={() => hasDetails && toggleExpand(row.log_id)}
                         style={{ cursor: hasDetails ? 'pointer' : 'default', transition: 'background 0.1s' }}
                         onMouseEnter={e => { if (hasDetails) (e.currentTarget as HTMLTableRowElement).style.background = 'var(--bg)'; }}
                         onMouseLeave={e => { (e.currentTarget as HTMLTableRowElement).style.background = ''; }}

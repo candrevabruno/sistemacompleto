@@ -100,6 +100,7 @@ CREATE TRIGGER trg_audit_servicos
   FOR EACH ROW EXECUTE FUNCTION public.fn_audit_trigger();
 
 -- ── 6. RPC para a tela de Auditoria (resolve email + filtra + pagina) ─────────
+-- Usa duas queries separadas para evitar ambiguidade de 'id' no RETURNS TABLE.
 CREATE OR REPLACE FUNCTION public.fn_get_audit_log(
   p_limit       INT  DEFAULT 25,
   p_offset      INT  DEFAULT 0,
@@ -109,7 +110,7 @@ CREATE OR REPLACE FUNCTION public.fn_get_audit_log(
   p_data_fim    DATE DEFAULT NULL
 )
 RETURNS TABLE(
-  id             UUID,
+  log_id         UUID,
   user_id        UUID,
   actor_email    TEXT,
   action         TEXT,
@@ -125,38 +126,50 @@ RETURNS TABLE(
 )
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE
-  v_role TEXT;
+  v_role  TEXT;
+  v_total BIGINT;
 BEGIN
   SELECT role INTO v_role FROM public.users WHERE id = auth.uid();
   IF v_role NOT IN ('admin', 'super_admin') THEN
     RAISE EXCEPTION 'Acesso negado: somente admin pode visualizar a auditoria.';
   END IF;
 
+  SELECT COUNT(*) INTO v_total
+  FROM public.audit_log al
+  LEFT JOIN auth.users u ON u.id = al.user_id
+  WHERE
+    (p_search IS NULL OR al.action ILIKE '%' || p_search || '%'
+                      OR al.actor_email ILIKE '%' || p_search || '%'
+                      OR COALESCE(u.email, '') ILIKE '%' || p_search || '%')
+    AND (p_modulo IS NULL OR al.modulo = p_modulo)
+    AND (p_data_inicio IS NULL OR al.created_at::DATE >= p_data_inicio)
+    AND (p_data_fim    IS NULL OR al.created_at::DATE <= p_data_fim);
+
   RETURN QUERY
-  WITH filtered AS (
-    SELECT
-      al.id, al.user_id, al.actor_email, al.action, al.record_id,
-      al.detalhes, al.tabela, al.modulo, al.valor_anterior, al.valor_novo,
-      al.created_at,
-      COALESCE(al.actor_email, u.email, 'Sistema') AS display_email
-    FROM public.audit_log al
-    LEFT JOIN auth.users u ON u.id = al.user_id
-    WHERE
-      (p_search IS NULL OR al.action ILIKE '%' || p_search || '%'
-                        OR al.actor_email ILIKE '%' || p_search || '%'
-                        OR COALESCE(u.email, '') ILIKE '%' || p_search || '%')
-      AND (p_modulo IS NULL OR al.modulo = p_modulo)
-      AND (p_data_inicio IS NULL OR al.created_at::DATE >= p_data_inicio)
-      AND (p_data_fim    IS NULL OR al.created_at::DATE <= p_data_fim)
-  ),
-  total AS (SELECT COUNT(*)::BIGINT AS cnt FROM filtered)
   SELECT
-    f.id, f.user_id, f.actor_email, f.action, f.record_id,
-    f.detalhes, f.tabela, f.modulo, f.valor_anterior, f.valor_novo,
-    f.created_at, f.display_email,
-    t.cnt AS total_count
-  FROM filtered f, total t
-  ORDER BY f.created_at DESC
+    al.id   AS log_id,
+    al.user_id,
+    al.actor_email,
+    al.action,
+    al.record_id,
+    al.detalhes,
+    al.tabela,
+    al.modulo,
+    al.valor_anterior,
+    al.valor_novo,
+    al.created_at,
+    COALESCE(al.actor_email, u.email, 'Sistema') AS display_email,
+    v_total AS total_count
+  FROM public.audit_log al
+  LEFT JOIN auth.users u ON u.id = al.user_id
+  WHERE
+    (p_search IS NULL OR al.action ILIKE '%' || p_search || '%'
+                      OR al.actor_email ILIKE '%' || p_search || '%'
+                      OR COALESCE(u.email, '') ILIKE '%' || p_search || '%')
+    AND (p_modulo IS NULL OR al.modulo = p_modulo)
+    AND (p_data_inicio IS NULL OR al.created_at::DATE >= p_data_inicio)
+    AND (p_data_fim    IS NULL OR al.created_at::DATE <= p_data_fim)
+  ORDER BY al.created_at DESC
   LIMIT p_limit OFFSET p_offset;
 END;
 $$;
