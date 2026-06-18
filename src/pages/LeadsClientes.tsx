@@ -6,7 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Modal } from '../components/ui/Modal';
 import {
   Search, Download, FileText, Archive,
-  RotateCcw, MessageSquare, History,
+  RotateCcw, MessageSquare, History, CalendarCheck,
 } from 'lucide-react';
 import {
   parseISO, format,
@@ -24,7 +24,7 @@ import { calcularTemperatura, getInitials } from '../lib/lead-utils';
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
 type DateFilter = 'ontem' | 'hoje' | '7dias' | '14dias' | 'mes' | 'ano' | 'custom';
-type TabLeads = 'leads' | 'arquivados';
+type TabLeads = 'leads' | 'agendados_hoje' | 'arquivados';
 type FiltroStatus = 'todos' | 'cancelou' | 'no-show' | 'abandonou' | 'reativacao' | 'sem-resposta' | 'reagendado';
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
@@ -188,6 +188,8 @@ export function LeadsClientes({ mode }: { mode?: 'leads' | 'clientes' }) {
 
   const [leads, setLeads] = useState<any[]>([]);
   const [arquivados, setArquivados] = useState<any[]>([]);
+  const [agendadosHoje, setAgendadosHoje] = useState<any[]>([]);
+  const [loadingAgendados, setLoadingAgendados] = useState(false);
   const [clientes, setClientes] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -220,6 +222,7 @@ export function LeadsClientes({ mode }: { mode?: 'leads' | 'clientes' }) {
     if (mode === 'leads' || !mode) {
       fetchLeads();
       fetchArquivados();
+      fetchAgendadosHoje();
     }
   }, [tabLeads]);
 
@@ -229,7 +232,7 @@ export function LeadsClientes({ mode }: { mode?: 'leads' | 'clientes' }) {
   }, [dateRange]);
 
   useVisibilityRefresh(() => {
-    if (mode === 'leads' || !mode) { fetchLeads(); fetchArquivados(); }
+    if (mode === 'leads' || !mode) { fetchLeads(); fetchArquivados(); fetchAgendadosHoje(); }
     else fetchClientes();
   });
 
@@ -260,6 +263,19 @@ export function LeadsClientes({ mode }: { mode?: 'leads' | 'clientes' }) {
       .eq('status', 'arquivado')
       .order('arquivado_em', { ascending: false, nullsFirst: false });
     if (data) setArquivados(data);
+  };
+
+  const fetchAgendadosHoje = async () => {
+    setLoadingAgendados(true);
+    const { data } = await supabase
+      .from('agendamentos')
+      .select('id, data_hora_inicio, status, lead_id, nome_lead, leads:lead_id(nome_lead, whatsapp_lead, status)')
+      .gte('data_hora_inicio', startOfToday().toISOString())
+      .lte('data_hora_inicio', endOfToday().toISOString())
+      .not('status', 'in', '("cancelado","cancelou_agendamento","reagendado")')
+      .order('data_hora_inicio', { ascending: true });
+    if (data) setAgendadosHoje(data);
+    setLoadingAgendados(false);
   };
 
   const fetchClientes = async () => {
@@ -482,8 +498,9 @@ export function LeadsClientes({ mode }: { mode?: 'leads' | 'clientes' }) {
   ];
 
   const tabs: { key: TabLeads; label: string }[] = [
-    { key: 'leads',      label: `Leads (${sortedFilteredLeads.length})` },
-    { key: 'arquivados', label: `Arquivados (${arquivados.length})` },
+    { key: 'leads',           label: `Leads (${sortedFilteredLeads.length})` },
+    { key: 'agendados_hoje',  label: `Agendados hoje (${agendadosHoje.length})` },
+    { key: 'arquivados',      label: `Arquivados (${arquivados.length})` },
   ];
 
   return (
@@ -642,6 +659,82 @@ export function LeadsClientes({ mode }: { mode?: 'leads' | 'clientes' }) {
                             <Archive style={{ width: '13px', height: '13px' }} />
                           </button>
                         </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* ── Tabela: agendados hoje ── */}
+      {tabLeads === 'agendados_hoje' && (
+        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: '10px', overflow: 'hidden' }}>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '600px' }}>
+              <thead>
+                <tr>
+                  {['Horário', 'Nome', 'WhatsApp', 'Estágio do lead', 'Status'].map((h, i) => (
+                    <th key={h} style={{ fontSize: '9.5px', fontWeight: 600, letterSpacing: '0.8px', textTransform: 'uppercase', color: 'var(--muted)', padding: '10px 14px', textAlign: i === 4 ? 'right' : 'left', borderBottom: '1px solid var(--border)', background: 'var(--bg)', whiteSpace: 'nowrap' }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {loadingAgendados ? (
+                  <tr><td colSpan={5} style={{ padding: '64px', textAlign: 'center', fontSize: '13px', color: 'var(--muted)' }}>Carregando...</td></tr>
+                ) : agendadosHoje.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} style={{ padding: '64px', textAlign: 'center' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
+                        <CalendarCheck style={{ width: '28px', height: '28px', color: 'var(--border-md)' }} />
+                        <span style={{ fontSize: '13px', color: 'var(--muted)' }}>Nenhum lead agendado para hoje.</span>
+                      </div>
+                    </td>
+                  </tr>
+                ) : agendadosHoje.map(ag => {
+                  const lead = ag.leads as any;
+                  const nome = lead?.nome_lead || ag.nome_lead || 'Sem Nome';
+                  const whatsapp = lead?.whatsapp_lead || '—';
+                  const estagio = lead?.status || '—';
+                  const horario = format(parseISO(ag.data_hora_inicio), 'HH:mm', { locale: ptBR });
+
+                  const statusBadge: Record<string, { label: string; bg: string; color: string }> = {
+                    confirmado:  { label: 'Confirmado',  bg: 'rgba(34,197,94,0.12)',   color: '#15803d' },
+                    pendente:    { label: 'Pendente',    bg: 'rgba(245,158,11,0.12)',  color: '#b45309' },
+                    compareceu:  { label: 'Compareceu',  bg: 'rgba(34,197,94,0.2)',    color: '#166534' },
+                    faltou:      { label: 'Faltou',      bg: 'rgba(239,68,68,0.1)',    color: '#dc2626' },
+                  };
+                  const badge = statusBadge[ag.status] || { label: ag.status, bg: 'rgba(100,116,139,0.1)', color: '#64748b' };
+
+                  return (
+                    <tr key={ag.id}
+                      onClick={() => { if (ag.lead_id) { setSelectedLead({ id: ag.lead_id }); setOpenLeadDetails(true); } }}
+                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--sage-xlight)')}
+                      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                      style={{ borderBottom: '1px solid var(--border)', cursor: ag.lead_id ? 'pointer' : 'default' }}>
+                      <td style={{ padding: '12px 14px', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
+                        <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--sage-dark)', fontVariantNumeric: 'tabular-nums' }}>{horario}</span>
+                      </td>
+                      <td style={{ padding: '12px 14px', verticalAlign: 'middle' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <div style={{ width: '30px', height: '30px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 700, flexShrink: 0, background: 'var(--champ-light)', color: 'var(--champ-text)' }}>
+                            {getInitials(nome)}
+                          </div>
+                          <span style={{ fontSize: '12.5px', fontWeight: 500, color: 'var(--ink)' }}>{nome}</span>
+                        </div>
+                      </td>
+                      <td style={{ padding: '12px 14px', verticalAlign: 'middle', fontSize: '11.5px', color: 'var(--muted)', fontFamily: 'monospace' }}>{whatsapp}</td>
+                      <td style={{ padding: '12px 14px', verticalAlign: 'middle' }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', padding: '3px 9px', borderRadius: '20px', fontSize: '10.5px', fontWeight: 500, background: 'var(--champ-light)', color: 'var(--champ-text)' }}>
+                          {estagio}
+                        </span>
+                      </td>
+                      <td style={{ padding: '12px 14px', verticalAlign: 'middle', textAlign: 'right' }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', padding: '3px 9px', borderRadius: '20px', fontSize: '10.5px', fontWeight: 500, background: badge.bg, color: badge.color }}>
+                          {badge.label}
+                        </span>
                       </td>
                     </tr>
                   );
