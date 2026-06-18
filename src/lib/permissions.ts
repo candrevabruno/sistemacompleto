@@ -25,6 +25,8 @@ export interface PermItem {
   featureFlag?: FeatureFlag;
   /** Sub-opção de feature (ex.: secretária controla disparos de Eventos). */
   parentKey?: string;
+  /** Se true, somente super_admin tem acesso; admin é tratado como membro. */
+  superAdminOnly?: boolean;
 }
 
 export const PERM_GROUP_LABEL: Record<PermGroup, string> = {
@@ -60,8 +62,8 @@ export const PERM_ITEMS: PermItem[] = [
   { key: 'feature:eventos:disparos', label: 'Controlar disparos e ações', group: 'feature', editable: true, featureFlag: 'eventos_enabled', parentKey: 'feature:eventos' },
 
   // ── Admin-only (admin/super_admin têm bypass automático; membro=none por padrão) ─
-  { key: 'modulo:auditoria', label: 'Auditoria', group: 'modulo', editable: false, route: '/auditoria' },
-  { key: 'modulo:logs',      label: 'Logs / Integrações', group: 'modulo', editable: false, route: '/logs' },
+  { key: 'modulo:auditoria', label: 'Auditoria',         group: 'modulo', editable: false, route: '/auditoria', superAdminOnly: true },
+  { key: 'modulo:logs',      label: 'Logs / Integrações', group: 'modulo', editable: false, route: '/logs',      superAdminOnly: true },
 ];
 
 export const PERM_ITEM_BY_KEY: Record<string, PermItem> = Object.fromEntries(
@@ -98,6 +100,10 @@ export function resolveLevel(
   perms: PermissionMap,
   itemKey: string,
 ): PermLevel {
+  const item = PERM_ITEM_BY_KEY[itemKey];
+  if (item?.superAdminOnly) {
+    return role === 'super_admin' ? 'view_edit' : 'none';
+  }
   if (role === 'admin' || role === 'super_admin') return 'view_edit';
   return perms[itemKey] ?? 'none';
 }
