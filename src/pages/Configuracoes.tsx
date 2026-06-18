@@ -646,7 +646,18 @@ function AbaWhatsApp() {
       if (!resp.ok && resp.status !== 404) {
         throw new Error(resData?.error || resData?.message || `HTTP ${resp.status}`);
       }
-      setConnectionState('close');
+      // Limpar credenciais do banco
+      await supabase.from('clinic_config').update({
+        evolution_server_url: null,
+        evolution_api_key: null,
+        evolution_instance_name: null,
+      }).eq('id', 1);
+      await refreshConfig();
+      setSensitiveConfig(null);
+      setEvoServerUrl('');
+      setEvoApiKey('');
+      setEvoInstance('');
+      setConnectionState(null);
       setQrCode(null);
       setDisconnectModalOpen(false);
     } catch (err: unknown) {
