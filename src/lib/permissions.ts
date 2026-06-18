@@ -9,7 +9,7 @@
 
 export type PermLevel = 'none' | 'view' | 'view_edit';
 
-export type PermGroup = 'modulo' | 'paciente_tab' | 'feature';
+export type PermGroup = 'modulo' | 'paciente_tab' | 'config_tab' | 'feature';
 
 export type FeatureFlag = 'premium_enabled' | 'eventos_enabled' | 'lista_espera_enabled';
 
@@ -32,6 +32,7 @@ export interface PermItem {
 export const PERM_GROUP_LABEL: Record<PermGroup, string> = {
   modulo: 'Módulos',
   paciente_tab: 'Abas do paciente',
+  config_tab: 'Abas de Configurações',
   feature: 'Recursos liberados',
 };
 
@@ -55,6 +56,15 @@ export const PERM_ITEMS: PermItem[] = [
   { key: 'paciente_tab:profissional',  label: 'Anotações do Profissional', group: 'paciente_tab', editable: true },
   { key: 'paciente_tab:pre_consulta',  label: 'Pré-Consulta',              group: 'paciente_tab', editable: true },
   { key: 'paciente_tab:pos_consulta',  label: 'Pós-Consulta',              group: 'paciente_tab', editable: true },
+
+  // ── Abas de Configurações (visibilidade para membros) ───────────────────────
+  { key: 'config_tab:geral',     label: 'Geral',              group: 'config_tab', editable: false },
+  { key: 'config_tab:agendas',   label: 'Agendas (Cal.com)',  group: 'config_tab', editable: false },
+  { key: 'config_tab:servicos',  label: 'Serviços',           group: 'config_tab', editable: false },
+  { key: 'config_tab:kanban',    label: 'Kanban',             group: 'config_tab', editable: false },
+  { key: 'config_tab:whatsapp',  label: 'WhatsApp',           group: 'config_tab', editable: false },
+  { key: 'config_tab:webhooks',  label: 'Webhooks',           group: 'config_tab', editable: false },
+  { key: 'config_tab:kpis',      label: 'KPIs & Marketing',   group: 'config_tab', editable: false },
 
   // ── Recursos liberados pela Heroic Leap ──────────────────────────────────────
   { key: 'feature:premium',          label: 'Experiência Premium',       group: 'feature', editable: true, featureFlag: 'premium_enabled' },

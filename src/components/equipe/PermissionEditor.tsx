@@ -14,7 +14,7 @@ interface Props {
   flags: { premium_enabled?: boolean; eventos_enabled?: boolean } | null | undefined;
 }
 
-const GROUP_ORDER: PermGroup[] = ['modulo', 'paciente_tab', 'feature'];
+const GROUP_ORDER: PermGroup[] = ['modulo', 'paciente_tab', 'config_tab', 'feature'];
 
 /**
  * Editor de permissões granulares. Cada item mostra o NÍVEL DE ACESSO ao lado
@@ -31,7 +31,7 @@ export function PermissionEditor({ value, onChange, flags }: Props) {
     onChange(next);
   };
 
-  const grouped: Record<PermGroup, PermItem[]> = { modulo: [], paciente_tab: [], feature: [] };
+  const grouped: Record<PermGroup, PermItem[]> = { modulo: [], paciente_tab: [], config_tab: [], feature: [] };
   items.forEach(i => grouped[i.group].push(i));
 
   return (

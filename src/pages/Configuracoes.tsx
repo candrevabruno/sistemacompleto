@@ -7,7 +7,7 @@ import { Input } from '../components/ui/Input';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Modal } from '../components/ui/Modal';
-import { Copy, Plus, Trash2, Pencil, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { Copy, Plus, Trash2, Pencil, CheckCircle, AlertCircle, Loader2, Key, X, Eye } from 'lucide-react';
 
 const ALL_TABS = [
   { id: 'geral', label: 'Geral' },
@@ -20,18 +20,27 @@ const ALL_TABS = [
 ];
 
 export function Configuracoes() {
-  const { user } = useAuth();
+  const { user, can } = useAuth();
   const { config } = useClinic();
   const [activeTab, setActiveTab] = useState('geral');
 
   const isSuperAdmin = user?.role === 'super_admin';
   const isAdmin = user?.role === 'admin';
+  const isMembro = user?.role === 'membro';
 
-  // super_admin vê tudo; admin vê somente as abas liberadas (ou todas se nenhuma restrição)
-  const allowedTabIds: string[] = config?.admin_config_tabs?.length
-    ? config.admin_config_tabs
-    : ALL_TABS.map(t => t.id);
-  const tabs = isSuperAdmin ? ALL_TABS : ALL_TABS.filter(t => allowedTabIds.includes(t.id));
+  // super_admin vê tudo; admin vê somente as abas liberadas em admin_config_tabs;
+  // membro vê somente as abas onde tem config_tab:<id> em user_permissions
+  let tabs: typeof ALL_TABS;
+  if (isSuperAdmin) {
+    tabs = ALL_TABS;
+  } else if (isMembro) {
+    tabs = ALL_TABS.filter(t => can(`config_tab:${t.id}`));
+  } else {
+    const allowedTabIds: string[] = config?.admin_config_tabs?.length
+      ? config.admin_config_tabs
+      : ALL_TABS.map(t => t.id);
+    tabs = ALL_TABS.filter(t => allowedTabIds.includes(t.id));
+  }
 
   return (
     <div className="space-y-6">
@@ -1135,6 +1144,8 @@ function AbaWebhooks() {
         </div>
       </Modal>
 
+      <ApiTokensSection />
+
       {isSuperAdmin && (
         <Card>
           <CardHeader><CardTitle>Contato da Heroic Leap</CardTitle></CardHeader>
@@ -1153,6 +1164,175 @@ function AbaWebhooks() {
         </Card>
       )}
     </div>
+  );
+}
+
+// ── ApiTokensSection ──────────────────────────────────────────────────────────
+
+type ApiToken = { id: string; label: string; ativo: boolean; created_at: string };
+
+function generateRawToken(): string {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  return 'hl_' + Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function sha256Hex(text: string): Promise<string> {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function ApiTokensSection() {
+  const [tokens, setTokens] = useState<ApiToken[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [novoLabel, setNovoLabel] = useState('');
+  const [gerando, setGerando] = useState(false);
+  const [tokenExibido, setTokenExibido] = useState<string | null>(null);
+  const [copiado, setCopiado] = useState(false);
+  const [revoking, setRevoking] = useState<string | null>(null);
+
+  useEffect(() => { carregarTokens(); }, []);
+
+  const carregarTokens = async () => {
+    setLoading(true);
+    const { data } = await supabase.from('api_tokens').select('id, label, ativo, created_at').order('created_at', { ascending: false });
+    if (data) setTokens(data as ApiToken[]);
+    setLoading(false);
+  };
+
+  const gerarToken = async () => {
+    if (!novoLabel.trim()) return;
+    setGerando(true);
+    const raw = generateRawToken();
+    const hash = await sha256Hex(raw);
+    const { error } = await supabase.from('api_tokens').insert({ label: novoLabel.trim(), token_hash: hash, ativo: true });
+    setGerando(false);
+    if (error) { alert('Erro ao gerar token: ' + error.message); return; }
+    setTokenExibido(raw);
+    setNovoLabel('');
+    await carregarTokens();
+  };
+
+  const revogarToken = async (id: string) => {
+    if (!confirm('Revogar este token? Qualquer integração que o use deixará de funcionar.')) return;
+    setRevoking(id);
+    await supabase.from('api_tokens').delete().eq('id', id);
+    setRevoking(null);
+    await carregarTokens();
+  };
+
+  const copiarToken = () => {
+    if (!tokenExibido) return;
+    navigator.clipboard.writeText(tokenExibido);
+    setCopiado(true);
+    setTimeout(() => setCopiado(false), 2000);
+  };
+
+  const fecharModal = () => { setShowModal(false); setNovoLabel(''); setTokenExibido(null); setCopiado(false); };
+
+  const fmt = (s: string) => new Date(s).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+  return (
+    <>
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Key className="w-4 h-4" style={{ color: 'var(--muted)' }} />
+              <CardTitle>Tokens de API</CardTitle>
+            </div>
+            <button
+              onClick={() => setShowModal(true)}
+              className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-[8px] border border-[var(--border-md)] hover:bg-[var(--bg)] transition-colors text-[var(--ink)]"
+            >
+              <Plus className="w-3.5 h-3.5" /> Gerar token
+            </button>
+          </div>
+          <p className="text-sm text-[var(--muted)] mt-1">
+            Tokens para autenticar chamadas de sistemas externos (n8n, integrações) nas Edge Functions do sistema.
+          </p>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="flex items-center gap-2 text-sm py-2" style={{ color: 'var(--muted)' }}>
+              <Loader2 className="w-4 h-4 animate-spin" /> Carregando...
+            </div>
+          ) : tokens.length === 0 ? (
+            <p className="text-sm py-2" style={{ color: 'var(--muted)' }}>Nenhum token gerado ainda.</p>
+          ) : (
+            <div className="space-y-2">
+              {tokens.map(tk => (
+                <div key={tk.id} className="flex items-center gap-3 py-2 border-b last:border-0" style={{ borderColor: 'var(--border)' }}>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate" style={{ color: 'var(--ink)' }}>{tk.label}</p>
+                    <p className="text-xs" style={{ color: 'var(--muted)' }}>Criado em {fmt(tk.created_at)}</p>
+                  </div>
+                  <Badge variant={tk.ativo ? 'success' : 'error'}>{tk.ativo ? 'Ativo' : 'Revogado'}</Badge>
+                  {tk.ativo && (
+                    <button
+                      onClick={() => revogarToken(tk.id)}
+                      disabled={revoking === tk.id}
+                      title="Revogar token"
+                      className="flex-shrink-0 p-1 rounded hover:bg-[var(--bg)] transition-colors disabled:opacity-40"
+                      style={{ color: 'var(--muted)' }}
+                    >
+                      {revoking === tk.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Modal isOpen={showModal} onClose={fecharModal} title="Gerar token de API">
+        {tokenExibido ? (
+          <div className="space-y-4">
+            <div className="flex items-start gap-3 p-3 rounded-[var(--r-xs)]" style={{ background: 'var(--sage-xlight)', border: '1px solid var(--border)' }}>
+              <Eye className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: 'var(--sage-dark)' }} />
+              <p className="text-sm font-semibold" style={{ color: 'var(--sage-dark)' }}>
+                Copie este token agora — ele não será exibido novamente.
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <input
+                readOnly value={tokenExibido}
+                onFocus={e => e.target.select()}
+                className="flex-1 min-w-0 rounded-[var(--r-xs)] px-3 py-2 text-xs font-mono focus:outline-none"
+                style={{ border: '1px solid var(--border-md)', background: 'var(--bg)', color: 'var(--ink)' }}
+              />
+              <button
+                onClick={copiarToken}
+                className="flex-shrink-0 flex items-center gap-1.5 text-sm font-medium px-3 py-2 rounded-[var(--r-xs)]"
+                style={copiado ? { background: 'var(--sage-xlight)', color: 'var(--sage-dark)' } : { background: 'var(--sage-dark)', color: '#fff' }}
+              >
+                {copiado ? <CheckCircle className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                {copiado ? 'Copiado' : 'Copiar'}
+              </button>
+            </div>
+            <Button className="w-full" onClick={fecharModal}>Fechar</Button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <p className="text-sm" style={{ color: 'var(--muted)' }}>
+              Dê um nome descritivo para identificar onde este token será usado (ex: "n8n produção").
+            </p>
+            <Input
+              label="Nome do token"
+              placeholder="ex: n8n produção"
+              value={novoLabel}
+              onChange={e => setNovoLabel(e.target.value)}
+              autoFocus
+            />
+            <Button className="w-full" loading={gerando} onClick={gerarToken} disabled={!novoLabel.trim()}>
+              Gerar token
+            </Button>
+          </div>
+        )}
+      </Modal>
+    </>
   );
 }
 
