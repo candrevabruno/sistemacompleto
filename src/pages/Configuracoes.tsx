@@ -61,11 +61,8 @@ export function Configuracoes() {
 
 function AbaGeral() {
   const { config, refreshConfig } = useClinic();
-  const { user } = useAuth();
-  const isSuperAdmin = user?.role === 'super_admin';
   const [nome, setNome] = useState(config?.nome || 'Heroic Leap');
   const [subtitulo, setSubtitulo] = useState(config?.subtitulo || '');
-  const [heroicWhatsapp, setHeroicWhatsapp] = useState(config?.heroic_leap_whatsapp || '');
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
@@ -73,7 +70,6 @@ function AbaGeral() {
   useEffect(() => {
     setNome(config?.nome || 'Heroic Leap');
     setSubtitulo(config?.subtitulo || '');
-    setHeroicWhatsapp(config?.heroic_leap_whatsapp || '');
   }, [config]);
 
   const saveGeral = async () => {
@@ -94,7 +90,6 @@ function AbaGeral() {
         }
       }
       const updatePayload: Record<string, unknown> = { nome, subtitulo: subtitulo || null, logo_url };
-      if (isSuperAdmin) updatePayload.heroic_leap_whatsapp = heroicWhatsapp || null;
       await supabase.from('clinic_config').update(updatePayload).eq('id', 1);
       await refreshConfig();
       setLogoFile(null);
@@ -166,24 +161,6 @@ function AbaGeral() {
           <Button onClick={saveGeral} loading={loading}>Salvar alterações</Button>
         </CardContent>
       </Card>
-
-      {isSuperAdmin && (
-        <Card>
-          <CardHeader><CardTitle>Contato da Heroic Leap</CardTitle></CardHeader>
-          <CardContent className="space-y-4">
-            <Input
-              label="WhatsApp da Heroic Leap (somente dígitos, ex: 5511999999999)"
-              placeholder="5511999999999"
-              value={heroicWhatsapp}
-              onChange={e => setHeroicWhatsapp(e.target.value)}
-            />
-            <p className="text-xs" style={{ color: 'var(--muted)' }}>
-              Número usado nos botões de "Solicitar acesso" para upgrade de recursos (Lista de Espera, Experiência Premium).
-            </p>
-            <Button onClick={saveGeral} loading={loading}>Salvar</Button>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }
@@ -1015,9 +992,25 @@ function AbaWhatsApp() {
 // abre um popup próprio para editar.
 function AbaWebhooks() {
   const { config, refreshConfig } = useClinic();
+  const { user } = useAuth();
+  const isSuperAdmin = user?.role === 'super_admin';
   const [editando, setEditando] = useState<null | 'nota' | 'aniversario' | 'upgrade'>(null);
   const [valor, setValor] = useState('');
   const [salvando, setSalvando] = useState(false);
+  const [heroicWhatsapp, setHeroicWhatsapp] = useState(config?.heroic_leap_whatsapp || '');
+  const [savingWhatsapp, setSavingWhatsapp] = useState(false);
+
+  useEffect(() => {
+    setHeroicWhatsapp(config?.heroic_leap_whatsapp || '');
+  }, [config]);
+
+  const saveHeroicWhatsapp = async () => {
+    setSavingWhatsapp(true);
+    const { error } = await supabase.from('clinic_config').update({ heroic_leap_whatsapp: heroicWhatsapp || null }).eq('id', 1);
+    setSavingWhatsapp(false);
+    if (error) { alert('Erro ao salvar: ' + error.message); return; }
+    await refreshConfig();
+  };
 
   const itens = [
     {
@@ -1087,6 +1080,24 @@ function AbaWebhooks() {
           <Button className="w-full" loading={salvando} onClick={salvar}>Salvar</Button>
         </div>
       </Modal>
+
+      {isSuperAdmin && (
+        <Card>
+          <CardHeader><CardTitle>Contato da Heroic Leap</CardTitle></CardHeader>
+          <CardContent className="space-y-4">
+            <Input
+              label="WhatsApp da Heroic Leap (somente dígitos, ex: 5511999999999)"
+              placeholder="5511999999999"
+              value={heroicWhatsapp}
+              onChange={e => setHeroicWhatsapp(e.target.value)}
+            />
+            <p className="text-xs" style={{ color: 'var(--muted)' }}>
+              Número usado nos botões de "Solicitar acesso" para upgrade de recursos (Lista de Espera, Experiência Premium).
+            </p>
+            <Button onClick={saveHeroicWhatsapp} loading={savingWhatsapp}>Salvar</Button>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
