@@ -11,6 +11,7 @@
 
 import { corsHeaders } from '../_shared/cors.ts';
 import { createAdminClient } from '../_shared/supabase-client.ts';
+import { logIntegracao } from '../_shared/log.ts';
 
 function parseJwt(token: string): Record<string, unknown> {
   const b = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
@@ -92,9 +93,48 @@ Deno.serve(async (req: Request) => {
       return json({ success: true, paciente_id: pacienteId, origem });
     }
 
-    // Parte 4 — registradas aqui quando as tabelas csat_respostas/nps_respostas existirem.
-    if (action === 'csat' || action === 'nps' || action === 'reativacao') {
-      return json({ error: `action '${action}' ainda não habilitada (Parte 4).` }, 501);
+    // ── Parte 4: CSAT (2d pós-consulta) ──────────────────────────────────────
+    if (action === 'csat') {
+      const { pacienteId, leadId } = await resolverPaciente(db, body);
+      if (!leadId && !pacienteId) return json({ error: 'Paciente não encontrado.' }, 404);
+      const score = Number(body.score);
+      if (!score || score < 1 || score > 5) return json({ error: 'score inválido (1–5).' }, 400);
+      const { error } = await db.from('csat_respostas').insert({
+        lead_id: leadId, paciente_id: pacienteId,
+        score, comentario: body.comentario || null,
+        canal: body.canal || 'whatsapp',
+      });
+      if (error) return json({ error: error.message }, 500);
+      await logIntegracao('n8n_intake', 'info', 'intake', `CSAT recebido: ${score}/5`);
+      return json({ success: true, action: 'csat', score });
+    }
+
+    // ── Parte 4: NPS (45d pós-consulta) ───────────────────────────────────────
+    if (action === 'nps') {
+      const { pacienteId, leadId } = await resolverPaciente(db, body);
+      if (!leadId && !pacienteId) return json({ error: 'Paciente não encontrado.' }, 404);
+      const score = Number(body.score);
+      if (score === undefined || score < 0 || score > 10) return json({ error: 'score inválido (0–10).' }, 400);
+      const { error } = await db.from('nps_respostas').insert({
+        lead_id: leadId, paciente_id: pacienteId,
+        score, comentario: body.comentario || null,
+        canal: body.canal || 'whatsapp',
+      });
+      if (error) return json({ error: error.message }, 500);
+      const tipo = score >= 9 ? 'promotor' : score >= 7 ? 'neutro' : 'detrator';
+      await logIntegracao('n8n_intake', 'info', 'intake', `NPS recebido: ${score}/10 (${tipo})`);
+      return json({ success: true, action: 'nps', score, tipo });
+    }
+
+    // ── Parte 4: Reativação (60d / 180d pós-consulta) ──────────────────────────
+    if (action === 'reativacao') {
+      const { leadId } = await resolverPaciente(db, body);
+      if (!leadId) return json({ error: 'Lead não encontrado.' }, 404);
+      // Registra o contato de reativação no log de integração
+      const respondeu = body.respondeu === true || body.respondeu === 'true';
+      await logIntegracao('n8n_intake', 'info', 'intake',
+        `Reativação ${respondeu ? 'aceita' : 'tentada'}: lead ${leadId}`);
+      return json({ success: true, action: 'reativacao', lead_id: leadId, respondeu });
     }
 
     return json({ error: 'action inválida' }, 400);

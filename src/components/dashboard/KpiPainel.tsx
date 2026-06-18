@@ -73,6 +73,9 @@ function calcularKpis(
   ag: any[],
   leads: any[],
   agTodos: any[],
+  csat: Array<{ score: number }>,
+  nps: Array<{ score: number }>,
+  leadsArq: Array<{ id: string }>,
 ): Record<string, number | null> {
   const total       = ag.length;
   const compareceu  = ag.filter(a => a.status === 'compareceu').length;
@@ -125,10 +128,30 @@ function calcularKpis(
   const convertidos              = leads.filter(l => l.status === 'converteu').length;
   const com_taxa_fechamento      = leads.length > 0             ? Math.round(convertidos / leads.length * 100) : null;
 
+  // Experiência — CSAT (média 1–5)
+  const csatScores = csat.map(r => r.score).filter(s => typeof s === 'number');
+  const exp_csat = csatScores.length > 0
+    ? Math.round(csatScores.reduce((a, b) => a + b, 0) / csatScores.length * 10) / 10
+    : null;
+
+  // Experiência — NPS (% promotores - % detratores, escala –100 a 100)
+  const npsScores = nps.map(r => r.score).filter(s => typeof s === 'number');
+  const promoters   = npsScores.filter(s => s >= 9).length;
+  const detractors  = npsScores.filter(s => s <= 6).length;
+  const exp_nps = npsScores.length > 0
+    ? Math.round((promoters / npsScores.length - detractors / npsScores.length) * 100)
+    : null;
+
+  // Experiência — Reativação (% leads arquivados com agendamento no período)
+  const arqIds = new Set(leadsArq.map((l: any) => l.id));
+  const reativados = new Set(ag.filter(a => a.lead_id && arqIds.has(a.lead_id)).map(a => a.lead_id)).size;
+  const exp_reativacao = arqIds.size > 0 ? Math.round(reativados / arqIds.size * 100) : null;
+
   return {
     op_ocupacao, op_no_show, op_cancelamento, op_instabilidade,
     op_atend_prof_dia, op_lead_time, op_reaproveitamento, op_retorno,
     com_taxa_agendamento, com_taxa_comparecimento, com_taxa_fechamento,
+    exp_csat, exp_nps, exp_reativacao,
   };
 }
 
@@ -293,12 +316,15 @@ export function KpiPainel({ dateRange }: { dateRange: { start: Date; end: Date }
     const s = dateRange.start.toISOString();
     const e = dateRange.end.toISOString();
 
-    const [catReq, selReq, agReq, ldReq, agTodosReq] = await Promise.all([
+    const [catReq, selReq, agReq, ldReq, agTodosReq, csatReq, npsReq, ldArqReq] = await Promise.all([
       supabase.from('kpi_catalog').select('*').order('ordem'),
       supabase.from('clinic_kpi_selection').select('*'),
       supabase.from('agendamentos').select('id,status,lead_id,agenda_id,data_hora_inicio,created_at').gte('created_at', s).lte('created_at', e),
       supabase.from('leads').select('id,status').gte('inicio_atendimento', s).lte('inicio_atendimento', e),
       supabase.from('agendamentos').select('lead_id,status'),
+      supabase.from('csat_respostas').select('score').gte('created_at', s).lte('created_at', e),
+      supabase.from('nps_respostas').select('score').gte('created_at', s).lte('created_at', e),
+      supabase.from('leads').select('id').eq('arquivado', true),
     ]);
 
     if (catReq.data) setCatalog(catReq.data);
@@ -307,7 +333,10 @@ export function KpiPainel({ dateRange }: { dateRange: { start: Date; end: Date }
     (selReq.data || []).forEach(r => { sel[r.kpi_codigo] = r.ativo; });
     setSelection(sel);
 
-    setValores(calcularKpis(agReq.data || [], ldReq.data || [], agTodosReq.data || []));
+    setValores(calcularKpis(
+      agReq.data || [], ldReq.data || [], agTodosReq.data || [],
+      csatReq.data || [], npsReq.data || [], ldArqReq.data || [],
+    ));
     setLoading(false);
   };
 
