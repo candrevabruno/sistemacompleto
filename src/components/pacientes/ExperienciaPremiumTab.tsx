@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { format } from 'date-fns';
+import { format, parseISO, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { supabase } from '../../lib/supabase';
-import { Loader2, Lock, Star, ChevronDown, ChevronRight, ClipboardList, Sparkles } from 'lucide-react';
+import { Loader2, Lock, Star, ChevronDown, ChevronRight, ClipboardList, Sparkles, Crown, CalendarCheck, FileText, MessageSquare, RotateCcw } from 'lucide-react';
 import { ResumoConsultaSection } from './ResumoConsultaSection';
 
 interface Props {
@@ -11,7 +11,7 @@ interface Props {
   nomePaciente?: string;
 }
 
-type SubTab = 'pre' | 'pos';
+type SubTab = 'pre' | 'pos' | 'jornada';
 
 interface TallyResposta {
   id: string;
@@ -115,6 +115,141 @@ function RespostaCard({ resposta }: { resposta: TallyResposta }) {
   );
 }
 
+// ── Jornada Premium ───────────────────────────────────────────────────────────
+
+interface JItem {
+  tipo: 'consulta' | 'tally' | 'resumo' | 'csat' | 'nps' | 'reativacao';
+  data: string;
+  label: string;
+  sublabel?: string;
+  score?: number;
+  scoreMax?: number;
+  status?: string; // para consultas
+}
+
+const TIPO_CONFIG: Record<JItem['tipo'], { icon: React.ReactNode; cor: string; badge: string }> = {
+  consulta:   { icon: <CalendarCheck size={13} />,  cor: 'var(--sage-dark)',  badge: 'var(--sage-xlight)' },
+  tally:      { icon: <ClipboardList size={13} />,  cor: 'var(--sage)',       badge: 'var(--sage-xlight)' },
+  resumo:     { icon: <FileText size={13} />,       cor: '#6366F1',           badge: '#EEF2FF' },
+  csat:       { icon: <Star size={13} />,           cor: 'var(--champ-text)', badge: 'var(--champ-light)' },
+  nps:        { icon: <MessageSquare size={13} />,  cor: '#7C3AED',           badge: '#F3E8FF' },
+  reativacao: { icon: <RotateCcw size={13} />,      cor: '#0369A1',           badge: '#E0F2FE' },
+};
+
+function JornadaPremiumTab({ pacienteId, leadId }: { pacienteId: string; leadId?: string }) {
+  const [itens, setItens] = useState<JItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!pacienteId) return;
+    carregarJornada();
+  }, [pacienteId, leadId]);
+
+  const carregarJornada = async () => {
+    setLoading(true);
+    const todas: JItem[] = [];
+
+    const [agRes, tallyRes, resumoRes, csatRes, npsRes, reativRes] = await Promise.all([
+      leadId
+        ? supabase.from('agendamentos').select('id,data_hora_inicio,status,procedimento_nome').eq('lead_id', leadId).order('data_hora_inicio')
+        : Promise.resolve({ data: [] }),
+      supabase.from('tally_respostas').select('id,created_at').eq('paciente_id', pacienteId).order('created_at'),
+      supabase.from('anotacoes_paciente').select('id,created_at,autor_nome').eq('paciente_id', pacienteId).eq('tipo', 'resumo_consulta').order('created_at'),
+      leadId
+        ? supabase.from('csat_respostas').select('id,score,created_at').eq('lead_id', leadId).order('created_at')
+        : supabase.from('csat_respostas').select('id,score,created_at').eq('paciente_id', pacienteId).order('created_at'),
+      leadId
+        ? supabase.from('nps_respostas').select('id,score,created_at').eq('lead_id', leadId).order('created_at')
+        : supabase.from('nps_respostas').select('id,score,created_at').eq('paciente_id', pacienteId).order('created_at'),
+      leadId
+        ? supabase.from('integration_log').select('id,mensagem,criado_em').eq('servico', 'n8n_intake').ilike('mensagem', `%Reativação%`).ilike('mensagem', `%${leadId}%`).order('criado_em')
+        : Promise.resolve({ data: [] }),
+    ]);
+
+    (agRes.data || []).forEach((a: any) => {
+      const STATUS_PT: Record<string, string> = { agendado: 'Agendada', compareceu: 'Compareceu', cancelado: 'Cancelada', reagendado: 'Reagendada', faltou: 'Faltou' };
+      todas.push({ tipo: 'consulta', data: a.data_hora_inicio, label: a.procedimento_nome || 'Consulta', sublabel: STATUS_PT[a.status] || a.status, status: a.status });
+    });
+    (tallyRes.data || []).forEach((r: any) => {
+      todas.push({ tipo: 'tally', data: r.created_at, label: 'Anamnese preenchida', sublabel: 'Formulário Tally recebido' });
+    });
+    (resumoRes.data || []).forEach((r: any) => {
+      todas.push({ tipo: 'resumo', data: r.created_at, label: 'Resumo da consulta', sublabel: r.autor_nome ? `Por ${r.autor_nome}` : undefined });
+    });
+    (csatRes.data || []).forEach((r: any) => {
+      const tipo = r.score >= 4 ? 'promotor' : r.score >= 3 ? 'neutro' : 'detrator';
+      todas.push({ tipo: 'csat', data: r.created_at, label: `CSAT: ${r.score}/5`, sublabel: tipo === 'promotor' ? '😊 Satisfeito' : tipo === 'neutro' ? '😐 Neutro' : '😞 Insatisfeito', score: r.score, scoreMax: 5 });
+    });
+    (npsRes.data || []).forEach((r: any) => {
+      const tipo = r.score >= 9 ? 'promotor' : r.score >= 7 ? 'neutro' : 'detrator';
+      todas.push({ tipo: 'nps', data: r.created_at, label: `NPS: ${r.score}/10`, sublabel: tipo === 'promotor' ? '⭐ Promotor' : tipo === 'neutro' ? '😐 Neutro' : '👎 Detrator', score: r.score, scoreMax: 10 });
+    });
+    (reativRes.data || []).forEach((r: any) => {
+      const aceita = r.mensagem?.includes('aceita');
+      todas.push({ tipo: 'reativacao', data: r.criado_em, label: aceita ? 'Reativação aceita' : 'Tentativa de reativação', sublabel: 'Fluxo pós-consulta (60d / 180d)' });
+    });
+
+    todas.sort((a, b) => new Date(a.data).getTime() - new Date(b.data).getTime());
+    setItens(todas);
+    setLoading(false);
+  };
+
+  if (loading) return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px' }}>
+      <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--muted)' }} />
+    </div>
+  );
+
+  if (itens.length === 0) return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '48px 24px', gap: '10px', textAlign: 'center' }}>
+      <Crown size={32} style={{ color: 'var(--champ-text)', opacity: 0.4 }} />
+      <p className="font-display" style={{ fontSize: '16px', fontStyle: 'italic', fontWeight: 300, color: 'var(--muted)' }}>
+        Nenhum evento registrado ainda
+      </p>
+      <p style={{ fontSize: '11.5px', color: 'var(--muted)', opacity: 0.7 }}>
+        A jornada aparece conforme as consultas e fluxos pós-consulta forem sendo realizados
+      </p>
+    </div>
+  );
+
+  return (
+    <div style={{ padding: '20px 22px' }}>
+      <div style={{ position: 'relative' }}>
+        <div style={{ position: 'absolute', left: '15px', top: '4px', bottom: '4px', width: '1px', background: 'var(--border)' }} />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {itens.map((item, idx) => {
+            const cfg = TIPO_CONFIG[item.tipo];
+            const isConsulta = item.tipo === 'consulta';
+            return (
+              <div key={idx} style={{ display: 'flex', gap: '16px', alignItems: 'flex-start', position: 'relative' }}>
+                <div style={{ width: '30px', height: '30px', borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: cfg.badge, color: cfg.cor, zIndex: 1, border: `1.5px solid ${cfg.cor}22` }}>
+                  {cfg.icon}
+                </div>
+                <div style={{ flex: 1, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: '10px', padding: '10px 14px', borderLeft: `3px solid ${cfg.cor}` }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
+                    <div>
+                      <p style={{ fontSize: '12.5px', fontWeight: 600, color: isConsulta ? cfg.cor : 'var(--ink)' }}>{item.label}</p>
+                      {item.sublabel && <p style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '2px' }}>{item.sublabel}</p>}
+                    </div>
+                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                      <p style={{ fontSize: '10.5px', color: 'var(--muted)' }}>
+                        {format(parseISO(item.data), "dd/MM/yyyy", { locale: ptBR })}
+                      </p>
+                      <p style={{ fontSize: '10px', color: 'var(--muted)', opacity: 0.7 }}>
+                        {format(parseISO(item.data), "HH:mm", { locale: ptBR })}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function ExperienciaPremiumTab({ pacienteId, leadId, nomePaciente }: Props) {
   const [premiumEnabled, setPremiumEnabled] = useState<boolean | null>(null);
   const [subTab, setSubTab] = useState<SubTab>('pre');
@@ -158,11 +293,13 @@ export function ExperienciaPremiumTab({ pacienteId, leadId, nomePaciente }: Prop
         {([
           { id: 'pre' as SubTab, label: 'Pré-consulta' },
           { id: 'pos' as SubTab, label: 'Pós-consulta' },
+          { id: 'jornada' as SubTab, label: 'Jornada Premium', crown: true },
         ]).map(st => (
           <button
             key={st.id}
             onClick={() => setSubTab(st.id)}
             style={{
+              display: 'flex', alignItems: 'center', gap: '5px',
               padding: '8px 16px',
               fontSize: '12.5px',
               fontWeight: subTab === st.id ? 600 : 400,
@@ -177,6 +314,7 @@ export function ExperienciaPremiumTab({ pacienteId, leadId, nomePaciente }: Prop
             }}
           >
             {st.label}
+            {'crown' in st && st.crown && <Crown size={11} style={{ color: 'var(--champ-text)', opacity: 0.8 }} />}
           </button>
         ))}
       </div>
@@ -210,6 +348,10 @@ export function ExperienciaPremiumTab({ pacienteId, leadId, nomePaciente }: Prop
           leadId={leadId}
           nomePaciente={nomePaciente}
         />
+      )}
+
+      {subTab === 'jornada' && (
+        <JornadaPremiumTab pacienteId={pacienteId} leadId={leadId} />
       )}
     </div>
   );

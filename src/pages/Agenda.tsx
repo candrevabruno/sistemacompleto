@@ -7,8 +7,9 @@ import {
   addMonths, addWeeks, addDays, eachDayOfInterval, getHours,
 } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, Plus, CalendarDays, Loader2, X, Ban, Clock, AlertTriangle, Check, UserX, User, ListChecks, ArrowUp, Trash2, Video, Settings, Archive, RotateCcw } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, CalendarDays, Loader2, X, Ban, Clock, AlertTriangle, Check, UserX, User, ListChecks, ArrowUp, Trash2, Video, Settings, Archive, RotateCcw, Crown, Sparkles } from 'lucide-react';
 import { LeadDetailsModal } from '../components/crm/LeadDetailsModal';
+import { useClinic } from '../contexts/ClinicContext';
 
 const DIAS_SEMANA: { key: string; label: string }[] = [
   { key: 'domingo', label: 'Domingo' }, { key: 'segunda', label: 'Segunda' },
@@ -51,7 +52,10 @@ function bloqueioCobreSlot(b: any, day: Date, hour: number): boolean {
 
 export function Agenda() {
   const { canEdit } = useAuth();
+  const { config } = useClinic();
   const podeEditar = canEdit('modulo:agenda');
+  const listaEsperaEnabled = Boolean(config?.lista_espera_enabled);
+  const [showEsperaUpgrade, setShowEsperaUpgrade] = useState(false);
 
   const [view, setView] = useState<View>('mes');
   const [cursor, setCursor] = useState<Date>(new Date());
@@ -185,7 +189,7 @@ export function Agenda() {
           )}
 
           <div style={{ marginLeft: 'auto', display: 'flex', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-xs)', overflow: 'hidden' }}>
-            {([['mes', 'Mês'], ['semana', 'Semana'], ['dia', 'Dia'], ['lista', 'Lista'], ['espera', 'Espera']] as [View, string][]).map(([v, label]) => (
+            {([['mes', 'Mês'], ['semana', 'Semana'], ['dia', 'Dia'], ['lista', 'Lista']] as [View, string][]).map(([v, label]) => (
               <button
                 key={v}
                 onClick={() => setView(v)}
@@ -218,6 +222,12 @@ export function Agenda() {
               <button onClick={() => setShowDisp(true)} style={tbGhost}><Clock size={14} /> Disponibilidade</button>
               <button onClick={() => setShowBloqueio(true)} style={{ ...tbGhost, color: 'var(--rose-text)' }}><Ban size={14} /> Bloquear</button>
               <button onClick={() => setShowNova(true)} style={tbPrimary}><Plus size={14} /> Nova agenda</button>
+              <button
+                onClick={() => listaEsperaEnabled ? setView('espera') : setShowEsperaUpgrade(true)}
+                style={{ ...tbGhost, color: view === 'espera' ? 'var(--sage-dark)' : 'var(--ink)', background: view === 'espera' ? 'var(--sage-xlight)' : 'var(--white)', border: view === 'espera' ? '1px solid var(--sage)' : '1px solid var(--border-md)' }}
+              >
+                <ListChecks size={14} /> Lista de espera <Crown size={11} style={{ color: 'var(--champ-text)', marginLeft: '2px' }} />
+              </button>
               <button onClick={() => setShowGerenciar(true)} title="Gerenciar agendas (arquivar / apagar)" style={tbGhost}><Settings size={14} /> Gerenciar</button>
             </div>
           )}
@@ -267,6 +277,31 @@ export function Agenda() {
       {showNovoAg && <NovoAgendamentoModal agendas={agendas} profPadrao={profFiltro !== 'todas' ? profFiltro : (agendas[0]?.id || '')} dataPadrao={format(cursor, 'yyyy-MM-dd')} onClose={() => setShowNovoAg(false)} onSaved={() => { setShowNovoAg(false); loadAgendamentos(); }} />}
       {bloqDel && <DesbloquearModal bloqueio={bloqDel} onClose={() => setBloqDel(null)} onSaved={() => { setBloqDel(null); loadAgendamentos(); }} />}
       {showGerenciar && <GerenciarAgendasModal onClose={() => setShowGerenciar(false)} onChanged={() => { loadAgendas(); loadAgendamentos(); }} />}
+
+      {showEsperaUpgrade && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.4)', padding: '16px' }} onClick={() => setShowEsperaUpgrade(false)}>
+          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--white)', borderRadius: '12px', boxShadow: 'var(--shadow-modal)', width: '100%', maxWidth: '380px', padding: '32px 28px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', textAlign: 'center' }}>
+            <div style={{ width: '52px', height: '52px', borderRadius: '50%', background: 'var(--champ-light)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Crown size={22} style={{ color: 'var(--champ-text)' }} />
+            </div>
+            <div>
+              <p className="font-display" style={{ fontSize: '20px', fontStyle: 'italic', fontWeight: 300, color: 'var(--ink)', marginBottom: '6px' }}>Lista de Espera</p>
+              <p style={{ fontSize: '12.5px', color: 'var(--muted)', lineHeight: 1.6, maxWidth: '280px' }}>
+                Gerencie pacientes aguardando vaga e ofereça automaticamente quando um horário cancelar.
+                Recurso disponível mediante liberação da Heroic Leap.
+              </p>
+            </div>
+            <a
+              href={`https://wa.me/5511999999999?text=${encodeURIComponent('Olá! Gostaria de solicitar acesso à Lista de Espera no sistema da clínica.')}`}
+              target="_blank" rel="noopener noreferrer"
+              style={{ display: 'flex', alignItems: 'center', gap: '7px', background: 'var(--sage-dark)', color: 'white', padding: '9px 18px', borderRadius: 'var(--r-xs)', fontSize: '13px', fontWeight: 600, textDecoration: 'none', fontFamily: 'inherit' }}
+            >
+              <Sparkles size={14} /> Solicitar acesso
+            </a>
+            <button onClick={() => setShowEsperaUpgrade(false)} style={{ fontSize: '12px', color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>Fechar</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

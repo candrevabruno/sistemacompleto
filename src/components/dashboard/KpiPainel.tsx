@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { useClinic } from '../../contexts/ClinicContext';
 import { differenceInDays, parseISO } from 'date-fns';
-import { Loader2, Settings, X } from 'lucide-react';
+import { Loader2, Settings, X, Crown, Sparkles } from 'lucide-react';
 
 interface KpiCatalog {
   codigo: string;
@@ -157,7 +158,7 @@ function calcularKpis(
 
 // ── KPI Card ──────────────────────────────────────────────────────────────────
 
-function KpiCard({ kpi, valor, semaforo }: { kpi: KpiCatalog; valor: number | null; semaforo: Semaforo }) {
+function KpiCard({ kpi, valor, semaforo, showCrown }: { kpi: KpiCatalog; valor: number | null; semaforo: Semaforo; showCrown?: boolean }) {
   const { cor, texto } = SEMAFOR[semaforo];
   const aguardando = semaforo === 'aguardando';
 
@@ -175,8 +176,9 @@ function KpiCard({ kpi, valor, semaforo }: { kpi: KpiCatalog; valor: number | nu
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: '7px' }}>
         <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: cor, flexShrink: 0, marginTop: '4px' }} />
-        <div>
-          <div style={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--ink)', lineHeight: 1.25 }}>{kpi.nome}</div>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '5px' }}>
+          <div style={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--ink)', lineHeight: 1.25, flex: 1 }}>{kpi.nome}</div>
+          {showCrown && <Crown size={11} style={{ color: 'var(--champ-text)', flexShrink: 0, opacity: 0.8 }} />}
         </div>
       </div>
 
@@ -196,6 +198,29 @@ function KpiCard({ kpi, valor, semaforo }: { kpi: KpiCatalog; valor: number | nu
       }}>
         {aguardando ? 'Aguardando dados' : metaLabel(kpi)}
       </div>
+    </div>
+  );
+}
+
+// ── Locked state para pilar Experiência ──────────────────────────────────────
+
+function ExperienciaLocked() {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '28px 24px', gap: '12px', textAlign: 'center', background: 'var(--bg)', borderRadius: 'var(--r-sm)', border: '1px dashed var(--border-md)' }}>
+      <Crown size={20} style={{ color: 'var(--champ-text)', opacity: 0.7 }} />
+      <div>
+        <p style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--ink)', marginBottom: '4px' }}>CSAT, NPS e Taxa de Reativação</p>
+        <p style={{ fontSize: '11.5px', color: 'var(--muted)', lineHeight: 1.6, maxWidth: '280px' }}>
+          Métricas de experiência do paciente disponíveis no plano Premium da Heroic Leap.
+        </p>
+      </div>
+      <a
+        href={`https://wa.me/5511999999999?text=${encodeURIComponent('Olá! Gostaria de solicitar acesso à Experiência Premium no sistema da clínica.')}`}
+        target="_blank" rel="noopener noreferrer"
+        style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--sage-dark)', color: 'white', padding: '7px 14px', borderRadius: 'var(--r-xs)', fontSize: '12px', fontWeight: 600, textDecoration: 'none', fontFamily: 'inherit' }}
+      >
+        <Sparkles size={12} /> Solicitar acesso Premium
+      </a>
     </div>
   );
 }
@@ -298,7 +323,9 @@ function ConfigModal({ catalog, selection, onToggle, onClose }: {
 
 export function KpiPainel({ dateRange }: { dateRange: { start: Date; end: Date } }) {
   const { user } = useAuth();
+  const { config } = useClinic();
   const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
+  const premiumEnabled = Boolean(config?.premium_enabled);
 
   const [loading, setLoading]     = useState(true);
   const [catalog, setCatalog]     = useState<KpiCatalog[]>([]);
@@ -408,17 +435,23 @@ export function KpiPainel({ dateRange }: { dateRange: { start: Date; end: Date }
           {(['operacional', 'comercial', 'experiencia'] as const).map(pilar => {
             const doPilar = ativos.filter(k => k.pilar === pilar);
             if (doPilar.length === 0) return null;
+            const isExp = pilar === 'experiencia';
             return (
               <div key={pilar}>
-                <div style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1.2px', color: 'var(--sage-dark)', paddingBottom: '8px', marginBottom: '12px', borderBottom: '1px solid var(--border)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1.2px', color: 'var(--sage-dark)', paddingBottom: '8px', marginBottom: '12px', borderBottom: '1px solid var(--border)' }}>
                   {PILAR_LABEL[pilar]}
+                  {isExp && <Crown size={11} style={{ color: 'var(--champ-text)', opacity: 0.8 }} />}
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(176px, 1fr))', gap: '10px' }}>
-                  {doPilar.map(kpi => {
-                    const val = valores[kpi.codigo] ?? null;
-                    return <KpiCard key={kpi.codigo} kpi={kpi} valor={val} semaforo={calcSemaforo(kpi, val)} />;
-                  })}
-                </div>
+                {isExp && !premiumEnabled ? (
+                  <ExperienciaLocked />
+                ) : (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(176px, 1fr))', gap: '10px' }}>
+                    {doPilar.map(kpi => {
+                      const val = valores[kpi.codigo] ?? null;
+                      return <KpiCard key={kpi.codigo} kpi={kpi} valor={val} semaforo={calcSemaforo(kpi, val)} showCrown={isExp} />;
+                    })}
+                  </div>
+                )}
               </div>
             );
           })}

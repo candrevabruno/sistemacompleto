@@ -224,6 +224,24 @@ function SectionHeader({ icon, label }: { icon: React.ReactNode; label: string }
   );
 }
 
+// ── Shared field wrapper (must be module-level — not inside DadosTab — to avoid remount on re-render) ──
+function Field({ label, children, style }: { label: string; children: React.ReactNode; style?: React.CSSProperties }) {
+  return (
+    <div style={style}>
+      <label style={labelStyle}>{label}</label>
+      {children}
+    </div>
+  );
+}
+
+function SaveBar({ salvando, saved, onSave }: { salvando: boolean; saved: boolean; onSave: () => void }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', marginTop: '16px', paddingTop: '14px', borderTop: '1px solid var(--border)' }}>
+      <SaveButton salvando={salvando} saved={saved} onClick={onSave} />
+    </div>
+  );
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 
 export function DadosTab({ lead, pacienteId, proximaConsulta: proximaConsultaProp }: Props) {
@@ -563,30 +581,6 @@ export function DadosTab({ lead, pacienteId, proximaConsulta: proximaConsultaPro
   }
 
   const pcStatus = proximaConsulta ? STATUS_PROXIMO[proximaConsulta.status] || STATUS_PROXIMO.agendado : null;
-
-  // ── Shared field wrapper ──
-  const Field = ({ label, children, style }: { label: string; children: React.ReactNode; style?: React.CSSProperties }) => (
-    <div style={style}>
-      <label style={labelStyle}>{label}</label>
-      {children}
-    </div>
-  );
-
-  // ── Save bar ──
-  const SaveBar = ({ salvando, saved, onSave }: { salvando: boolean; saved: boolean; onSave: () => void }) => (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'flex-end',
-        marginTop: '16px',
-        paddingTop: '14px',
-        borderTop: '1px solid var(--border)',
-      }}
-    >
-      <SaveButton salvando={salvando} saved={saved} onClick={onSave} />
-    </div>
-  );
 
   return (
     <div style={{ padding: '20px 22px' }}>

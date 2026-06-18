@@ -18,6 +18,7 @@ import {
   Gift,
   ScrollText,
   Activity,
+  Crown,
 } from 'lucide-react';
 
 const NAV_SECTIONS = [
@@ -180,7 +181,10 @@ export function Sidebar() {
                         color: isActive ? 'var(--sage-dark)' : 'var(--muted)',
                       }}
                     />
-                    <span className="truncate">{link.label}</span>
+                    <span className="truncate flex-1">{link.label}</span>
+                    {link.perm === 'feature:eventos' && (
+                      <Crown size={11} style={{ color: 'var(--champ-text)', flexShrink: 0, opacity: 0.8 }} />
+                    )}
                   </>
                 )}
               </NavLink>

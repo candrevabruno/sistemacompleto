@@ -27,6 +27,7 @@ export interface ClinicConfig {
   // ETAPA 5 — feature flags liberadas pela Heroic Leap (super_admin)
   premium_enabled?: boolean;
   eventos_enabled?: boolean;
+  lista_espera_enabled?: boolean;
   // ETAPA 6C — Eventos (webhooks n8n)
   aniversario_webhook_url?: string | null;
   upgrade_webhook_url?: string | null;

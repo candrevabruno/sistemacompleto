@@ -11,7 +11,7 @@ export type PermLevel = 'none' | 'view' | 'view_edit';
 
 export type PermGroup = 'modulo' | 'paciente_tab' | 'feature';
 
-export type FeatureFlag = 'premium_enabled' | 'eventos_enabled';
+export type FeatureFlag = 'premium_enabled' | 'eventos_enabled' | 'lista_espera_enabled';
 
 export interface PermItem {
   key: string;
@@ -60,6 +60,7 @@ export const PERM_ITEMS: PermItem[] = [
   { key: 'feature:premium',          label: 'Experiência Premium',       group: 'feature', editable: true, featureFlag: 'premium_enabled' },
   { key: 'feature:eventos',          label: 'Módulo Eventos',            group: 'feature', editable: true, featureFlag: 'eventos_enabled' },
   { key: 'feature:eventos:disparos', label: 'Controlar disparos e ações', group: 'feature', editable: true, featureFlag: 'eventos_enabled', parentKey: 'feature:eventos' },
+  { key: 'feature:lista_espera',     label: 'Lista de Espera',           group: 'feature', editable: false, featureFlag: 'lista_espera_enabled' },
 
   // ── Admin-only (admin/super_admin têm bypass automático; membro=none por padrão) ─
   { key: 'modulo:auditoria', label: 'Auditoria',         group: 'modulo', editable: false, route: '/auditoria', superAdminOnly: true },
@@ -82,7 +83,7 @@ export const LEVEL_LABEL: Record<PermLevel, string> = {
 };
 
 /** Itens visíveis dado o estado das feature flags da clínica. */
-export function visibleItems(flags: { premium_enabled?: boolean; eventos_enabled?: boolean } | null | undefined): PermItem[] {
+export function visibleItems(flags: { premium_enabled?: boolean; eventos_enabled?: boolean; lista_espera_enabled?: boolean } | null | undefined): PermItem[] {
   return PERM_ITEMS.filter(item => {
     if (!item.featureFlag) return true;
     return Boolean(flags?.[item.featureFlag]);
