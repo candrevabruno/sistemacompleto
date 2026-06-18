@@ -14,6 +14,7 @@ import { Pacientes } from './pages/Pacientes';
 import { Equipe } from './pages/Equipe';
 import { Eventos } from './pages/Eventos';
 import { Auditoria } from './pages/Auditoria';
+import { Logs } from './pages/Logs';
 import { AceitarConvite } from './pages/AceitarConvite';
 import { PERM_ITEMS } from './lib/permissions';
 
@@ -63,6 +64,7 @@ export function App() {
                 <Route path="/eventos" element={<PermRoute perm="feature:eventos"><Eventos /></PermRoute>} />
                 <Route path="/configuracoes" element={<PermRoute perm="modulo:configuracoes"><Configuracoes /></PermRoute>} />
                 <Route path="/auditoria" element={<PermRoute perm="modulo:auditoria"><Auditoria /></PermRoute>} />
+                <Route path="/logs" element={<PermRoute perm="modulo:logs"><Logs /></PermRoute>} />
               </Route>
             </Routes>
         </AuthProvider>

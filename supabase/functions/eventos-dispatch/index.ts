@@ -13,6 +13,7 @@
 
 import { corsHeaders } from '../_shared/cors.ts';
 import { createAdminClient } from '../_shared/supabase-client.ts';
+import { logIntegracao } from '../_shared/log.ts';
 
 function parseJwt(token: string): Record<string, unknown> {
   const b = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
@@ -75,7 +76,11 @@ Deno.serve(async (req: Request) => {
         }),
       });
       const text = await res.text();
-      if (!res.ok) return json({ error: `n8n ${res.status}: ${text.slice(0, 300)}` }, 502);
+      if (!res.ok) {
+        await logIntegracao('n8n_eventos', 'error', 'eventos-dispatch', `n8n ${res.status}: ${text.slice(0, 200)}`, { status: res.status });
+        return json({ error: `n8n ${res.status}: ${text.slice(0, 300)}` }, 502);
+      }
+      await logIntegracao('n8n_eventos', 'info', 'eventos-dispatch', `Aniversário disparado: ${lista.length} contato(s)`);
       return json({ success: true, total: lista.length });
     }
 
@@ -102,6 +107,7 @@ Deno.serve(async (req: Request) => {
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error('eventos-dispatch erro:', msg);
+    await logIntegracao('n8n_eventos', 'error', 'eventos-dispatch', msg);
     return json({ error: msg }, 500);
   }
 });

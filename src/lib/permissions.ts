@@ -61,6 +61,7 @@ export const PERM_ITEMS: PermItem[] = [
 
   // ── Admin-only (admin/super_admin têm bypass automático; membro=none por padrão) ─
   { key: 'modulo:auditoria', label: 'Auditoria', group: 'modulo', editable: false, route: '/auditoria' },
+  { key: 'modulo:logs',      label: 'Logs / Integrações', group: 'modulo', editable: false, route: '/logs' },
 ];
 
 export const PERM_ITEM_BY_KEY: Record<string, PermItem> = Object.fromEntries(

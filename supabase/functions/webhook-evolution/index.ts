@@ -5,6 +5,7 @@
 
 import { corsHeaders } from '../_shared/cors.ts';
 import { createAdminClient } from '../_shared/supabase-client.ts';
+import { logIntegracao } from '../_shared/log.ts';
 
 // Extrai número de telefone do remoteJid (ex: "5511999999999@s.whatsapp.net" → "5511999999999")
 function extractPhone(remoteJid: string): string | null {
@@ -364,8 +365,9 @@ Deno.serve(async (req: Request) => {
     return ok();
   } catch (err) {
     console.error('webhook-evolution error:', err);
-    // Sempre retorna 200 para a Evolution API não re-tentar
     const msg = err instanceof Error ? err.message : String(err);
+    await logIntegracao('evolution', 'error', 'webhook-evolution', msg);
+    // Sempre retorna 200 para a Evolution API não re-tentar
     return new Response(JSON.stringify({ received: true, error: msg }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

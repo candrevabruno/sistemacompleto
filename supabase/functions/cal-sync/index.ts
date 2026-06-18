@@ -10,6 +10,7 @@
 
 import { corsHeaders } from '../_shared/cors.ts';
 import { createAdminClient } from '../_shared/supabase-client.ts';
+import { logIntegracao } from '../_shared/log.ts';
 
 const CAL_BASE = 'https://api.cal.com/v2';
 const CAL_VERSION = '2026-02-25';     // bookings (create/cancel/reschedule)
@@ -158,12 +159,15 @@ Deno.serve(async (req: Request) => {
     const text = await res.text();
     if (!res.ok) {
       console.error('cal-sync error:', action, res.status, text.slice(0, 400));
+      await logIntegracao('calcom', 'error', 'cal-sync', `Cal.com ${res.status}: ${text.slice(0, 200)}`, { action, status: res.status });
       return json({ error: `Cal.com ${res.status}: ${text.slice(0, 400)}` }, 502);
     }
+    await logIntegracao('calcom', 'info', 'cal-sync', `${action} ok`);
     return json({ success: true, calcom: JSON.parse(text || '{}') });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error('cal-sync fatal:', msg);
+    await logIntegracao('calcom', 'error', 'cal-sync', msg);
     return json({ error: msg }, 500);
   }
 });

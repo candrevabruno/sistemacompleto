@@ -17,6 +17,7 @@ import {
   X,
   Gift,
   ScrollText,
+  Activity,
 } from 'lucide-react';
 
 const NAV_SECTIONS = [
@@ -43,6 +44,7 @@ const NAV_SECTIONS = [
       { to: '/equipe', label: 'Equipe', icon: UsersRound, perm: 'modulo:equipe' },
       { to: '/configuracoes', label: 'Configurações', icon: Settings, perm: 'modulo:configuracoes' },
       { to: '/auditoria', label: 'Auditoria', icon: ScrollText, perm: 'modulo:auditoria' },
+      { to: '/logs', label: 'Logs', icon: Activity, perm: 'modulo:logs' },
     ],
   },
 ];
