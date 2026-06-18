@@ -21,12 +21,14 @@ CREATE INDEX IF NOT EXISTS idx_integration_log_criado_em ON public.integration_l
 -- ── 3. RLS ────────────────────────────────────────────────────────────────────
 ALTER TABLE public.integration_log ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "integration_log_select_admin" ON public.integration_log FOR SELECT TO authenticated
-  USING ((SELECT role FROM public.users WHERE id = auth.uid()) IN ('admin', 'super_admin'));
+DO $$ BEGIN
+  CREATE POLICY "integration_log_select_admin" ON public.integration_log FOR SELECT TO authenticated
+    USING ((SELECT role FROM public.users WHERE id = auth.uid()) IN ('admin', 'super_admin'));
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
--- INSERT via service_role (edge functions) já ignora RLS.
--- Permite também via authenticated para futuros casos de uso no app.
-CREATE POLICY "integration_log_insert_auth" ON public.integration_log FOR INSERT TO authenticated
-  WITH CHECK (true);
+DO $$ BEGIN
+  CREATE POLICY "integration_log_insert_auth" ON public.integration_log FOR INSERT TO authenticated
+    WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 NOTIFY pgrst, 'reload schema';

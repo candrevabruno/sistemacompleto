@@ -22,7 +22,9 @@ DO $$ BEGIN
     CREATE POLICY "csat_respostas_auth" ON public.csat_respostas FOR SELECT TO authenticated USING (true);
   END IF;
 END $$;
-CREATE POLICY "csat_respostas_insert" ON public.csat_respostas FOR INSERT TO authenticated WITH CHECK (true);
+DO $$ BEGIN
+  CREATE POLICY "csat_respostas_insert" ON public.csat_respostas FOR INSERT TO authenticated WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- ── 2. Tabela nps_respostas ───────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.nps_respostas (
@@ -44,7 +46,9 @@ DO $$ BEGIN
     CREATE POLICY "nps_respostas_auth" ON public.nps_respostas FOR SELECT TO authenticated USING (true);
   END IF;
 END $$;
-CREATE POLICY "nps_respostas_insert" ON public.nps_respostas FOR INSERT TO authenticated WITH CHECK (true);
+DO $$ BEGIN
+  CREATE POLICY "nps_respostas_insert" ON public.nps_respostas FOR INSERT TO authenticated WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- ── 3. Garantir que apagar_paciente_completo deleta csat/nps ─────────────────
 -- (A RPC já tem BEGIN/EXCEPTION WHEN undefined_table — seguro mesmo se existir)

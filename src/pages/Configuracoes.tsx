@@ -15,7 +15,7 @@ const ALL_TABS = [
   { id: 'servicos', label: 'Serviços' },
   { id: 'kanban', label: 'Kanban' },
   { id: 'whatsapp', label: 'WhatsApp' },
-  { id: 'webhooks', label: 'Webhooks' },
+  { id: 'webhooks', label: 'Webhooks e APIs' },
   { id: 'kpis', label: 'KPIs & Marketing' },
 ];
 
@@ -1063,6 +1063,42 @@ function AbaWebhooks() {
   const [heroicWhatsapp, setHeroicWhatsapp] = useState(config?.heroic_leap_whatsapp || '');
   const [savingWhatsapp, setSavingWhatsapp] = useState(false);
 
+  // Cal.com
+  const [calcomApiKey, setCalcomApiKey] = useState('');
+  const [calcomWebhookSecret, setCalcomWebhookSecret] = useState('');
+  const [calcomLoaded, setCalcomLoaded] = useState(false);
+  const [calcomEditando, setCalcomEditando] = useState<'api_key' | 'webhook_secret' | null>(null);
+  const [calcomValor, setCalcomValor] = useState('');
+  const [calcomSalvando, setCalcomSalvando] = useState(false);
+  const calWebhookUrl = `${SUPABASE_URL}/functions/v1/cal-webhook`;
+
+  useEffect(() => {
+    supabase.from('clinic_config').select('calcom_api_key, calcom_webhook_secret').single().then(({ data }) => {
+      if (data) {
+        setCalcomApiKey(data.calcom_api_key || '');
+        setCalcomWebhookSecret(data.calcom_webhook_secret || '');
+      }
+      setCalcomLoaded(true);
+    });
+  }, []);
+
+  const abrirCalcom = (campo: 'api_key' | 'webhook_secret') => {
+    setCalcomValor(campo === 'api_key' ? calcomApiKey : calcomWebhookSecret);
+    setCalcomEditando(campo);
+  };
+
+  const salvarCalcom = async () => {
+    if (!calcomEditando) return;
+    setCalcomSalvando(true);
+    const coluna = calcomEditando === 'api_key' ? 'calcom_api_key' : 'calcom_webhook_secret';
+    const { error } = await supabase.from('clinic_config').update({ [coluna]: calcomValor || null }).eq('id', 1);
+    setCalcomSalvando(false);
+    if (error) { alert('Erro ao salvar: ' + error.message); return; }
+    if (calcomEditando === 'api_key') setCalcomApiKey(calcomValor);
+    else setCalcomWebhookSecret(calcomValor);
+    setCalcomEditando(null);
+  };
+
   useEffect(() => {
     setHeroicWhatsapp(config?.heroic_leap_whatsapp || '');
   }, [config]);
@@ -1114,7 +1150,81 @@ function AbaWebhooks() {
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-[var(--muted)]">
+
+      {/* ── Cal.com ── */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Cal.com</CardTitle>
+              <p className="text-sm text-[var(--muted)] mt-1">
+                Credenciais globais para a integração bidirecional com o Cal.com (agendamento, cancelamento, bloqueios).
+              </p>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* API Key */}
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex-1 min-w-0">
+              <MaskedRow label="API Key" value={calcomLoaded ? (calcomApiKey || undefined) : undefined} />
+              <p className="text-xs text-[var(--muted)] mt-1.5 leading-relaxed">
+                Encontre em <strong>cal.com → Settings → Developer → API Keys</strong> → clique em <em>"Add"</em> para criar uma nova chave. Copie o valor completo (aparece só uma vez).
+              </p>
+            </div>
+            <button
+              onClick={() => abrirCalcom('api_key')}
+              className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-[8px] border border-[var(--border-md)] hover:bg-[var(--bg)] transition-colors text-[var(--ink)] flex-shrink-0"
+            >
+              <Pencil className="w-3.5 h-3.5" /> Editar
+            </button>
+          </div>
+
+          <hr style={{ borderColor: 'var(--border)' }} />
+
+          {/* Webhook Secret */}
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex-1 min-w-0">
+              <MaskedRow label="Webhook Secret" value={calcomLoaded ? (calcomWebhookSecret || undefined) : undefined} />
+              <p className="text-xs text-[var(--muted)] mt-1.5 leading-relaxed">
+                Encontre em <strong>cal.com → Settings → Developer → Webhooks</strong> → clique em <em>"New Webhook"</em>, cole a URL abaixo em <em>"Subscriber URL"</em> e copie o <em>"Secret"</em> gerado. Ative os eventos: <code className="bg-gray-100 px-1 rounded text-[11px]">BOOKING_CREATED</code>, <code className="bg-gray-100 px-1 rounded text-[11px]">BOOKING_CANCELLED</code>, <code className="bg-gray-100 px-1 rounded text-[11px]">BOOKING_RESCHEDULED</code>.
+              </p>
+              <div className="mt-2 flex items-center gap-2 bg-gray-50 border border-[var(--border)] rounded-[8px] px-3 py-2">
+                <span className="font-mono text-[11px] text-gray-600 truncate flex-1">{calWebhookUrl}</span>
+                <button
+                  onClick={() => navigator.clipboard.writeText(calWebhookUrl)}
+                  className="text-gray-400 hover:text-gray-700 transition-colors flex-shrink-0"
+                  title="Copiar URL"
+                >
+                  <Copy className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+            <button
+              onClick={() => abrirCalcom('webhook_secret')}
+              className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-[8px] border border-[var(--border-md)] hover:bg-[var(--bg)] transition-colors text-[var(--ink)] flex-shrink-0 self-start"
+            >
+              <Pencil className="w-3.5 h-3.5" /> Editar
+            </button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Modal isOpen={!!calcomEditando} onClose={() => setCalcomEditando(null)}
+        title={calcomEditando === 'api_key' ? 'API Key — Cal.com' : 'Webhook Secret — Cal.com'}>
+        <div className="space-y-4">
+          <Input
+            label={calcomEditando === 'api_key' ? 'API Key' : 'Webhook Secret'}
+            placeholder={calcomEditando === 'api_key' ? 'cal_live_xxxxxxxxxxxx' : 'whsec_xxxxxxxxxxxx'}
+            value={calcomValor}
+            onChange={e => setCalcomValor(e.target.value)}
+          />
+          <Button className="w-full" loading={calcomSalvando} onClick={salvarCalcom}>Salvar</Button>
+        </div>
+      </Modal>
+
+      {/* ── n8n Webhooks ── */}
+      <p className="text-sm text-[var(--muted)] pt-2">
         Integrações com o n8n. Clique em <strong>Editar</strong> para configurar cada uma.
       </p>
       {itens.map(it => (
