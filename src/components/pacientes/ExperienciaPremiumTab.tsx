@@ -4,6 +4,7 @@ import { ptBR } from 'date-fns/locale';
 import { supabase } from '../../lib/supabase';
 import { Loader2, Lock, Star, ChevronDown, ChevronRight, ClipboardList, Sparkles, Crown, CalendarCheck, FileText, MessageSquare, RotateCcw } from 'lucide-react';
 import { ResumoConsultaSection } from './ResumoConsultaSection';
+import { useClinic } from '../../contexts/ClinicContext';
 
 interface Props {
   pacienteId: string;
@@ -20,11 +21,11 @@ interface TallyResposta {
   created_at: string;
 }
 
-// Número WhatsApp da Heroic Leap para solicitar upgrade
-const HEROIC_LEAP_WHATSAPP = '5511999999999';
 const UPGRADE_MSG = encodeURIComponent('Olá! Gostaria de solicitar acesso à Experiência Premium no sistema da clínica.');
 
 function LockedState() {
+  const { config } = useClinic();
+  const whatsapp = config?.heroic_leap_whatsapp || '5511999999999';
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '52px 32px', gap: '16px', textAlign: 'center' }}>
       <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'var(--champ-light)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -46,7 +47,7 @@ function LockedState() {
         </span>
       </div>
       <a
-        href={`https://wa.me/${HEROIC_LEAP_WHATSAPP}?text=${UPGRADE_MSG}`}
+        href={`https://wa.me/${whatsapp}?text=${UPGRADE_MSG}`}
         target="_blank"
         rel="noopener noreferrer"
         style={{
@@ -293,7 +294,7 @@ export function ExperienciaPremiumTab({ pacienteId, leadId, nomePaciente }: Prop
         {([
           { id: 'pre' as SubTab, label: 'Pré-consulta' },
           { id: 'pos' as SubTab, label: 'Pós-consulta' },
-          { id: 'jornada' as SubTab, label: 'Jornada Premium', crown: true },
+          { id: 'jornada' as SubTab, label: 'Jornada Premium' },
         ]).map(st => (
           <button
             key={st.id}
@@ -314,7 +315,6 @@ export function ExperienciaPremiumTab({ pacienteId, leadId, nomePaciente }: Prop
             }}
           >
             {st.label}
-            {'crown' in st && st.crown && <Crown size={11} style={{ color: 'var(--champ-text)', opacity: 0.8 }} />}
           </button>
         ))}
       </div>

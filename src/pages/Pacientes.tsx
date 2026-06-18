@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useClinic } from '../contexts/ClinicContext';
-import { Search, Users, MessageSquare, CalendarPlus, ClipboardList, ExternalLink, Check, X, Clock, Loader2, Upload, UserPlus, MoreVertical, Archive, ArchiveRestore, Trash2, AlertTriangle, Sparkles, ShieldOff } from 'lucide-react';
+import { Search, Users, MessageSquare, CalendarPlus, ClipboardList, ExternalLink, Check, X, Clock, Loader2, Upload, UserPlus, MoreVertical, Archive, ArchiveRestore, Trash2, AlertTriangle, Sparkles, ShieldOff, Crown } from 'lucide-react';
 import { DadosTab } from '../components/pacientes/DadosTab';
 import { ConsultasTab } from '../components/pacientes/ConsultasTab';
 import { ProcedimentosTab } from '../components/pacientes/ProcedimentosTab';
@@ -114,7 +114,7 @@ export function Pacientes() {
     can('paciente_tab:procedimentos') && { id: 'procedimentos' as Tab, label: 'Procedimentos' },
     can('paciente_tab:comportamento') && { id: 'comportamento' as Tab, label: 'Comportamento' },
     canProfissional                   && { id: 'profissional' as Tab,  label: 'Anotações do Profissional' },
-    canPremium                        && { id: 'premium' as Tab,       label: '✦ Experiência Premium' },
+    canPremium                        && { id: 'premium' as Tab,       label: 'Experiência Premium' },
   ].filter(Boolean) as { id: Tab; label: string }[];
 
   // Garante que a aba ativa é uma permitida.
@@ -781,9 +781,13 @@ export function Pacientes() {
                   fontFamily: 'inherit',
                   whiteSpace: 'nowrap',
                   flexShrink: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
                 }}
               >
                 {tab.label}
+                {tab.id === 'premium' && <Crown size={11} style={{ color: 'var(--champ-text)', opacity: 0.8 }} />}
               </button>
             ))}
           </div>

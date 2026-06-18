@@ -61,8 +61,11 @@ export function Configuracoes() {
 
 function AbaGeral() {
   const { config, refreshConfig } = useClinic();
+  const { user } = useAuth();
+  const isSuperAdmin = user?.role === 'super_admin';
   const [nome, setNome] = useState(config?.nome || 'Heroic Leap');
   const [subtitulo, setSubtitulo] = useState(config?.subtitulo || '');
+  const [heroicWhatsapp, setHeroicWhatsapp] = useState(config?.heroic_leap_whatsapp || '');
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
@@ -70,6 +73,7 @@ function AbaGeral() {
   useEffect(() => {
     setNome(config?.nome || 'Heroic Leap');
     setSubtitulo(config?.subtitulo || '');
+    setHeroicWhatsapp(config?.heroic_leap_whatsapp || '');
   }, [config]);
 
   const saveGeral = async () => {
@@ -89,9 +93,11 @@ function AbaGeral() {
           logo_url = urlReq.data.publicUrl;
         }
       }
-      await supabase.from('clinic_config').update({ nome, subtitulo: subtitulo || null, logo_url }).eq('id', 1);
+      const updatePayload: Record<string, unknown> = { nome, subtitulo: subtitulo || null, logo_url };
+      if (isSuperAdmin) updatePayload.heroic_leap_whatsapp = heroicWhatsapp || null;
+      await supabase.from('clinic_config').update(updatePayload).eq('id', 1);
       await refreshConfig();
-      setLogoFile(null); // limpa preview local para forçar carregar do servidor
+      setLogoFile(null);
       alert('Configurações salvas com sucesso!');
     } catch (err: any) {
       alert('Ocorreu um erro: ' + err.message);
@@ -160,6 +166,24 @@ function AbaGeral() {
           <Button onClick={saveGeral} loading={loading}>Salvar alterações</Button>
         </CardContent>
       </Card>
+
+      {isSuperAdmin && (
+        <Card>
+          <CardHeader><CardTitle>Contato da Heroic Leap</CardTitle></CardHeader>
+          <CardContent className="space-y-4">
+            <Input
+              label="WhatsApp da Heroic Leap (somente dígitos, ex: 5511999999999)"
+              placeholder="5511999999999"
+              value={heroicWhatsapp}
+              onChange={e => setHeroicWhatsapp(e.target.value)}
+            />
+            <p className="text-xs" style={{ color: 'var(--muted)' }}>
+              Número usado nos botões de "Solicitar acesso" para upgrade de recursos (Lista de Espera, Experiência Premium).
+            </p>
+            <Button onClick={saveGeral} loading={loading}>Salvar</Button>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

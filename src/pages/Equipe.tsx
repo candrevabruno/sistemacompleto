@@ -170,7 +170,7 @@ export function Equipe() {
   }
 
   // ── Feature flags (super_admin) ──────────────────────────────────────────────
-  async function toggleFlag(flag: 'premium_enabled' | 'eventos_enabled', val: boolean) {
+  async function toggleFlag(flag: 'premium_enabled' | 'eventos_enabled' | 'lista_espera_enabled', val: boolean) {
     setSavingFlag(flag);
     await supabase.from('clinic_config').update({ [flag]: val }).eq('id', 1);
     await refreshConfig();
@@ -242,6 +242,7 @@ export function Equipe() {
             {([
               { key: 'premium_enabled', label: 'Experiência Premium', desc: 'Libera a aba premium no perfil do paciente.' },
               { key: 'eventos_enabled', label: 'Módulo Eventos', desc: 'Libera disparos e ações de eventos para a clínica.' },
+              { key: 'lista_espera_enabled', label: 'Lista de Espera', desc: 'Libera o botão de lista de espera na Agenda.' },
             ] as const).map(f => {
               const on = Boolean(config?.[f.key]);
               return (

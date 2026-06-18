@@ -292,7 +292,7 @@ export function Agenda() {
               </p>
             </div>
             <a
-              href={`https://wa.me/5511999999999?text=${encodeURIComponent('Olá! Gostaria de solicitar acesso à Lista de Espera no sistema da clínica.')}`}
+              href={`https://wa.me/${config?.heroic_leap_whatsapp || '5511999999999'}?text=${encodeURIComponent('Olá! Gostaria de solicitar acesso à Lista de Espera no sistema da clínica.')}`}
               target="_blank" rel="noopener noreferrer"
               style={{ display: 'flex', alignItems: 'center', gap: '7px', background: 'var(--sage-dark)', color: 'white', padding: '9px 18px', borderRadius: 'var(--r-xs)', fontSize: '13px', fontWeight: 600, textDecoration: 'none', fontFamily: 'inherit' }}
             >

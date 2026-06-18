@@ -205,6 +205,8 @@ function KpiCard({ kpi, valor, semaforo, showCrown }: { kpi: KpiCatalog; valor: 
 // ── Locked state para pilar Experiência ──────────────────────────────────────
 
 function ExperienciaLocked() {
+  const { config } = useClinic();
+  const whatsapp = config?.heroic_leap_whatsapp || '5511999999999';
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '28px 24px', gap: '12px', textAlign: 'center', background: 'var(--bg)', borderRadius: 'var(--r-sm)', border: '1px dashed var(--border-md)' }}>
       <Crown size={20} style={{ color: 'var(--champ-text)', opacity: 0.7 }} />
@@ -215,7 +217,7 @@ function ExperienciaLocked() {
         </p>
       </div>
       <a
-        href={`https://wa.me/5511999999999?text=${encodeURIComponent('Olá! Gostaria de solicitar acesso à Experiência Premium no sistema da clínica.')}`}
+        href={`https://wa.me/${whatsapp}?text=${encodeURIComponent('Olá! Gostaria de solicitar acesso à Experiência Premium no sistema da clínica.')}`}
         target="_blank" rel="noopener noreferrer"
         style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--sage-dark)', color: 'white', padding: '7px 14px', borderRadius: 'var(--r-xs)', fontSize: '12px', fontWeight: 600, textDecoration: 'none', fontFamily: 'inherit' }}
       >
