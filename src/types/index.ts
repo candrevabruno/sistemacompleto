@@ -102,6 +102,8 @@ export interface LeadDetalhes extends Lead {
   tentativas: number | null;
   proximo_contato: string | null;
   motivo: string | null;
+  // ETAPA 7 — LGPD
+  anonimizado_em?: string | null;
 }
 
 export interface Agendamento {
@@ -170,6 +172,12 @@ export interface Paciente {
   resumo: string | null;
   nota_updated_at: string | null;
   created_at: string;
+  // ETAPA 7 — LGPD
+  cpf_hash?: string | null;
+  consentimento_dado_em?: string | null;
+  consentimento_origem?: 'tally' | 'whatsapp' | 'manual' | null;
+  consentimento_texto?: string | null;
+  consentimento_revogado_em?: string | null;
 }
 
 export interface PacienteComLead extends Paciente {

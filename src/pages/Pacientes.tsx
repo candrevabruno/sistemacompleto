@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useClinic } from '../contexts/ClinicContext';
-import { Search, Users, MessageSquare, CalendarPlus, ClipboardList, ExternalLink, Check, X, Clock, Loader2, Upload, UserPlus, MoreVertical, Archive, ArchiveRestore, Trash2, AlertTriangle, Sparkles } from 'lucide-react';
+import { Search, Users, MessageSquare, CalendarPlus, ClipboardList, ExternalLink, Check, X, Clock, Loader2, Upload, UserPlus, MoreVertical, Archive, ArchiveRestore, Trash2, AlertTriangle, Sparkles, ShieldOff } from 'lucide-react';
 import { DadosTab } from '../components/pacientes/DadosTab';
 import { ConsultasTab } from '../components/pacientes/ConsultasTab';
 import { ProcedimentosTab } from '../components/pacientes/ProcedimentosTab';
@@ -101,8 +101,12 @@ export function Pacientes() {
   const [showNovo, setShowNovo] = useState(false);
   const [mostrarArquivados, setMostrarArquivados] = useState(false);
   const [menuAberto, setMenuAberto] = useState(false);
-  const [confirmAcao, setConfirmAcao] = useState<'arquivar' | 'apagar' | null>(null);
+  const [confirmAcao, setConfirmAcao] = useState<'arquivar' | 'apagar' | 'anonimizar' | null>(null);
+  const [confirmText, setConfirmText] = useState('');
   const [processando, setProcessando] = useState(false);
+
+  // LGPD — apagar/anonimizar são restritos a administradores.
+  const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
 
   const TABS: { id: Tab; label: string }[] = [
     can('paciente_tab:dados')         && { id: 'dados' as Tab,         label: 'Dados' },
@@ -255,6 +259,26 @@ export function Pacientes() {
     setConfirmAcao(null);
     setMenuAberto(false);
     if (error) { alert('Erro ao apagar: ' + error.message); return; }
+    limparSelecao();
+    await loadPacientes();
+  };
+
+  const anonimizarPaciente = async () => {
+    if (!leadSelecionado || !user) return;
+    setProcessando(true);
+    // Auditoria ANTES de anonimizar (preserva o nome no log).
+    await supabase.from('audit_log').insert({
+      user_id: user.id,
+      action: 'paciente_anonimizado',
+      record_id: leadSelecionado.id,
+      detalhes: { nome: leadSelecionado.nome_lead, paciente_id: pacienteId },
+    });
+    const { error } = await supabase.rpc('anonimizar_paciente_completo', { p_lead_id: leadSelecionado.id });
+    setProcessando(false);
+    setConfirmAcao(null);
+    setConfirmText('');
+    setMenuAberto(false);
+    if (error) { alert('Erro ao anonimizar: ' + error.message); return; }
     limparSelecao();
     await loadPacientes();
   };
@@ -695,15 +719,28 @@ export function Pacientes() {
                           {mostrarArquivados ? <ArchiveRestore style={{ width: '14px', height: '14px' }} /> : <Archive style={{ width: '14px', height: '14px' }} />}
                           {mostrarArquivados ? 'Restaurar paciente' : 'Arquivar paciente'}
                         </button>
-                        <button
-                          onClick={() => { setMenuAberto(false); setConfirmAcao('apagar'); }}
-                          style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', textAlign: 'left', padding: '9px 12px', background: 'transparent', border: 'none', borderTop: '1px solid var(--border)', color: 'var(--rose-text)', cursor: 'pointer', fontFamily: 'inherit' }}
-                          onMouseEnter={e => (e.currentTarget.style.background = 'var(--rose-light)')}
-                          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                        >
-                          <Trash2 style={{ width: '14px', height: '14px' }} />
-                          Apagar definitivamente
-                        </button>
+                        {isAdmin && (
+                          <button
+                            onClick={() => { setMenuAberto(false); setConfirmText(''); setConfirmAcao('anonimizar'); }}
+                            style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', textAlign: 'left', padding: '9px 12px', background: 'transparent', border: 'none', borderTop: '1px solid var(--border)', color: 'var(--champ-text)', cursor: 'pointer', fontFamily: 'inherit' }}
+                            onMouseEnter={e => (e.currentTarget.style.background = 'var(--champ-light)')}
+                            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                          >
+                            <ShieldOff style={{ width: '14px', height: '14px' }} />
+                            Anonimizar (manter métricas)
+                          </button>
+                        )}
+                        {isAdmin && (
+                          <button
+                            onClick={() => { setMenuAberto(false); setConfirmText(''); setConfirmAcao('apagar'); }}
+                            style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', textAlign: 'left', padding: '9px 12px', background: 'transparent', border: 'none', borderTop: '1px solid var(--border)', color: 'var(--rose-text)', cursor: 'pointer', fontFamily: 'inherit' }}
+                            onMouseEnter={e => (e.currentTarget.style.background = 'var(--rose-light)')}
+                            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                          >
+                            <Trash2 style={{ width: '14px', height: '14px' }} />
+                            Apagar definitivamente
+                          </button>
+                        )}
                       </div>
                     </>
                   )}
@@ -829,39 +866,68 @@ export function Pacientes() {
           >
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', marginBottom: '16px' }}>
               <div style={{ flexShrink: 0, padding: '8px', borderRadius: '50%', background: confirmAcao === 'apagar' ? 'var(--rose-light)' : 'var(--champ-light)', color: confirmAcao === 'apagar' ? 'var(--rose-text)' : 'var(--champ-text)' }}>
-                {confirmAcao === 'apagar' ? <Trash2 size={18} /> : <AlertTriangle size={18} />}
+                {confirmAcao === 'apagar' ? <Trash2 size={18} /> : confirmAcao === 'anonimizar' ? <ShieldOff size={18} /> : <AlertTriangle size={18} />}
               </div>
               <div style={{ flex: 1 }}>
                 <h3 className="font-cormorant" style={{ fontSize: '17px', fontWeight: 600, color: 'var(--ink)' }}>
                   {confirmAcao === 'apagar'
                     ? 'Apagar paciente definitivamente?'
-                    : mostrarArquivados ? 'Restaurar paciente?' : 'Arquivar paciente?'}
+                    : confirmAcao === 'anonimizar'
+                      ? 'Anonimizar dados do paciente?'
+                      : mostrarArquivados ? 'Restaurar paciente?' : 'Arquivar paciente?'}
                 </h3>
                 <p style={{ fontSize: '12.5px', color: 'var(--muted)', marginTop: '6px', lineHeight: 1.5 }}>
                   {confirmAcao === 'apagar'
                     ? <>Isso remove <strong>{leadSelecionado.nome_lead || 'o paciente'}</strong> e todos os dados ligados (consultas, conversas, procedimentos, anotações). <strong>Não pode ser desfeito.</strong> Para um cadastro que pode voltar, use arquivar.</>
-                    : mostrarArquivados
-                      ? <>O paciente <strong>{leadSelecionado.nome_lead || ''}</strong> volta para a lista de ativos.</>
-                      : <>O paciente <strong>{leadSelecionado.nome_lead || ''}</strong> sai da lista, mas os dados são mantidos. Você pode restaurar depois em “Ver arquivados”.</>}
+                    : confirmAcao === 'anonimizar'
+                      ? <>Remove permanentemente os dados pessoais de <strong>{leadSelecionado.nome_lead || 'o paciente'}</strong> (nome, CPF, contato, endereço, conversas), mas <strong>preserva as métricas</strong> (consultas, episódios) de forma anônima. <strong>Não pode ser desfeito</strong> — atende ao direito de eliminação da LGPD.</>
+                      : mostrarArquivados
+                        ? <>O paciente <strong>{leadSelecionado.nome_lead || ''}</strong> volta para a lista de ativos.</>
+                        : <>O paciente <strong>{leadSelecionado.nome_lead || ''}</strong> sai da lista, mas os dados são mantidos. Você pode restaurar depois em “Ver arquivados”.</>}
                 </p>
               </div>
             </div>
+            {(confirmAcao === 'apagar' || confirmAcao === 'anonimizar') && (() => {
+              const palavra = confirmAcao === 'apagar' ? 'APAGAR' : 'ANONIMIZAR';
+              return (
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{ fontSize: '11.5px', color: 'var(--muted)', display: 'block', marginBottom: '6px' }}>
+                    Para confirmar, digite <strong style={{ color: 'var(--ink)' }}>{palavra}</strong>:
+                  </label>
+                  <input
+                    value={confirmText}
+                    onChange={e => setConfirmText(e.target.value)}
+                    placeholder={palavra}
+                    autoFocus
+                    style={{ width: '100%', padding: '8px 11px', border: '1px solid var(--border-md)', borderRadius: 'var(--r-xs)', fontSize: '13px', color: 'var(--ink)', fontFamily: 'inherit', outline: 'none', background: 'var(--white)' }}
+                  />
+                </div>
+              );
+            })()}
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
               <button
-                onClick={() => setConfirmAcao(null)}
+                onClick={() => { setConfirmAcao(null); setConfirmText(''); }}
                 disabled={processando}
                 style={{ padding: '8px 16px', fontSize: '12.5px', fontWeight: 500, borderRadius: 'var(--r-xs)', border: '1px solid var(--border-md)', background: 'transparent', color: 'var(--ink)', cursor: 'pointer', fontFamily: 'inherit', opacity: processando ? 0.5 : 1 }}
               >
                 Cancelar
               </button>
-              <button
-                onClick={confirmAcao === 'apagar' ? apagarPaciente : arquivarPaciente}
-                disabled={processando}
-                style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', fontSize: '12.5px', fontWeight: 600, borderRadius: 'var(--r-xs)', border: 'none', color: 'white', cursor: 'pointer', fontFamily: 'inherit', opacity: processando ? 0.6 : 1, background: confirmAcao === 'apagar' ? 'var(--rose-text)' : 'var(--sage-dark)' }}
-              >
-                {processando && <Loader2 size={13} className="animate-spin" />}
-                {confirmAcao === 'apagar' ? 'Apagar' : mostrarArquivados ? 'Restaurar' : 'Arquivar'}
-              </button>
+              {(() => {
+                const destrutivo = confirmAcao === 'apagar' || confirmAcao === 'anonimizar';
+                const palavra = confirmAcao === 'apagar' ? 'APAGAR' : 'ANONIMIZAR';
+                const travado = destrutivo && confirmText.trim().toUpperCase() !== palavra;
+                const onClick = confirmAcao === 'apagar' ? apagarPaciente : confirmAcao === 'anonimizar' ? anonimizarPaciente : arquivarPaciente;
+                return (
+                  <button
+                    onClick={onClick}
+                    disabled={processando || travado}
+                    style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', fontSize: '12.5px', fontWeight: 600, borderRadius: 'var(--r-xs)', border: 'none', color: 'white', cursor: (processando || travado) ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: (processando || travado) ? 0.5 : 1, background: confirmAcao === 'apagar' ? 'var(--rose-text)' : confirmAcao === 'anonimizar' ? 'var(--champ-text)' : 'var(--sage-dark)' }}
+                  >
+                    {processando && <Loader2 size={13} className="animate-spin" />}
+                    {confirmAcao === 'apagar' ? 'Apagar' : confirmAcao === 'anonimizar' ? 'Anonimizar' : mostrarArquivados ? 'Restaurar' : 'Arquivar'}
+                  </button>
+                );
+              })()}
             </div>
           </div>
         </div>

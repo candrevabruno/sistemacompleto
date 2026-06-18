@@ -2,8 +2,24 @@ import React, { useState, useEffect } from 'react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { supabase } from '../../lib/supabase';
-import { Copy, Loader2, Check, CalendarDays, Bot, AlertCircle, User, MapPin, CreditCard, FileText, Clock, StickyNote, Gift, Phone, LifeBuoy, MessageCircle } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
+import jsPDF from 'jspdf';
+import { Copy, Loader2, Check, CalendarDays, Bot, AlertCircle, User, MapPin, CreditCard, FileText, Clock, StickyNote, Gift, Phone, LifeBuoy, MessageCircle, Eye, EyeOff, ShieldCheck, Download, FileDown } from 'lucide-react';
 import { PainelAnotacoes } from './PainelAnotacoes';
+
+// LGPD — mascara documento mantendo só os primeiros 3 e os últimos 2 dígitos.
+function maskDocumento(valor: string | null | undefined): string {
+  if (!valor) return '—';
+  const d = valor.replace(/\D/g, '');
+  if (d.length < 5) return '•'.repeat(d.length || 3);
+  return `${d.slice(0, 3)}.•••.•••-${d.slice(-2)}`;
+}
+
+const ORIGEM_CONSENT_LABEL: Record<string, string> = {
+  tally: 'Formulário (Tally)',
+  whatsapp: "WhatsApp ('SIM')",
+  manual: 'Registro manual',
+};
 
 // Aniversário: compara dia/mês da data de nascimento com hoje (grátis para todos).
 function isAniversarioHoje(dataNasc: string | null | undefined): boolean {
@@ -134,6 +150,35 @@ const grid3: React.CSSProperties = {
   gap: '12px 16px',
 };
 
+const revealBtnStyle: React.CSSProperties = {
+  position: 'absolute',
+  right: '8px',
+  top: '50%',
+  transform: 'translateY(-50%)',
+  background: 'none',
+  border: 'none',
+  cursor: 'pointer',
+  color: 'var(--muted)',
+  display: 'flex',
+  alignItems: 'center',
+  padding: 0,
+};
+
+const lgpdBtn = (variant: 'solid' | 'outline'): React.CSSProperties => ({
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: '6px',
+  padding: '7px 13px',
+  fontSize: '11.5px',
+  fontWeight: 600,
+  borderRadius: 'var(--r-xs)',
+  cursor: 'pointer',
+  fontFamily: 'inherit',
+  border: variant === 'outline' ? '1px solid var(--border-md)' : 'none',
+  background: variant === 'solid' ? 'var(--sage-dark)' : 'var(--white)',
+  color: variant === 'solid' ? '#fff' : 'var(--ink)',
+});
+
 // ── Sub-components ────────────────────────────────────────────────────────────
 
 function SaveButton({ salvando, saved, onClick }: { salvando: boolean; saved: boolean; onClick: () => void }) {
@@ -239,6 +284,17 @@ export function DadosTab({ lead, pacienteId, proximaConsulta: proximaConsultaPro
   const [nfEstado, setNfEstado] = useState('');
   const [nfCep, setNfCep] = useState('');
 
+  // ── LGPD: revelar documentos (auditado) + consentimento ────────
+  const { user } = useAuth();
+  const [revealCpf, setRevealCpf] = useState(false);
+  const [revealNf, setRevealNf] = useState(false);
+  const [consentDadoEm, setConsentDadoEm] = useState<string | null>(null);
+  const [consentOrigem, setConsentOrigem] = useState<string | null>(null);
+  const [consentTexto, setConsentTexto] = useState<string | null>(null);
+  const [consentRevogadoEm, setConsentRevogadoEm] = useState<string | null>(null);
+  const [salvandoConsent, setSalvandoConsent] = useState(false);
+  const [exportando, setExportando] = useState(false);
+
   // ── Próxima consulta + Resumo IA ───────────────────────────────
   const proximaConsulta = proximaConsultaProp ?? null;
   const [resumoIA, setResumoIA] = useState('');
@@ -301,9 +357,119 @@ export function DadosTab({ lead, pacienteId, proximaConsulta: proximaConsultaPro
       setNfCidade(nfe.cidade || ''); setNfEstado(nfe.estado || ''); setNfCep(nfe.cep || '');
       setResumoIA(pac.ultimo_resumo_conversa || '');
       setResumoIAAt(pac.ultimo_resumo_at || null);
+      setConsentDadoEm(pac.consentimento_dado_em || null);
+      setConsentOrigem(pac.consentimento_origem || null);
+      setConsentTexto(pac.consentimento_texto || null);
+      setConsentRevogadoEm(pac.consentimento_revogado_em || null);
     }
 
+    // Reseta a revelação de documentos a cada paciente carregado.
+    setRevealCpf(false);
+    setRevealNf(false);
     setLoadingPac(false);
+  };
+
+  // LGPD — registra na auditoria que um documento sensível foi revelado.
+  const revelarDocumento = async (campo: 'cpf' | 'nf_documento') => {
+    if (campo === 'cpf') setRevealCpf(true); else setRevealNf(true);
+    if (!user) return;
+    await supabase.from('audit_log').insert({
+      user_id: user.id,
+      action: 'documento_revelado',
+      record_id: lead?.id ?? null,
+      detalhes: { paciente_id: pacienteId, campo, por: user.email || null },
+    });
+  };
+
+  // LGPD — registra consentimento manual.
+  const registrarConsentimentoManual = async () => {
+    if (!pacienteId) return;
+    setSalvandoConsent(true);
+    const agora = new Date().toISOString();
+    await supabase.from('pacientes').update({
+      consentimento_dado_em: agora,
+      consentimento_origem: 'manual',
+      consentimento_texto: consentTexto || 'Consentimento registrado manualmente pela clínica.',
+      consentimento_revogado_em: null,
+    }).eq('id', pacienteId);
+    if (user) {
+      await supabase.from('audit_log').insert({
+        user_id: user.id, action: 'consentimento_registrado',
+        record_id: lead?.id ?? null, detalhes: { paciente_id: pacienteId, origem: 'manual' },
+      });
+    }
+    setConsentDadoEm(agora); setConsentOrigem('manual'); setConsentRevogadoEm(null);
+    setSalvandoConsent(false);
+  };
+
+  // LGPD — revoga consentimento.
+  const revogarConsentimento = async () => {
+    if (!pacienteId) return;
+    setSalvandoConsent(true);
+    const agora = new Date().toISOString();
+    await supabase.from('pacientes').update({ consentimento_revogado_em: agora }).eq('id', pacienteId);
+    if (user) {
+      await supabase.from('audit_log').insert({
+        user_id: user.id, action: 'consentimento_revogado',
+        record_id: lead?.id ?? null, detalhes: { paciente_id: pacienteId },
+      });
+    }
+    setConsentRevogadoEm(agora);
+    setSalvandoConsent(false);
+  };
+
+  // LGPD — exporta os dados pessoais do paciente (JSON ou PDF).
+  const exportarDados = async (formato: 'json' | 'pdf') => {
+    if (!pacienteId || !lead) return;
+    setExportando(true);
+    try {
+      const [{ data: pac }, { data: ags }] = await Promise.all([
+        supabase.from('pacientes').select('*').eq('id', pacienteId).single(),
+        supabase.from('agendamentos').select('data_hora_inicio, status, procedimento_nome, valor_pago').eq('lead_id', lead.id).order('data_hora_inicio', { ascending: false }),
+      ]);
+      const dados = { lead, paciente: pac, agendamentos: ags || [], exportado_em: new Date().toISOString() };
+      const nomeArq = (lead.nome_lead || 'paciente').replace(/[^a-z0-9]/gi, '_').toLowerCase();
+
+      if (user) {
+        await supabase.from('audit_log').insert({
+          user_id: user.id, action: 'dados_exportados',
+          record_id: lead.id, detalhes: { paciente_id: pacienteId, formato },
+        });
+      }
+
+      if (formato === 'json') {
+        const blob = new Blob([JSON.stringify(dados, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = `dados_${nomeArq}.json`; a.click();
+        URL.revokeObjectURL(url);
+      } else {
+        const doc = new jsPDF();
+        let y = 18;
+        const line = (txt: string, size = 10, bold = false) => {
+          doc.setFontSize(size); doc.setFont('helvetica', bold ? 'bold' : 'normal');
+          for (const l of doc.splitTextToSize(txt, 175)) {
+            if (y > 280) { doc.addPage(); y = 18; }
+            doc.text(l, 16, y); y += size * 0.55 + 2;
+          }
+        };
+        line('Exportação de Dados do Paciente (LGPD)', 15, true); y += 2;
+        line(`Gerado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`, 9); y += 4;
+        const campos: [string, any][] = [
+          ['Nome', lead.nome_lead], ['WhatsApp', lead.whatsapp_lead], ['E-mail', lead.email],
+          ['Data de nascimento', lead.data_nascimento], ['CPF', pac?.cpf], ['Sexo', pac?.sexo],
+          ['Profissão', pac?.profissao], ['Endereço', pac?.endereco ? JSON.stringify(pac.endereco) : null],
+          ['Consentimento', pac?.consentimento_dado_em ? `${pac.consentimento_dado_em} (${pac.consentimento_origem})` : 'não registrado'],
+        ];
+        for (const [k, v] of campos) line(`${k}: ${v ?? '—'}`, 10);
+        y += 4; line(`Agendamentos (${(ags || []).length})`, 12, true);
+        for (const ag of ags || []) line(`• ${ag.data_hora_inicio} — ${ag.procedimento_nome || '—'} (${ag.status})`, 9);
+        doc.save(`dados_${nomeArq}.pdf`);
+      }
+    } catch (e: any) {
+      alert('Erro ao exportar: ' + (e?.message || e));
+    }
+    setExportando(false);
   };
 
   // Auto-preenche endereço pelo CEP (ViaCEP).
@@ -438,7 +604,17 @@ export function DadosTab({ lead, pacienteId, proximaConsulta: proximaConsultaPro
           </Field>
 
           <Field label="CPF">
-            <input value={cpf} onChange={e => setCpf(e.target.value)} placeholder="000.000.000-00" style={inputStyle} />
+            {revealCpf ? (
+              <div style={{ position: 'relative' }}>
+                <input value={cpf} onChange={e => setCpf(e.target.value)} placeholder="000.000.000-00" style={{ ...inputStyle, paddingRight: '32px' }} />
+                <button type="button" onClick={() => setRevealCpf(false)} title="Ocultar" style={revealBtnStyle}><EyeOff size={14} /></button>
+              </div>
+            ) : (
+              <div style={{ position: 'relative' }}>
+                <input value={maskDocumento(cpf)} readOnly style={{ ...inputStyle, paddingRight: '32px', opacity: cpf ? 1 : 0.6, cursor: 'default', fontFamily: 'monospace' }} />
+                <button type="button" onClick={() => revelarDocumento('cpf')} title="Revelar (registrado na auditoria)" style={revealBtnStyle}><Eye size={14} /></button>
+              </div>
+            )}
           </Field>
           <Field label={isAniversarioHoje(dataNasc) ? '🎁 Data de nascimento' : 'Data de nascimento'}>
             <input
@@ -607,6 +783,51 @@ export function DadosTab({ lead, pacienteId, proximaConsulta: proximaConsultaPro
         <SaveBar salvando={salvandoPessoal} saved={savedPessoal} onSave={salvarPessoal} />
       </div>
 
+      {/* ── 1b. Privacidade & Consentimento (LGPD) ── */}
+      <div style={{ marginBottom: '22px' }}>
+        <SectionHeader icon={<ShieldCheck size={13} />} label="Privacidade & Consentimento (LGPD)" />
+
+        {(() => {
+          const consentValido = consentDadoEm && !consentRevogadoEm;
+          const statusBg = consentRevogadoEm ? 'var(--rose-light)' : consentDadoEm ? 'var(--sage-xlight)' : 'var(--champ-light)';
+          const statusColor = consentRevogadoEm ? 'var(--rose-text)' : consentDadoEm ? 'var(--sage-dark)' : 'var(--champ-text)';
+          return (
+            <div style={{ background: statusBg, border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', padding: '14px 16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: consentDadoEm ? '8px' : 0 }}>
+                <ShieldCheck size={15} style={{ color: statusColor, flexShrink: 0 }} />
+                <span style={{ fontSize: '12.5px', fontWeight: 600, color: statusColor }}>
+                  {consentRevogadoEm ? 'Consentimento revogado' : consentValido ? 'Consentimento registrado' : 'Sem consentimento registrado'}
+                </span>
+              </div>
+              {consentDadoEm && (
+                <div style={{ fontSize: '11.5px', color: 'var(--muted)', lineHeight: 1.7 }}>
+                  <div>Concedido em <strong>{format(new Date(consentDadoEm), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</strong> · Origem: <strong>{ORIGEM_CONSENT_LABEL[consentOrigem || ''] || consentOrigem || '—'}</strong></div>
+                  {consentTexto && <div style={{ marginTop: '2px', fontStyle: 'italic' }}>"{consentTexto}"</div>}
+                  {consentRevogadoEm && <div style={{ marginTop: '2px', color: 'var(--rose-text)' }}>Revogado em {format(new Date(consentRevogadoEm), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</div>}
+                </div>
+              )}
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '12px' }}>
+                {consentValido ? (
+                  <button onClick={revogarConsentimento} disabled={salvandoConsent} style={lgpdBtn('outline')}>
+                    {salvandoConsent && <Loader2 size={12} className="animate-spin" />} Revogar consentimento
+                  </button>
+                ) : (
+                  <button onClick={registrarConsentimentoManual} disabled={salvandoConsent} style={lgpdBtn('solid')}>
+                    {salvandoConsent && <Loader2 size={12} className="animate-spin" />} Registrar consentimento manual
+                  </button>
+                )}
+                <button onClick={() => exportarDados('json')} disabled={exportando} style={lgpdBtn('outline')}>
+                  <Download size={12} /> Exportar JSON
+                </button>
+                <button onClick={() => exportarDados('pdf')} disabled={exportando} style={lgpdBtn('outline')}>
+                  <FileDown size={12} /> Exportar PDF
+                </button>
+              </div>
+            </div>
+          );
+        })()}
+      </div>
+
       {/* ── 2. Financeiro ── */}
       <div style={{ marginBottom: '22px' }}>
         <SectionHeader icon={<CreditCard size={13} />} label="Financeiro" />
@@ -683,7 +904,17 @@ export function DadosTab({ lead, pacienteId, proximaConsulta: proximaConsultaPro
 
         <div style={grid3}>
           <Field label="CPF / CNPJ">
-            <input value={nfDocumento} onChange={e => setNfDocumento(e.target.value)} placeholder="000.000.000-00" style={inputStyle} />
+            {revealNf ? (
+              <div style={{ position: 'relative' }}>
+                <input value={nfDocumento} onChange={e => setNfDocumento(e.target.value)} placeholder="000.000.000-00" style={{ ...inputStyle, paddingRight: '32px' }} />
+                <button type="button" onClick={() => setRevealNf(false)} title="Ocultar" style={revealBtnStyle}><EyeOff size={14} /></button>
+              </div>
+            ) : (
+              <div style={{ position: 'relative' }}>
+                <input value={maskDocumento(nfDocumento)} readOnly style={{ ...inputStyle, paddingRight: '32px', opacity: nfDocumento ? 1 : 0.6, cursor: 'default', fontFamily: 'monospace' }} />
+                <button type="button" onClick={() => revelarDocumento('nf_documento')} title="Revelar (registrado na auditoria)" style={revealBtnStyle}><Eye size={14} /></button>
+              </div>
+            )}
           </Field>
           <Field label="Razão social / Nome para nota fiscal" style={{ gridColumn: '2 / span 2' }}>
             <input value={nfNome} onChange={e => setNfNome(e.target.value)} style={inputStyle} />
