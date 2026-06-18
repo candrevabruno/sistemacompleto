@@ -559,6 +559,8 @@ function MaskedRow({ label, value }: { label: string; value?: string | null }) {
 
 function AbaWhatsApp() {
   const { config, refreshConfig } = useClinic();
+  const { user } = useAuth();
+  const isAdminOrAbove = user?.role === 'admin' || user?.role === 'super_admin';
   const [provider, setProvider] = useState<'meta' | 'evolution'>(
     (config?.whatsapp_provider as 'meta' | 'evolution') || 'meta'
   );
@@ -592,6 +594,11 @@ function AbaWhatsApp() {
   const [credModalOpen, setCredModalOpen] = useState(false);
   const [webhookGerada, setWebhookGerada] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // Desconexão intencional
+  const [disconnectModalOpen, setDisconnectModalOpen] = useState(false);
+  const [disconnecting, setDisconnecting] = useState(false);
+  const [disconnectError, setDisconnectError] = useState<string | null>(null);
 
   // Status e QR code da Evolution API
   const [connectionState, setConnectionState] = useState<'open' | 'close' | 'connecting' | null>(null);
@@ -644,6 +651,31 @@ function AbaWhatsApp() {
       alert('Erro ao gerar QR Code. Verifique a URL e a API Key.');
     } finally {
       setGeneratingQr(false);
+    }
+  }
+
+  async function desconectarInstancia() {
+    setDisconnecting(true);
+    setDisconnectError(null);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const resp = await fetch(`${SUPABASE_URL}/functions/v1/evolution-proxy`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${session?.access_token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'logout' }),
+      });
+      const resData = await resp.json().catch(() => ({}));
+      // 404 = instância já desconectada — trata como sucesso
+      if (!resp.ok && resp.status !== 404) {
+        throw new Error(resData?.error || resData?.message || `HTTP ${resp.status}`);
+      }
+      setConnectionState('close');
+      setQrCode(null);
+      setDisconnectModalOpen(false);
+    } catch (err: unknown) {
+      setDisconnectError((err as Error).message || 'Erro ao desconectar');
+    } finally {
+      setDisconnecting(false);
     }
   }
 
@@ -836,17 +868,28 @@ function AbaWhatsApp() {
           </CardHeader>
           <CardContent className="space-y-4">
             {connectionState !== null && (
-              <div className={`flex items-center gap-2 px-3 py-2 rounded-[8px] border text-sm font-medium ${
-                connectionState === 'open'
-                  ? 'bg-green-50 border-green-200 text-green-700'
-                  : connectionState === 'connecting'
-                  ? 'bg-yellow-50 border-yellow-200 text-yellow-700'
-                  : 'bg-red-50 border-red-200 text-red-700'
-              }`}>
-                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                  connectionState === 'open' ? 'bg-green-500' : connectionState === 'connecting' ? 'bg-yellow-500 animate-pulse' : 'bg-red-500'
-                }`} />
-                {connectionState === 'open' ? 'Conectado — WhatsApp ativo' : connectionState === 'connecting' ? 'Conectando...' : 'Desconectado'}
+              <div className="flex items-center gap-3">
+                <div className={`flex items-center gap-2 px-3 py-2 rounded-[8px] border text-sm font-medium flex-1 ${
+                  connectionState === 'open'
+                    ? 'bg-green-50 border-green-200 text-green-700'
+                    : connectionState === 'connecting'
+                    ? 'bg-yellow-50 border-yellow-200 text-yellow-700'
+                    : 'bg-red-50 border-red-200 text-red-700'
+                }`}>
+                  <span className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                    connectionState === 'open' ? 'bg-green-500' : connectionState === 'connecting' ? 'bg-yellow-500 animate-pulse' : 'bg-red-500'
+                  }`} />
+                  {connectionState === 'open' ? 'Conectado — WhatsApp ativo' : connectionState === 'connecting' ? 'Conectando...' : 'Desconectado'}
+                </div>
+                {connectionState === 'open' && isAdminOrAbove && (
+                  <button
+                    onClick={() => { setDisconnectError(null); setDisconnectModalOpen(true); }}
+                    className="flex-shrink-0 px-3 py-2 rounded-[8px] text-sm font-medium transition-colors hover:bg-red-50"
+                    style={{ border: '1px solid #C0392B', color: '#C0392B', background: 'transparent' }}
+                  >
+                    Desconectar
+                  </button>
+                )}
               </div>
             )}
 
@@ -882,6 +925,40 @@ function AbaWhatsApp() {
           </CardContent>
         </Card>
       )}
+
+      {/* ── Modal: confirmar desconexão ── */}
+      <Modal
+        isOpen={disconnectModalOpen}
+        onClose={() => { if (!disconnecting) setDisconnectModalOpen(false); }}
+        title="Desconectar WhatsApp"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-[var(--ink)]">
+            Deseja desconectar o WhatsApp? O agente deixará de responder até a reconexão.
+          </p>
+          {disconnectError && (
+            <div className="px-3 py-2 rounded-[8px] bg-red-50 border border-red-200 text-sm text-red-700">
+              {disconnectError}
+            </div>
+          )}
+          <div className="flex gap-3 justify-end">
+            <button
+              onClick={() => setDisconnectModalOpen(false)}
+              disabled={disconnecting}
+              className="px-4 py-2 rounded-[8px] border border-[var(--border-md)] text-sm font-medium text-[var(--ink)] hover:bg-[var(--bg)] disabled:opacity-50 transition-colors"
+            >
+              Cancelar
+            </button>
+            <Button
+              onClick={desconectarInstancia}
+              loading={disconnecting}
+              style={{ backgroundColor: '#C0392B', borderColor: '#C0392B' }}
+            >
+              Confirmar
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
       {/* ── Modal: credenciais do provedor ── */}
       <Modal

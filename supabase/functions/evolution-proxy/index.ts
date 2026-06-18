@@ -43,6 +43,9 @@ serve(async (req) => {
       evoUrl = `${config.evolution_server_url}/instance/connectionState/${config.evolution_instance_name}`;
     } else if (action === 'connect') {
       evoUrl = `${config.evolution_server_url}/instance/connect/${config.evolution_instance_name}`;
+    } else if (action === 'logout') {
+      evoUrl = `${config.evolution_server_url}/instance/logout/${config.evolution_instance_name}`;
+      method = 'DELETE';
     } else {
       return new Response(JSON.stringify({ error: 'Ação inválida' }), { status: 400, headers: corsHeaders });
     }
