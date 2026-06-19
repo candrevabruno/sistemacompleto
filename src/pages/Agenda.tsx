@@ -1394,7 +1394,7 @@ function AgendamentoModal({ ag, agendas, podeEditar, onClose, onUpdated, onVerPa
     }
 
     const { error } = await supabase.from('agendamentos')
-      .update({ data_hora_inicio: inicio.toISOString(), status: 'reagendado', calcom_uid: novoUid }).eq('id', ag.id);
+      .update({ data_hora_inicio: inicio.toISOString(), status: 'confirmado', calcom_uid: novoUid }).eq('id', ag.id);
     if (error) { setErro('Erro: ' + error.message); setBusy(false); return; }
     if (ag.lead_id) await supabase.from('leads').update({ data_agendamento: inicio.toISOString() }).eq('id', ag.lead_id);
     await auditar('agendamento_reagendado', { de: ag.data_hora_inicio, para: inicio.toISOString() });
