@@ -1579,11 +1579,21 @@ function NovoAgendamentoModal({ agendas, profPadrao, dataPadrao, onClose, onSave
         const uid = booking?.uid;
         const link = booking?.meetingUrl || booking?.location || booking?.videoCallData?.url || null;
         if (cErr || r?.error) {
-          // Tenta extrair a mensagem real do Cal.com (o invoke devolve só "non-2xx" por padrão).
           let detalhe = r?.error || cErr?.message || '';
           try { const body = await (cErr as any)?.context?.json?.(); if (body?.error) detalhe = body.error; } catch { /* ignore */ }
-          if (/minimum booking notice|too soon|scheduling window|too far/i.test(detalhe)) {
-            detalhe = 'esse horário viola as regras do event-type no Cal.com (antecedência mínima ou janela de disponibilidade). Ajuste em Cal.com → Tipos de Eventos → Limites → Antecedência mínima, ou escolha outro horário.';
+          // Tenta extrair mensagem legível de dentro do JSON do Cal.com
+          try {
+            const parsed = JSON.parse(detalhe.replace(/^Cal\.com \d+:\s*/, ''));
+            const inner = parsed?.error?.message || parsed?.message || parsed?.error;
+            if (inner) detalhe = inner;
+          } catch { /* não era JSON */ }
+          // Mapeia erros conhecidos do Cal.com para mensagens em português
+          if (/already has booking|not available/i.test(detalhe)) {
+            detalhe = 'horário indisponível no Cal.com — o profissional já tem um compromisso nesse horário ou ele está fora da grade de disponibilidade. Escolha outro horário.';
+          } else if (/minimum booking notice|too soon|scheduling window|too far/i.test(detalhe)) {
+            detalhe = 'horário viola as regras do Cal.com (antecedência mínima ou janela de agendamento). Ajuste em Cal.com → Tipos de Eventos → Limites, ou escolha outro horário.';
+          } else if (/unauthorized|invalid.*key|api.?key/i.test(detalhe)) {
+            detalhe = 'API Key do Cal.com inválida ou não configurada. Acesse Configurações → Webhooks e APIs e reconfigure.';
           }
           avisoCalcom = 'Agendado no sistema, mas não criou no Cal.com: ' + detalhe;
         } else if (uid && novoAg?.id) {
