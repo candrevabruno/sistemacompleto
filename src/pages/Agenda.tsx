@@ -1348,9 +1348,11 @@ function AgendamentoModal({ ag, agendas, podeEditar, onClose, onUpdated, onVerPa
     if (novo === 'compareceu' && ag.lead_id && ag.leads?.status !== 'converteu') {
       await supabase.from('leads').update({ status: 'converteu', converteu_em: new Date().toISOString() }).eq('id', ag.lead_id);
     }
-    // Cancelamento → libera o slot e aciona o agente para oferecer ao próximo da fila.
-    // (Falta não dispara: o agente já tem fluxo próprio de no-show; o motor já trata o horário como livre.)
+    // Cancelamento → reverte o status do lead e libera o slot.
     if (novo === 'cancelado') {
+      if (ag.lead_id) {
+        await supabase.from('leads').update({ status: 'cancelou_agendamento' }).eq('id', ag.lead_id);
+      }
       await supabase.from('agente_eventos').insert({
         tipo: 'slot_liberado', agendamento_id: ag.id, lead_id: ag.lead_id, agenda_id: ag.agenda_id,
         payload: { motivo: novo, quando: ag.data_hora_inicio, procedimento: ag.procedimento_nome || null, profissional: ag.agendas?.nome || null },
