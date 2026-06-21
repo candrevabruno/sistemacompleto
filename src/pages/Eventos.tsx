@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { useRealtime } from '../hooks/useRealtime';
 import { useClinic } from '../contexts/ClinicContext';
 import { useAuth } from '../contexts/AuthContext';
 import {
@@ -124,6 +125,8 @@ function Aniversariantes() {
   };
 
   useEffect(() => { load(); }, []);
+  // Realtime: aniversariantes do mês atualizam sem F5.
+  useRealtime(['pacientes', 'leads'], load);
 
   return (
     <div style={{ maxWidth: '640px' }}>
@@ -215,6 +218,8 @@ function AcoesDoMes() {
     setLoading(false);
   };
   useEffect(() => { load(); }, []);
+  // Realtime: campanhas atualizam sem F5.
+  useRealtime(['clinic_campaigns'], load);
 
   const ativas = useMemo(() => campanhas.filter(c => c.status === 'ativa'), [campanhas]);
   const arquivadas = useMemo(() => campanhas.filter(c => c.status === 'arquivada'), [campanhas]);

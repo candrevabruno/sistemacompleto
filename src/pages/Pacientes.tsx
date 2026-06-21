@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useVisibilityRefresh } from '../hooks/useVisibilityRefresh';
+import { useRealtime } from '../hooks/useRealtime';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -142,6 +143,12 @@ export function Pacientes() {
   useEffect(() => {
     if (viewMode === 'hoje') loadAgendamentosHoje();
   }, [viewMode]);
+
+  // Realtime: lista de pacientes e agendamentos de hoje atualizam sem F5.
+  useRealtime(['leads', 'pacientes', 'agendamentos'], () => {
+    loadPacientes();
+    if (viewMode === 'hoje') loadAgendamentosHoje();
+  });
 
   const marcarPresenca = async (agId: string, novoStatus: 'compareceu' | 'faltou', lead: any) => {
     setMarcandoId(agId);

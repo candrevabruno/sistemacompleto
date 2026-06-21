@@ -475,6 +475,9 @@ export function LeadDetailsModal({
                       Próx: <b>{format(parseISO(proximoContato), 'dd/MM HH:mm')}</b>
                     </span>
                   )}
+                  {lead.data_agendamento && (
+                    <span>Agendamento: <b style={{ color: 'var(--ink)' }}>{format(parseISO(lead.data_agendamento), "dd/MM 'às' HH:mm")}</b></span>
+                  )}
                 </div>
               </div>
 

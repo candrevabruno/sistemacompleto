@@ -92,7 +92,9 @@ export function Agenda() {
     setLoading(true);
     const start = new Date(range.start); start.setHours(0, 0, 0, 0);
     const end = new Date(range.end); end.setHours(23, 59, 59, 999);
-    // Cancelados/reagendados saem do calendário na hora. compareceu/faltou continuam
+    // Cancelados saem do calendário na hora. REAGENDADOS continuam visíveis: o
+    // reagendamento atualiza a própria linha (data_hora_inicio já é o NOVO horário),
+    // então o card deve aparecer no novo slot — não sumir. compareceu/faltou continuam
     // visíveis enquanto a consulta não chegou (evita sumir por engano); só saem depois
     // que o horário passa — aí o histórico fica no perfil do paciente e nos KPIs.
     let q = supabase
@@ -100,7 +102,7 @@ export function Agenda() {
       .select('*, agendas(nome, cor), leads:lead_id(*)')
       .gte('data_hora_inicio', start.toISOString())
       .lte('data_hora_inicio', end.toISOString())
-      .not('status', 'in', '("cancelado","cancelou_agendamento","reagendado")')
+      .not('status', 'in', '("cancelado","cancelou_agendamento")')
       .order('data_hora_inicio', { ascending: true });
     if (profFiltro !== 'todas') q = q.eq('agenda_id', profFiltro);
     const { data } = await q;
@@ -1383,20 +1385,33 @@ function AgendamentoModal({ ag, agendas, podeEditar, onClose, onUpdated, onVerPa
       .not('status', 'in', '("cancelado","cancelou_agendamento","faltou")').neq('id', ag.id).limit(1);
     if (dup && dup.length > 0) { setErro('Já existe agendamento nesse horário.'); setBusy(false); return; }
 
-    // Reflete no Cal.com (se veio de lá). O reschedule gera um uid novo → atualizamos.
+    // Reflete no Cal.com (se a reserva veio de lá). O reschedule gera um uid novo.
+    // Se a chamada ao Cal.com falhar, ABORTA e mostra o erro — não deixa o sistema
+    // divergir do Cal.com em silêncio (Cal.com é a fonte única do agendamento).
     let novoUid = ag.calcom_uid;
     if (ag.calcom_uid) {
       try {
-        const { data } = await supabase.functions.invoke('cal-sync', { body: { action: 'reschedule', calcom_uid: ag.calcom_uid, start: inicio.toISOString(), reason: 'Reagendado pela clínica' } });
+        const { data, error: calErr } = await supabase.functions.invoke('cal-sync', { body: { action: 'reschedule', calcom_uid: ag.calcom_uid, start: inicio.toISOString(), reason: 'Reagendado pela clínica' } });
+        if (calErr || data?.error) {
+          setErro('Não consegui reagendar no Cal.com: ' + (data?.error || calErr?.message || 'erro desconhecido'));
+          setBusy(false); return;
+        }
         const u = data?.calcom?.data?.uid || data?.calcom?.uid;
         if (u) novoUid = u;
-      } catch (e) { console.error('cal-sync reschedule falhou:', e); }
+      } catch (e: any) {
+        setErro('Não consegui reagendar no Cal.com: ' + (e?.message || String(e)));
+        setBusy(false); return;
+      }
+    } else {
+      // Agendamento sem vínculo no Cal.com (ex.: criado antes da integração).
+      // Atualiza só localmente e avisa — não há reserva no Cal.com para mover.
+      setErro('Atenção: este agendamento não está vinculado ao Cal.com (sem calcom_uid); foi reagendado só no sistema.');
     }
 
     const { error } = await supabase.from('agendamentos')
-      .update({ data_hora_inicio: inicio.toISOString(), status: 'confirmado', calcom_uid: novoUid }).eq('id', ag.id);
+      .update({ data_hora_inicio: inicio.toISOString(), status: 'reagendado', calcom_uid: novoUid }).eq('id', ag.id);
     if (error) { setErro('Erro: ' + error.message); setBusy(false); return; }
-    if (ag.lead_id) await supabase.from('leads').update({ data_agendamento: inicio.toISOString() }).eq('id', ag.lead_id);
+    if (ag.lead_id) await supabase.from('leads').update({ status: 'reagendado', data_agendamento: inicio.toISOString() }).eq('id', ag.lead_id);
     await auditar('agendamento_reagendado', { de: ag.data_hora_inicio, para: inicio.toISOString() });
     setBusy(false); onUpdated();
   };

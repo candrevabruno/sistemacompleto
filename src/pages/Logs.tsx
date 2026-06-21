@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
+import { useRealtime } from '../hooks/useRealtime';
 import { useClinic } from '../contexts/ClinicContext';
 import { Activity, ChevronDown, ChevronRight, Search, RefreshCw } from 'lucide-react';
 
@@ -115,6 +116,8 @@ export function Logs() {
   }, []);
 
   useEffect(() => { void load(); }, [load]);
+  // Realtime: novos logs de integração aparecem sem F5.
+  useRealtime(['integration_log'], () => { void load(); });
 
   const filtered = logs.filter(l => {
     if (filterServico && l.servico !== filterServico) return false;

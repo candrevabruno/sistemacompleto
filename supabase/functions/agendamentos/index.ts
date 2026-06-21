@@ -111,15 +111,25 @@ serve(async (req) => {
       });
     }
 
-    // AGENDAR (POST)
+    // AGENDAR (POST) — Cal.com é a fonte ÚNICA do agendamento.
+    // Em vez de inserir direto em `agendamentos` (o que gerava lead/agendamento
+    // duplicado junto com o webhook), criamos a reserva no Cal.com passando o
+    // telefone + metadata.lead_id. Quem grava a linha em `agendamentos` é o
+    // `cal-webhook` — casando pelo metadata.lead_id, sem duplicar.
     if (req.method === "POST" && path === "horarios") {
       const body = await req.json();
       const { agenda_id, lead_id, procedimento_nome, nome_lead, whatsapp_lead, data, hora } = body;
 
       const inicio = new Date(`${data}T${hora}:00-03:00`);
 
+      // Cliente service-role para ler config/credenciais e validar sem esbarrar em RLS.
+      const dbAdmin = createClient(
+        Deno.env.get("SUPABASE_URL") ?? "",
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      );
+
       // Proteção: não agendar em horário bloqueado.
-      const { data: bloqOverlap } = await supabaseClient
+      const { data: bloqOverlap } = await dbAdmin
         .from("bloqueios")
         .select("id, dia_inteiro, inicio, fim")
         .eq("agenda_id", agenda_id)
@@ -132,7 +142,7 @@ serve(async (req) => {
       }
 
       // Proteção: sem marcação duplicada no mesmo slot/profissional.
-      const { data: jaMarcado } = await supabaseClient
+      const { data: jaMarcado } = await dbAdmin
         .from("agendamentos")
         .select("id")
         .eq("agenda_id", agenda_id)
@@ -145,27 +155,68 @@ serve(async (req) => {
         });
       }
 
-      const { data: newAgendamento, error } = await supabaseClient
-        .from("agendamentos")
-        .insert({
-          agenda_id,
-          lead_id,
-          procedimento_nome,
-          nome_lead,
-          whatsapp_lead,
-          data_hora_inicio: inicio.toISOString(),
-          status: "agendado"
-        })
-        .select()
-        .single();
-        
-      if (error) throw error;
-      
-      if (lead_id) {
-         await supabaseClient.from("leads").update({ data_agendamento: inicio.toISOString(), status: "agendado" }).eq("id", lead_id);
+      // event-type do Cal.com da agenda escolhida.
+      const { data: ag } = await dbAdmin.from("agendas").select("calcom_event_type_id").eq("id", agenda_id).maybeSingle();
+      const eventTypeId = ag?.calcom_event_type_id ? Number(ag.calcom_event_type_id) : null;
+      if (!eventTypeId) {
+        return new Response(JSON.stringify({ error: "Agenda sem calcom_event_type_id configurado." }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
 
-      return new Response(JSON.stringify({ mensagem: "Agendamento criado com sucesso." }), {
+      const { data: cfg } = await dbAdmin.from("clinic_config").select("calcom_api_key").eq("id", 1).single();
+      if (!cfg?.calcom_api_key) {
+        return new Response(JSON.stringify({ error: "Cal.com API key não configurada." }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Telefone só dígitos → chave de matching no webhook + e-mail placeholder
+      // (a paciente NUNCA é perguntada pelo e-mail; @sememail.local não roteia).
+      const fone = String(whatsapp_lead || "").replace(/\D/g, "");
+      const placeholderEmail = `wa.${fone || Date.now()}@sememail.local`;
+
+      const att: Record<string, unknown> = {
+        name: nome_lead || "Paciente",
+        email: placeholderEmail,
+        timeZone: "America/Sao_Paulo",
+        language: "pt",
+      };
+      if (fone) att.phoneNumber = `+${fone}`;
+
+      const calRes = await fetch("https://api.cal.com/v2/bookings", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${cfg.calcom_api_key}`,
+          "cal-api-version": "2026-02-25",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          start: inicio.toISOString(),
+          eventTypeId,
+          attendee: att,
+          // metadata.lead_id é lido pelo cal-webhook para casar o lead existente
+          // e nunca duplicar. procedimento_nome volta no agendamento gravado lá.
+          metadata: { lead_id: lead_id ?? "", procedimento_nome: procedimento_nome ?? "" },
+        }),
+      });
+
+      const calText = await calRes.text();
+      if (!calRes.ok) {
+        return new Response(JSON.stringify({ error: `Cal.com ${calRes.status}: ${calText.slice(0, 300)}` }), {
+          status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const calJson = JSON.parse(calText || "{}");
+      const uid = calJson?.data?.uid ?? calJson?.uid ?? null;
+
+      // O cal-webhook grava o agendamento e atualiza o lead. Refletimos o status do
+      // lead aqui também (idempotente) para o painel atualizar de imediato.
+      if (lead_id) {
+        await dbAdmin.from("leads").update({ data_agendamento: inicio.toISOString(), status: "agendado" }).eq("id", lead_id);
+      }
+
+      return new Response(JSON.stringify({ mensagem: "Agendamento criado no Cal.com.", calcom_uid: uid }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

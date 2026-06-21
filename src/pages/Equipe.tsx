@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { useRealtime } from '../hooks/useRealtime';
 import { useAuth } from '../contexts/AuthContext';
 import { useClinic } from '../contexts/ClinicContext';
 import { Plus, Copy, Check, Link2, Users, X, Sparkles, SlidersHorizontal } from 'lucide-react';
@@ -69,6 +70,8 @@ export function Equipe() {
   const [savingConfigTab, setSavingConfigTab] = useState(false);
 
   useEffect(() => { load(); }, []);
+  // Realtime: convites, permissões e membros atualizam sem F5.
+  useRealtime(['team_invites', 'user_permissions', 'users'], () => { load(); });
 
   async function load() {
     setLoading(true);

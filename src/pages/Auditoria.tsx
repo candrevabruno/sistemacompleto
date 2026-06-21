@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
+import { useRealtime } from '../hooks/useRealtime';
 import { ScrollText, ChevronDown, ChevronRight, ChevronLeft, Search } from 'lucide-react';
 
 const PAGE_SIZE = 25;
@@ -125,6 +126,8 @@ export function Auditoria() {
   }, [page, search, dataInicio, dataFim]);
 
   useEffect(() => { void load(); }, [load]);
+  // Realtime: novas ações de auditoria aparecem sem F5.
+  useRealtime(['audit_log'], () => { void load(); });
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 

@@ -82,31 +82,89 @@ Deno.serve(async (req: Request) => {
     const modalidade = online ? 'online' : 'presencial';
 
     // ── Encontra/cria o lead ──
+    // Prioridade 1: lead_id explícito no metadata do booking (enviado pelo agente).
+    //   É a chave à prova de duplicidade — quando presente e válido, NUNCA cria lead novo.
+    // Prioridade 2: telefone. Prioridade 3: email real (ignora placeholders @sememail.local).
+    //   Só cria lead novo se for um booking sem origem conhecida (ex.: link público
+    //   do Cal.com, sem conversa prévia no WhatsApp).
+    const emailReal = email && !email.endsWith('sememail.local') ? email : null;
     let lead_id: string | null = null;
-    if (phone) {
+    const metaLeadId = (p.metadata?.lead_id as string) || null;
+    if (metaLeadId) {
+      const { data: lm } = await db.from('leads').select('id').eq('id', metaLeadId).maybeSingle();
+      lead_id = lm?.id ?? null;
+    }
+    if (!lead_id && phone) {
       const { data: l } = await db.from('leads').select('id').or(`whatsapp_lead.eq.${phone},whatsapp_lead.ilike.%${phone}%`).limit(1).maybeSingle();
       lead_id = l?.id ?? null;
     }
-    if (!lead_id && email) {
-      const { data: l2 } = await db.from('leads').select('id').eq('email', email).limit(1).maybeSingle();
+    if (!lead_id && emailReal) {
+      const { data: l2 } = await db.from('leads').select('id').eq('email', emailReal).limit(1).maybeSingle();
       lead_id = l2?.id ?? null;
     }
     if (!lead_id) {
       const { data: novo } = await db.from('leads').insert({
-        nome_lead: nome, whatsapp_lead: phone || null, email,
+        nome_lead: nome, whatsapp_lead: phone || null, email: emailReal,
         status: 'agendado', origem: 'calcom',
         inicio_atendimento: new Date().toISOString(), data_agendamento: inicio,
       }).select('id').single();
       lead_id = novo?.id ?? null;
     }
 
-    // ── REAGENDAMENTO: atualiza pelo uid ──
+    // ── REAGENDAMENTO: atualiza a MESMA linha (mantém o episódio, libera o slot antigo) ──
+    // O Cal.com gera um uid NOVO no reschedule. Procuramos a reserva original por:
+    //   1) uid novo  → quando o reagendamento partiu do sistema, a linha já tem o novo uid;
+    //   2) uid original presente no payload → reschedule feito direto no Cal.com;
+    //   3) fallback → único agendamento ativo do lead.
+    // Como atualizamos a própria linha (não inserimos outra), o slot antigo é liberado
+    // automaticamente e o episodio_atendimento é preservado (mesmo episódio).
     if (evt === 'BOOKING_RESCHEDULED') {
-      const { data: upd } = await db.from('agendamentos')
-        .update({ data_hora_inicio: inicio, link_reuniao: link, modalidade, status: 'reagendado' })
-        .eq('calcom_uid', uid).select('id');
-      if (upd && upd.length > 0) return ok();
-      // se não existir ainda, cai no insert abaixo
+      const origUid = (p.rescheduleUid || p.rescheduledFromUid || p.fromReschedule
+        || p.originalRescheduledBooking?.uid || body.rescheduleUid) ?? null;
+
+      let alvoId: string | null = null;
+      let episodioId: string | null = null;
+      for (const u of [uid, origUid].filter(Boolean) as string[]) {
+        const { data: row } = await db.from('agendamentos')
+          .select('id, episodio_id').eq('calcom_uid', u).limit(1).maybeSingle();
+        if (row) { alvoId = row.id; episodioId = row.episodio_id; break; }
+      }
+      if (!alvoId && lead_id) {
+        const { data: ativos } = await db.from('agendamentos')
+          .select('id, episodio_id').eq('lead_id', lead_id)
+          .not('status', 'in', '("cancelado","cancelou_agendamento","faltou","compareceu")');
+        if (ativos && ativos.length === 1) { alvoId = ativos[0].id; episodioId = ativos[0].episodio_id; }
+      }
+
+      if (alvoId) {
+        await db.from('agendamentos').update({
+          data_hora_inicio: inicio, link_reuniao: link, modalidade,
+          status: 'reagendado', calcom_uid: uid,
+        }).eq('id', alvoId);
+
+        // Mesmo episódio: atualiza a data pretendida e conta o reagendamento.
+        if (episodioId) {
+          const { data: ep } = await db.from('episodio_atendimento')
+            .select('n_reagendamentos').eq('id', episodioId).maybeSingle();
+          await db.from('episodio_atendimento').update({
+            scheduled_for: inicio,
+            n_reagendamentos: (ep?.n_reagendamentos ?? 0) + 1,
+            final_status: null, final_status_at: null,
+          }).eq('id', episodioId);
+        }
+
+        if (lead_id) {
+          await db.from('leads').update({ status: 'reagendado', data_agendamento: inicio }).eq('id', lead_id);
+        }
+
+        // Notifica o agente (n8n) para agir se precisar.
+        await db.from('agente_eventos').insert({
+          tipo: 'agendamento_reagendado', agendamento_id: alvoId, lead_id, agenda_id,
+          payload: { novo_horario: inicio, calcom_uid: uid },
+        });
+        return ok();
+      }
+      // Não achou a reserva original → trata como novo (cai no insert abaixo).
     }
 
     // ── CRIAÇÃO (ou reschedule sem registro prévio) ──
@@ -126,7 +184,7 @@ Deno.serve(async (req: Request) => {
       }
       await db.from('agendamentos').insert({
         agenda_id, lead_id, nome_lead: nome, whatsapp_lead: phone || null,
-        procedimento_nome: (p.title as string) || null,
+        procedimento_nome: (p.title as string) || (p.metadata?.procedimento_nome as string) || null,
         data_hora_inicio: inicio, status: 'agendado',
         modalidade, link_reuniao: link, calcom_uid: uid,
       });
