@@ -6,6 +6,7 @@ import {
   Loader2, Lock, Star, ChevronDown, ChevronRight,
   ClipboardList, Sparkles, Crown, CalendarCheck, FileText,
   MessageSquare, RotateCcw, MessageCircle, TrendingUp, Plus,
+  MoreHorizontal, Archive, Trash2,
 } from 'lucide-react';
 import { ResumoConsultaSection } from './ResumoConsultaSection';
 import { useClinic } from '../../contexts/ClinicContext';
@@ -356,6 +357,10 @@ function JornadaPremiumTab({ pacienteId, leadId }: { pacienteId: string; leadId?
   const [agsSemCiclo, setAgsSemCiclo]   = useState<any[]>([]);
   const [loading, setLoading]           = useState(true);
   const [criando, setCriando]           = useState(false);
+  const [menuAberto, setMenuAberto]     = useState(false);
+  const [confirmExcluir, setConfirmExcluir] = useState(false);
+  const [salvandoAcao, setSalvandoAcao] = useState(false);
+  const [histExpand, setHistExpand]     = useState(false);
 
   useEffect(() => { carregarTudo(); }, [pacienteId, leadId]);
   useEffect(() => { if (cicloId) carregarEventos(cicloId); else setEventos([]); }, [cicloId]);
@@ -454,6 +459,26 @@ function JornadaPremiumTab({ pacienteId, leadId }: { pacienteId: string; leadId?
     carregarTudo();
   };
 
+  const guardarHistorico = async (id: string) => {
+    setSalvandoAcao(true);
+    await supabase.from('ciclos_jornada_paciente').update({ status: 'concluido', fechado_em: new Date().toISOString() }).eq('id', id);
+    setMenuAberto(false);
+    setSalvandoAcao(false);
+    carregarTudo();
+  };
+
+  const excluirCiclo = async (id: string) => {
+    setSalvandoAcao(true);
+    await supabase.from('ciclos_jornada_paciente').delete().eq('id', id);
+    setMenuAberto(false);
+    setConfirmExcluir(false);
+    setSalvandoAcao(false);
+    carregarTudo();
+  };
+
+  const ciclosAtivos    = ciclos.filter(c => c.status === 'ativo');
+  const ciclosHistorico = ciclos.filter(c => c.status !== 'ativo');
+
   // Merge: eventos_jornada > fallback tabelas-fonte
   const cicloAtual = ciclos.find(c => c.id === cicloId) ?? null;
   const fallback   = cicloAtual ? derivarFallback(cicloAtual, agendamentos, tallys, csats, npss) : {};
@@ -504,8 +529,9 @@ function JornadaPremiumTab({ pacienteId, leadId }: { pacienteId: string; leadId?
         borderBottom: '1px solid var(--border)',
         display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center',
       }}>
-        {ciclos.map((c, idx) => {
-          const isActive = c.id === cicloId;
+        {/* Ciclos ativos */}
+        {ciclosAtivos.map((c, idx) => {
+          const isSelected = c.id === cicloId;
           return (
             <button
               key={c.id}
@@ -513,16 +539,15 @@ function JornadaPremiumTab({ pacienteId, leadId }: { pacienteId: string; leadId?
               style={{
                 display: 'flex', alignItems: 'center', gap: '6px',
                 padding: '5px 12px', borderRadius: '999px',
-                background: isActive ? 'var(--sage-xlight)' : 'var(--surface)',
-                border: isActive ? '1.5px solid var(--sage-dark)' : '1px solid var(--border)',
-                color: isActive ? 'var(--sage-dark)' : 'var(--muted)',
-                fontSize: '11.5px', fontWeight: isActive ? 600 : 400,
-                cursor: 'pointer', fontFamily: 'inherit',
-                transition: 'all 0.15s',
+                background: isSelected ? 'var(--sage-xlight)' : 'var(--surface)',
+                border: isSelected ? '1.5px solid var(--sage-dark)' : '1px solid var(--border)',
+                color: isSelected ? 'var(--sage-dark)' : 'var(--muted)',
+                fontSize: '11.5px', fontWeight: isSelected ? 600 : 400,
+                cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s',
               }}
             >
               <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: CICLO_STATUS_COR[c.status], flexShrink: 0 }} />
-              {cicloLabel(c, idx)}
+              {cicloLabel(c, ciclos.indexOf(c))}
             </button>
           );
         })}
@@ -547,26 +572,167 @@ function JornadaPremiumTab({ pacienteId, leadId }: { pacienteId: string; leadId?
               : ''}
           </button>
         )}
+
+        {/* Histórico de ciclos concluídos/perdidos */}
+        {ciclosHistorico.length > 0 && (
+          <>
+            <span style={{ width: '1px', height: '16px', background: 'var(--border)', flexShrink: 0 }} />
+            <button
+              onClick={() => setHistExpand(v => !v)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '5px',
+                padding: '5px 10px', borderRadius: '999px',
+                background: 'var(--surface)', border: '1px solid var(--border)',
+                color: 'var(--muted)', fontSize: '11px', fontWeight: 400,
+                cursor: 'pointer', fontFamily: 'inherit',
+              }}
+            >
+              <Archive size={11} />
+              Histórico ({ciclosHistorico.length})
+              {histExpand ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
+            </button>
+            {histExpand && ciclosHistorico.map((c) => {
+              const isSelected = c.id === cicloId;
+              return (
+                <button
+                  key={c.id}
+                  onClick={() => setCicloId(c.id)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '6px',
+                    padding: '5px 12px', borderRadius: '999px',
+                    background: isSelected ? '#F1F5F9' : 'var(--surface)',
+                    border: isSelected ? '1.5px solid #94A3B8' : '1px solid var(--border)',
+                    color: isSelected ? '#475569' : 'var(--muted)',
+                    fontSize: '11.5px', fontWeight: isSelected ? 600 : 400,
+                    cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s',
+                  }}
+                >
+                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: CICLO_STATUS_COR[c.status], flexShrink: 0 }} />
+                  {cicloLabel(c, ciclos.indexOf(c))}
+                </button>
+              );
+            })}
+          </>
+        )}
       </div>
 
       {/* ── Timeline 8 etapas ── */}
       {cicloAtual && (
         <div style={{ padding: '20px 20px 24px' }}>
-          {/* Badge de status do ciclo */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '18px' }}>
-            <span style={{
-              fontSize: '10px', fontWeight: 600, letterSpacing: '0.5px', textTransform: 'uppercase',
-              padding: '3px 8px', borderRadius: '999px',
-              background: cicloAtual.status === 'ativo' ? '#F0FDF4' : cicloAtual.status === 'concluido' ? '#EEF2FF' : '#FEF2F2',
-              color: CICLO_STATUS_COR[cicloAtual.status],
-            }}>
-              {cicloAtual.status === 'ativo' ? 'Em andamento' : cicloAtual.status === 'concluido' ? 'Concluído' : 'Perdido'}
-            </span>
-            {cicloAtual.iniciado_em && (
-              <span style={{ fontSize: '11px', color: 'var(--muted)' }}>
-                Iniciado em {format(parseISO(cicloAtual.iniciado_em), "dd/MM/yyyy", { locale: ptBR })}
+          {/* Badge de status do ciclo + menu de ações */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{
+                fontSize: '10px', fontWeight: 600, letterSpacing: '0.5px', textTransform: 'uppercase',
+                padding: '3px 8px', borderRadius: '999px',
+                background: cicloAtual.status === 'ativo' ? '#F0FDF4' : cicloAtual.status === 'concluido' ? '#EEF2FF' : '#FEF2F2',
+                color: CICLO_STATUS_COR[cicloAtual.status],
+              }}>
+                {cicloAtual.status === 'ativo' ? 'Em andamento' : cicloAtual.status === 'concluido' ? 'Concluído' : 'Perdido'}
               </span>
-            )}
+              {cicloAtual.iniciado_em && (
+                <span style={{ fontSize: '11px', color: 'var(--muted)' }}>
+                  Iniciado em {format(parseISO(cicloAtual.iniciado_em), "dd/MM/yyyy", { locale: ptBR })}
+                </span>
+              )}
+            </div>
+
+            {/* Menu de ações do ciclo */}
+            <div style={{ position: 'relative' }}>
+              <button
+                onClick={() => { setMenuAberto(v => !v); setConfirmExcluir(false); }}
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  width: '28px', height: '28px', borderRadius: '6px',
+                  background: menuAberto ? 'var(--border)' : 'transparent',
+                  border: '1px solid transparent', cursor: 'pointer',
+                  color: 'var(--muted)',
+                  transition: 'all 0.15s',
+                }}
+              >
+                <MoreHorizontal size={14} />
+              </button>
+
+              {menuAberto && (
+                <div style={{
+                  position: 'absolute', top: '32px', right: 0, zIndex: 50,
+                  background: 'white', border: '1px solid var(--border)',
+                  borderRadius: '8px', padding: '4px', minWidth: '176px',
+                  boxShadow: '0 4px 16px rgba(0,0,0,0.10)',
+                }}>
+                  {!confirmExcluir ? (
+                    <>
+                      {cicloAtual.status === 'ativo' && (
+                        <button
+                          onClick={() => guardarHistorico(cicloAtual.id)}
+                          disabled={salvandoAcao}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: '8px',
+                            width: '100%', padding: '7px 10px', border: 'none',
+                            background: 'none', borderRadius: '6px', cursor: 'pointer',
+                            fontSize: '12px', color: 'var(--ink)', fontFamily: 'inherit',
+                            textAlign: 'left',
+                          }}
+                          onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface)')}
+                          onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+                        >
+                          {salvandoAcao ? <Loader2 size={13} className="animate-spin" /> : <Archive size={13} style={{ color: '#6366F1' }} />}
+                          Guardar no histórico
+                        </button>
+                      )}
+                      <button
+                        onClick={() => setConfirmExcluir(true)}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: '8px',
+                          width: '100%', padding: '7px 10px', border: 'none',
+                          background: 'none', borderRadius: '6px', cursor: 'pointer',
+                          fontSize: '12px', color: '#EF4444', fontFamily: 'inherit',
+                          textAlign: 'left',
+                        }}
+                        onMouseEnter={e => (e.currentTarget.style.background = '#FEF2F2')}
+                        onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+                      >
+                        <Trash2 size={13} />
+                        Excluir ciclo
+                      </button>
+                    </>
+                  ) : (
+                    <div style={{ padding: '8px 10px' }}>
+                      <p style={{ fontSize: '11.5px', color: 'var(--ink)', marginBottom: '2px', fontWeight: 500 }}>Excluir este ciclo?</p>
+                      <p style={{ fontSize: '10.5px', color: 'var(--muted)', marginBottom: '10px', lineHeight: 1.4 }}>
+                        Todos os eventos da jornada deste ciclo serão removidos.
+                      </p>
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        <button
+                          onClick={() => excluirCiclo(cicloAtual.id)}
+                          disabled={salvandoAcao}
+                          style={{
+                            flex: 1, padding: '5px 0', border: 'none', borderRadius: '5px',
+                            background: '#EF4444', color: 'white', fontSize: '11.5px',
+                            fontWeight: 600, cursor: salvandoAcao ? 'not-allowed' : 'pointer',
+                            fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
+                          }}
+                        >
+                          {salvandoAcao ? <Loader2 size={11} className="animate-spin" /> : null}
+                          Excluir
+                        </button>
+                        <button
+                          onClick={() => setConfirmExcluir(false)}
+                          style={{
+                            flex: 1, padding: '5px 0', border: '1px solid var(--border)',
+                            borderRadius: '5px', background: 'white', color: 'var(--ink)',
+                            fontSize: '11.5px', fontWeight: 500, cursor: 'pointer',
+                            fontFamily: 'inherit',
+                          }}
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Etapas */}
