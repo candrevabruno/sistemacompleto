@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { format, parseISO, differenceInDays } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { supabase } from '../../lib/supabase';
-import { Loader2, Lock, Star, ChevronDown, ChevronRight, ClipboardList, Sparkles, Crown, CalendarCheck, FileText, MessageSquare, RotateCcw } from 'lucide-react';
+import {
+  Loader2, Lock, Star, ChevronDown, ChevronRight,
+  ClipboardList, Sparkles, Crown, CalendarCheck, FileText,
+  MessageSquare, RotateCcw, MessageCircle, TrendingUp, Plus,
+} from 'lucide-react';
 import { ResumoConsultaSection } from './ResumoConsultaSection';
 import { useClinic } from '../../contexts/ClinicContext';
 
@@ -22,6 +26,8 @@ interface TallyResposta {
 }
 
 const UPGRADE_MSG = encodeURIComponent('Olá! Gostaria de solicitar acesso à Experiência Premium no sistema da clínica.');
+
+// ─── LockedState ──────────────────────────────────────────────────────────────
 
 function LockedState() {
   const { config } = useClinic();
@@ -64,13 +70,14 @@ function LockedState() {
   );
 }
 
+// ─── RespostaCard ─────────────────────────────────────────────────────────────
+
 function RespostaCard({ resposta }: { resposta: TallyResposta }) {
   const [expandido, setExpandido] = useState(false);
   const campos = Object.entries(resposta.conteudo || {});
 
   return (
     <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-xs)', overflow: 'hidden' }}>
-      {/* Header clicável */}
       <button
         onClick={() => setExpandido(v => !v)}
         style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}
@@ -88,7 +95,6 @@ function RespostaCard({ resposta }: { resposta: TallyResposta }) {
         </div>
       </button>
 
-      {/* Campos colapsáveis */}
       {expandido && campos.length > 0 && (
         <div style={{ padding: '0 14px 12px', borderTop: '1px solid var(--border)' }}>
           <div style={{ paddingTop: '10px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -102,7 +108,6 @@ function RespostaCard({ resposta }: { resposta: TallyResposta }) {
         </div>
       )}
 
-      {/* Resumo IA */}
       {resposta.resumo_ia && (
         <div style={{ margin: '0 14px 12px', padding: '9px 12px', background: 'var(--sage-xlight)', borderRadius: 'var(--r-xs)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '9.5px', fontWeight: 600, letterSpacing: '0.6px', textTransform: 'uppercase', color: 'var(--sage-dark)', marginBottom: '5px' }}>
@@ -116,109 +121,345 @@ function RespostaCard({ resposta }: { resposta: TallyResposta }) {
   );
 }
 
-// ── Jornada Premium ───────────────────────────────────────────────────────────
+// ─── Jornada Premium — tipos ──────────────────────────────────────────────────
 
-interface JItem {
-  tipo: 'consulta' | 'tally' | 'resumo' | 'csat' | 'nps' | 'reativacao';
-  data: string;
-  label: string;
-  sublabel?: string;
-  score?: number;
-  scoreMax?: number;
-  status?: string; // para consultas
-  dataOnly?: boolean; // não exibe hora (para itens com DATE sem time)
+type EtapaType = 'pre_consulta' | 'consulta' | 'resumo_pos' | 'csat' | 'checkin' | 'evolucao' | 'nps' | 'reativacao';
+type EstStatus = 'pendente' | 'concluido' | 'pulado';
+type CicloStatus = 'ativo' | 'concluido' | 'perdido';
+
+interface Ciclo {
+  id: string;
+  numero_ciclo: number | null;
+  status: CicloStatus;
+  retorno_esperado_em: string | null;
+  iniciado_em: string | null;
+  fechado_em: string | null;
+  created_at: string;
+  lead_id: string | null;
 }
 
-const TIPO_CONFIG: Record<JItem['tipo'], { icon: React.ReactNode; cor: string; badge: string }> = {
-  consulta:   { icon: <CalendarCheck size={13} />,  cor: 'var(--sage-dark)',  badge: 'var(--sage-xlight)' },
-  tally:      { icon: <ClipboardList size={13} />,  cor: 'var(--sage)',       badge: 'var(--sage-xlight)' },
-  resumo:     { icon: <FileText size={13} />,       cor: '#6366F1',           badge: '#EEF2FF' },
-  csat:       { icon: <Star size={13} />,           cor: 'var(--champ-text)', badge: 'var(--champ-light)' },
-  nps:        { icon: <MessageSquare size={13} />,  cor: '#7C3AED',           badge: '#F3E8FF' },
-  reativacao: { icon: <RotateCcw size={13} />,      cor: '#0369A1',           badge: '#E0F2FE' },
+interface EvJornada {
+  id: string;
+  etapa: EtapaType;
+  status: EstStatus;
+  concluido_em: string | null;
+  dados: Record<string, any> | null;
+}
+
+// ─── Config das etapas ────────────────────────────────────────────────────────
+
+const ETAPAS_ORDEM: EtapaType[] = [
+  'pre_consulta', 'consulta', 'resumo_pos', 'csat', 'checkin', 'evolucao', 'nps', 'reativacao',
+];
+
+const ETAPA_CFG: Record<EtapaType, { label: string; periodo?: string; icon: React.ReactNode; cor: string; badge: string }> = {
+  pre_consulta: { label: 'Pré-consulta',        icon: <ClipboardList size={14} />, cor: '#7C3AED', badge: '#F5F3FF' },
+  consulta:     { label: 'Consulta',             icon: <CalendarCheck  size={14} />, cor: '#059669', badge: '#F0FDF4' },
+  resumo_pos:   { label: 'Resumo Pós-consulta',  icon: <FileText       size={14} />, cor: '#6366F1', badge: '#EEF2FF' },
+  csat:         { label: 'CSAT',     periodo: 'D+2',  icon: <Star           size={14} />, cor: '#D97706', badge: '#FFFBEB' },
+  checkin:      { label: 'Check-in', periodo: 'D+15', icon: <MessageCircle  size={14} />, cor: '#0891B2', badge: '#F0FDFF' },
+  evolucao:     { label: 'Evolução', periodo: 'D+30', icon: <TrendingUp     size={14} />, cor: '#059669', badge: '#F0FDF4' },
+  nps:          { label: 'NPS',      periodo: 'D+45', icon: <MessageSquare  size={14} />, cor: '#7C3AED', badge: '#F3E8FF' },
+  reativacao:   { label: 'Reativação',            icon: <RotateCcw      size={14} />, cor: '#0369A1', badge: '#E0F2FE' },
 };
 
+const CICLO_STATUS_COR: Record<CicloStatus, string> = {
+  ativo:     '#22C55E',
+  concluido: '#6366F1',
+  perdido:   '#EF4444',
+};
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function cicloLabel(c: Ciclo, idx: number): string {
+  const num = c.numero_ciclo ?? idx + 1;
+  const ref = c.iniciado_em || c.created_at;
+  const mes = format(parseISO(ref), 'MMM/yyyy', { locale: ptBR });
+  return `Ciclo ${num} · ${mes.charAt(0).toUpperCase() + mes.slice(1)}`;
+}
+
+// Deriva eventos a partir das tabelas-fonte (fallback pré-n8n).
+// Usa janela de tempo: 30d antes do ciclo até 120d depois (ou fechado_em).
+function derivarFallback(
+  ciclo: Ciclo,
+  agendamentos: any[],
+  tallys: any[],
+  csats: any[],
+  npss: any[],
+): Partial<Record<EtapaType, EvJornada>> {
+  const inicio = new Date(ciclo.iniciado_em || ciclo.created_at);
+  const from   = new Date(inicio.getTime() - 30 * 86400000);
+  const to     = ciclo.fechado_em
+    ? new Date(ciclo.fechado_em)
+    : new Date(inicio.getTime() + 120 * 86400000);
+
+  const inRange = (d: string) => { const dt = new Date(d); return dt >= from && dt <= to; };
+  const r: Partial<Record<EtapaType, EvJornada>> = {};
+
+  const ag = agendamentos.find(a => a.status === 'compareceu' && inRange(a.data_hora_inicio));
+  if (ag) r.consulta = { id: ag.id, etapa: 'consulta', status: 'concluido', concluido_em: ag.data_hora_inicio, dados: { procedimento: ag.procedimento_nome } };
+
+  const tally = tallys.find(t => inRange(t.created_at));
+  if (tally) r.pre_consulta = { id: tally.id, etapa: 'pre_consulta', status: 'concluido', concluido_em: tally.created_at, dados: { preenchido: true, resumo_ia: tally.resumo_ia } };
+
+  const csat = csats.find(c => inRange(c.created_at));
+  if (csat) r.csat = { id: csat.id, etapa: 'csat', status: 'concluido', concluido_em: csat.created_at, dados: { nota: csat.score } };
+
+  const nps = npss.find(n => inRange(n.created_at));
+  if (nps) r.nps = { id: nps.id, etapa: 'nps', status: 'concluido', concluido_em: nps.created_at, dados: { nota: nps.score, comentario: nps.comentario } };
+
+  return r;
+}
+
+function buildDados(etapa: EtapaType, dados: Record<string, any>, ciclo: Ciclo | null): React.ReactNode {
+  const d = dados;
+  switch (etapa) {
+    case 'pre_consulta':
+      return <>{d.preenchido ? '✓ Formulário preenchido' : 'Enviado, aguardando resposta'}{d.resumo_ia ? ` · ${String(d.resumo_ia).slice(0, 60)}…` : ''}</>;
+    case 'consulta':
+      return <>{d.procedimento || 'Consulta realizada'}{d.profissional ? ` · ${d.profissional}` : ''}</>;
+    case 'resumo_pos':
+      return <>{d.recebeu === false ? 'Envio não confirmado' : '✓ Enviado ao paciente'}{d.trecho ? ` · "${String(d.trecho).slice(0, 40)}…"` : ''}</>;
+    case 'csat': {
+      const emoji = d.nota >= 4 ? '😊' : d.nota >= 3 ? '😐' : '😞';
+      const label = d.nota >= 4 ? 'Satisfeito' : d.nota >= 3 ? 'Neutro' : 'Insatisfeito';
+      return <>Nota {d.nota}/5 · {emoji} {label}</>;
+    }
+    case 'checkin':
+      return <>{d.respondeu ? '✓ Respondeu' : 'Registrado'}{d.relato ? ` · ${String(d.relato).slice(0, 50)}…` : ''}</>;
+    case 'evolucao':
+      return <>{d.satisfacao ? `Satisfação ${d.satisfacao}/5` : '✓ Registrado'}{d.relato ? ` · ${String(d.relato).slice(0, 50)}…` : ''}</>;
+    case 'nps': {
+      const tipo = d.nota >= 9 ? '⭐ Promotor' : d.nota >= 7 ? '😐 Neutro' : '👎 Detrator';
+      return <>Nota {d.nota}/10 · {tipo}{d.comentario ? ` · ${String(d.comentario).slice(0, 40)}…` : ''}</>;
+    }
+    case 'reativacao': {
+      const ret = ciclo?.retorno_esperado_em;
+      const retLabel = ret ? `Retorno previsto: ${format(parseISO(ret), 'dd/MM/yyyy', { locale: ptBR })}` : 'D+60 / D+180';
+      return <>{d.reagendou ? '✓ Reagendou' : `${d.ondas ?? 0} ondas disparadas`} · {retLabel}</>;
+    }
+    default: return null;
+  }
+}
+
+// ─── StageCard ────────────────────────────────────────────────────────────────
+
+function StageCard({ etapa, ev, ciclo, isLast }: {
+  etapa: EtapaType;
+  ev: EvJornada | null;
+  ciclo: Ciclo | null;
+  isLast: boolean;
+}) {
+  const cfg = ETAPA_CFG[etapa];
+  const status   = ev?.status ?? 'pendente';
+  const isDone   = status === 'concluido';
+  const isSkip   = status === 'pulado';
+  const isPend   = status === 'pendente';
+
+  const circleCor  = isDone ? cfg.cor : isSkip ? '#EF4444' : '#CBD5E1';
+  const circleBg   = isDone ? cfg.badge : isSkip ? '#FEF2F2' : '#F8FAFC';
+  const cardBorder = isDone
+    ? `1px solid ${cfg.cor}55`
+    : isSkip
+    ? '1px dashed #FCA5A5'
+    : '1px dashed #E2E8F0';
+  const cardBg     = isDone ? 'white' : isSkip ? '#FFFAFA' : '#FAFAFA';
+  const lineCor    = isDone ? `${cfg.cor}33` : '#E2E8F0';
+
+  // Reativação pending: mostrar retorno_esperado_em do ciclo
+  let pendNote: string | null = null;
+  if (isPend && etapa === 'reativacao') {
+    const ret = ciclo?.retorno_esperado_em;
+    pendNote = ret
+      ? `Retorno previsto: ${format(parseISO(ret), 'dd/MM/yyyy', { locale: ptBR })}`
+      : 'Reativação D+60 / D+180';
+  }
+
+  return (
+    <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+      {/* Circle + vertical connector */}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
+        <div style={{
+          width: '30px', height: '30px', borderRadius: '50%', flexShrink: 0,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: circleBg, border: `1.5px solid ${circleCor}`, color: circleCor, zIndex: 1,
+        }}>
+          {cfg.icon}
+        </div>
+        {!isLast && (
+          <div style={{ width: '1px', flex: 1, minHeight: '18px', background: lineCor, marginTop: '3px' }} />
+        )}
+      </div>
+
+      {/* Card */}
+      <div style={{
+        flex: 1,
+        marginBottom: isLast ? '0' : '6px',
+        borderRadius: '10px',
+        padding: '10px 14px',
+        background: cardBg,
+        border: cardBorder,
+        borderLeft: isDone ? `3px solid ${cfg.cor}` : undefined,
+        opacity: isPend ? 0.6 : 1,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ fontSize: '12.5px', fontWeight: isDone ? 600 : 400, color: isDone ? cfg.cor : isSkip ? '#EF4444' : '#94A3B8' }}>
+                {cfg.label}
+              </span>
+              {cfg.periodo && (
+                <span style={{
+                  fontSize: '9.5px', padding: '1px 5px', borderRadius: '999px', fontWeight: 500,
+                  background: isDone ? cfg.badge : '#F1F5F9',
+                  color: isDone ? cfg.cor : '#94A3B8',
+                }}>
+                  {cfg.periodo}
+                </span>
+              )}
+            </div>
+
+            {isDone && ev?.dados && (
+              <p style={{ fontSize: '11px', color: '#64748B', marginTop: '3px', lineHeight: 1.4 }}>
+                {buildDados(etapa, ev.dados, ciclo)}
+              </p>
+            )}
+            {isSkip && (
+              <p style={{ fontSize: '11px', color: '#EF4444', marginTop: '3px' }}>Não respondeu</p>
+            )}
+            {isPend && pendNote && (
+              <p style={{ fontSize: '11px', color: '#94A3B8', marginTop: '3px' }}>{pendNote}</p>
+            )}
+          </div>
+
+          {ev?.concluido_em && (
+            <span style={{ fontSize: '10px', color: '#94A3B8', flexShrink: 0, marginTop: '2px' }}>
+              {format(parseISO(ev.concluido_em), 'dd/MM/yy', { locale: ptBR })}
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── JornadaPremiumTab ────────────────────────────────────────────────────────
+
 function JornadaPremiumTab({ pacienteId, leadId }: { pacienteId: string; leadId?: string }) {
-  const [itens, setItens] = useState<JItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [ciclos, setCiclos]             = useState<Ciclo[]>([]);
+  const [cicloId, setCicloId]           = useState<string | null>(null);
+  const [eventos, setEventos]           = useState<EvJornada[]>([]);
+  const [agendamentos, setAgendamentos] = useState<any[]>([]);
+  const [tallys, setTallys]             = useState<any[]>([]);
+  const [csats, setCsats]               = useState<any[]>([]);
+  const [npss, setNpss]                 = useState<any[]>([]);
+  const [agsSemCiclo, setAgsSemCiclo]   = useState<any[]>([]);
+  const [loading, setLoading]           = useState(true);
+  const [criando, setCriando]           = useState(false);
 
-  useEffect(() => {
-    if (!pacienteId) return;
-    carregarJornada();
-  }, [pacienteId, leadId]);
+  useEffect(() => { carregarTudo(); }, [pacienteId, leadId]);
+  useEffect(() => { if (cicloId) carregarEventos(cicloId); else setEventos([]); }, [cicloId]);
 
-  const carregarJornada = async () => {
+  const carregarTudo = async () => {
     setLoading(true);
-    const todas: JItem[] = [];
 
-    const [agRes, tallyRes, resumoRes, csatRes, npsRes, reativRes, cicloRes] = await Promise.all([
-      leadId
-        ? supabase.from('agendamentos').select('id,data_hora_inicio,status,procedimento_nome').eq('lead_id', leadId).order('data_hora_inicio')
-        : Promise.resolve({ data: [] }),
-      supabase.from('tally_respostas').select('id,created_at').eq('paciente_id', pacienteId).order('created_at'),
-      supabase.from('anotacoes_paciente').select('id,created_at,autor_nome').eq('paciente_id', pacienteId).eq('tipo', 'resumo_consulta').order('created_at'),
-      leadId
-        ? supabase.from('csat_respostas').select('id,score,created_at').eq('lead_id', leadId).order('created_at')
-        : supabase.from('csat_respostas').select('id,score,created_at').eq('paciente_id', pacienteId).order('created_at'),
-      leadId
-        ? supabase.from('nps_respostas').select('id,score,created_at').eq('lead_id', leadId).order('created_at')
-        : supabase.from('nps_respostas').select('id,score,created_at').eq('paciente_id', pacienteId).order('created_at'),
-      leadId
-        ? supabase.from('integration_log').select('id,mensagem,criado_em').eq('servico', 'n8n_intake').ilike('mensagem', `%Reativação%`).ilike('mensagem', `%${leadId}%`).order('criado_em')
-        : Promise.resolve({ data: [] }),
-      supabase
-        .from('ciclos_jornada_paciente')
-        .select('retorno_esperado_em')
-        .eq('paciente_id', pacienteId)
-        .not('retorno_esperado_em', 'is', null)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle(),
+    const agQuery = leadId
+      ? supabase.from('agendamentos').select('id,data_hora_inicio,status,procedimento_nome').eq('lead_id', leadId).order('data_hora_inicio')
+      : Promise.resolve({ data: [] as any[], error: null });
+
+    const csatQuery = leadId
+      ? supabase.from('csat_respostas').select('id,score,created_at').eq('lead_id', leadId).order('created_at')
+      : supabase.from('csat_respostas').select('id,score,created_at').eq('paciente_id', pacienteId).order('created_at');
+
+    const npsQuery = leadId
+      ? supabase.from('nps_respostas').select('id,score,created_at,comentario').eq('lead_id', leadId).order('created_at')
+      : supabase.from('nps_respostas').select('id,score,created_at,comentario').eq('paciente_id', pacienteId).order('created_at');
+
+    const [ciclosRes, agRes, tallyRes, csatRes, npsRes] = await Promise.all([
+      supabase.from('ciclos_jornada_paciente').select('*').eq('paciente_id', pacienteId).order('created_at'),
+      agQuery,
+      supabase.from('tally_respostas').select('id,created_at,resumo_ia').eq('paciente_id', pacienteId).order('created_at'),
+      csatQuery,
+      npsQuery,
     ]);
 
-    (agRes.data || []).forEach((a: any) => {
-      const STATUS_PT: Record<string, string> = { agendado: 'Agendada', compareceu: 'Compareceu', cancelado: 'Cancelada', reagendado: 'Reagendada', faltou: 'Faltou' };
-      todas.push({ tipo: 'consulta', data: a.data_hora_inicio, label: a.procedimento_nome || 'Consulta', sublabel: STATUS_PT[a.status] || a.status, status: a.status });
-    });
-    (tallyRes.data || []).forEach((r: any) => {
-      todas.push({ tipo: 'tally', data: r.created_at, label: 'Anamnese preenchida', sublabel: 'Formulário Tally recebido' });
-    });
-    (resumoRes.data || []).forEach((r: any) => {
-      todas.push({ tipo: 'resumo', data: r.created_at, label: 'Resumo da consulta', sublabel: r.autor_nome ? `Por ${r.autor_nome}` : undefined });
-    });
-    (csatRes.data || []).forEach((r: any) => {
-      const tipo = r.score >= 4 ? 'promotor' : r.score >= 3 ? 'neutro' : 'detrator';
-      todas.push({ tipo: 'csat', data: r.created_at, label: `CSAT: ${r.score}/5`, sublabel: tipo === 'promotor' ? '😊 Satisfeito' : tipo === 'neutro' ? '😐 Neutro' : '😞 Insatisfeito', score: r.score, scoreMax: 5 });
-    });
-    (npsRes.data || []).forEach((r: any) => {
-      const tipo = r.score >= 9 ? 'promotor' : r.score >= 7 ? 'neutro' : 'detrator';
-      todas.push({ tipo: 'nps', data: r.created_at, label: `NPS: ${r.score}/10`, sublabel: tipo === 'promotor' ? '⭐ Promotor' : tipo === 'neutro' ? '😐 Neutro' : '👎 Detrator', score: r.score, scoreMax: 10 });
-    });
-    const retornoEm = (cicloRes.data as any)?.retorno_esperado_em as string | null ?? null;
-    const retornoLabel = retornoEm
-      ? `Retorno previsto: ${format(parseISO(retornoEm), 'dd/MM/yyyy', { locale: ptBR })}`
-      : 'Fluxo pós-consulta (60d / 180d)';
+    const ags        = (agRes.data    || []) as any[];
+    const tallyData  = (tallyRes.data || []) as any[];
+    const csatData   = (csatRes.data  || []) as any[];
+    const npsData    = (npsRes.data   || []) as any[];
+    const ciclosData = (ciclosRes.data || []) as Ciclo[];
 
-    (reativRes.data || []).forEach((r: any) => {
-      const aceita = r.mensagem?.includes('aceita');
-      todas.push({ tipo: 'reativacao', data: r.criado_em, label: aceita ? 'Reativação aceita' : 'Tentativa de reativação', sublabel: retornoLabel });
-    });
+    setAgendamentos(ags);
+    setTallys(tallyData);
+    setCsats(csatData);
+    setNpss(npsData);
+    setCiclos(ciclosData);
 
-    // Item de "Retorno previsto" na timeline quando a data foi definida pelo profissional.
-    if (retornoEm) {
-      todas.push({
-        tipo: 'reativacao',
-        data: retornoEm + 'T12:00:00',
-        label: 'Retorno previsto',
-        sublabel: format(parseISO(retornoEm), "dd/MM/yyyy", { locale: ptBR }),
-        dataOnly: true,
+    // Agendamentos 'compareceu' sem ciclo correspondente (para propor criação)
+    const semCiclo = ags.filter((ag: any) => ag.status === 'compareceu' && !ciclosData.some(c => {
+      const ci  = new Date(c.iniciado_em || c.created_at).getTime();
+      const agt = new Date(ag.data_hora_inicio).getTime();
+      return Math.abs(ci - agt) < 10 * 86400000;
+    }));
+    setAgsSemCiclo(semCiclo);
+
+    if (ciclosData.length > 0) {
+      const ativo = [...ciclosData].reverse().find(c => c.status === 'ativo') ?? ciclosData[ciclosData.length - 1];
+      setCicloId(ativo.id);
+    } else {
+      setCicloId(null);
+    }
+
+    setLoading(false);
+  };
+
+  const carregarEventos = async (cid: string) => {
+    const { data } = await supabase
+      .from('eventos_jornada')
+      .select('id,etapa,status,concluido_em,dados')
+      .eq('ciclo_id', cid);
+    setEventos((data || []) as EvJornada[]);
+  };
+
+  const criarCiclo = async (ag?: any) => {
+    setCriando(true);
+    const { data: novo } = await supabase
+      .from('ciclos_jornada_paciente')
+      .insert({
+        paciente_id:  pacienteId,
+        lead_id:      leadId || null,
+        numero_ciclo: ciclos.length + 1,
+        status:       'ativo',
+        iniciado_em:  ag?.data_hora_inicio ?? new Date().toISOString(),
+      })
+      .select()
+      .single();
+
+    if (novo) {
+      if (ag) {
+        await supabase.from('eventos_jornada').insert({
+          ciclo_id: novo.id, etapa: 'consulta', status: 'concluido',
+          concluido_em: ag.data_hora_inicio,
+          dados: { procedimento: ag.procedimento_nome },
+        });
+      }
+      // Notifica o agente (não crítico)
+      supabase.from('agente_eventos').insert({
+        tipo: 'ciclo_iniciado', lead_id: leadId || null,
+        payload: { ciclo_id: novo.id, paciente_id: pacienteId },
       });
     }
 
-    todas.sort((a, b) => new Date(a.data).getTime() - new Date(b.data).getTime());
-    setItens(todas);
-    setLoading(false);
+    setCriando(false);
+    carregarTudo();
   };
+
+  // Merge: eventos_jornada > fallback tabelas-fonte
+  const cicloAtual = ciclos.find(c => c.id === cicloId) ?? null;
+  const fallback   = cicloAtual ? derivarFallback(cicloAtual, agendamentos, tallys, csats, npss) : {};
+  const evMap: Partial<Record<EtapaType, EvJornada>> = {};
+  eventos.forEach(e => { evMap[e.etapa] = e; });
+  const mergedEv = (etapa: EtapaType): EvJornada | null => evMap[etapa] ?? fallback[etapa] ?? null;
 
   if (loading) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px' }}>
@@ -226,63 +467,133 @@ function JornadaPremiumTab({ pacienteId, leadId }: { pacienteId: string; leadId?
     </div>
   );
 
-  if (itens.length === 0) return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '48px 24px', gap: '10px', textAlign: 'center' }}>
+  // Estado vazio: sem ciclos e sem consultas realizadas para vincular
+  if (ciclos.length === 0 && agsSemCiclo.length === 0) return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '52px 24px', gap: '14px', textAlign: 'center' }}>
       <Crown size={32} style={{ color: 'var(--champ-text)', opacity: 0.4 }} />
-      <p className="font-display" style={{ fontSize: '16px', fontStyle: 'italic', fontWeight: 300, color: 'var(--muted)' }}>
-        Nenhum evento registrado ainda
-      </p>
-      <p style={{ fontSize: '11.5px', color: 'var(--muted)', opacity: 0.7 }}>
-        A jornada aparece conforme as consultas e fluxos pós-consulta forem sendo realizados
-      </p>
+      <div>
+        <p className="font-display" style={{ fontSize: '16px', fontStyle: 'italic', fontWeight: 300, color: 'var(--muted)', marginBottom: '6px' }}>
+          Nenhum ciclo iniciado
+        </p>
+        <p style={{ fontSize: '11.5px', color: 'var(--muted)', opacity: 0.7, maxWidth: '260px', lineHeight: 1.6 }}>
+          A jornada começa quando uma consulta é realizada. Você pode iniciar um ciclo manualmente abaixo.
+        </p>
+      </div>
+      <button
+        onClick={() => criarCiclo()}
+        disabled={criando}
+        style={{
+          display: 'flex', alignItems: 'center', gap: '6px',
+          padding: '8px 18px', background: 'var(--sage-dark)', color: 'white',
+          border: 'none', borderRadius: 'var(--r-xs)',
+          fontSize: '12.5px', fontWeight: 600, cursor: criando ? 'not-allowed' : 'pointer',
+          fontFamily: 'inherit', opacity: criando ? 0.7 : 1,
+        }}
+      >
+        {criando ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}
+        Iniciar primeiro ciclo
+      </button>
     </div>
   );
 
   return (
-    <div style={{ padding: '20px 22px' }}>
-      <div style={{ position: 'relative' }}>
-        <div style={{ position: 'absolute', left: '15px', top: '4px', bottom: '4px', width: '1px', background: 'var(--border)' }} />
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {itens.map((item, idx) => {
-            const cfg = TIPO_CONFIG[item.tipo];
-            const isConsulta = item.tipo === 'consulta';
-            return (
-              <div key={idx} style={{ display: 'flex', gap: '16px', alignItems: 'flex-start', position: 'relative' }}>
-                <div style={{ width: '30px', height: '30px', borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: cfg.badge, color: cfg.cor, zIndex: 1, border: `1.5px solid ${cfg.cor}22` }}>
-                  {cfg.icon}
-                </div>
-                <div style={{ flex: 1, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: '10px', padding: '10px 14px', borderLeft: `3px solid ${cfg.cor}` }}>
-                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
-                    <div>
-                      <p style={{ fontSize: '12.5px', fontWeight: 600, color: isConsulta ? cfg.cor : 'var(--ink)' }}>{item.label}</p>
-                      {item.sublabel && <p style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '2px' }}>{item.sublabel}</p>}
-                    </div>
-                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                      <p style={{ fontSize: '10.5px', color: 'var(--muted)' }}>
-                        {format(parseISO(item.data), "dd/MM/yyyy", { locale: ptBR })}
-                      </p>
-                      {!item.dataOnly && (
-                        <p style={{ fontSize: '10px', color: 'var(--muted)', opacity: 0.7 }}>
-                          {format(parseISO(item.data), "HH:mm", { locale: ptBR })}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+    <div>
+      {/* ── Seletor de ciclos ── */}
+      <div style={{
+        padding: '14px 20px',
+        borderBottom: '1px solid var(--border)',
+        display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center',
+      }}>
+        {ciclos.map((c, idx) => {
+          const isActive = c.id === cicloId;
+          return (
+            <button
+              key={c.id}
+              onClick={() => setCicloId(c.id)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '6px',
+                padding: '5px 12px', borderRadius: '999px',
+                background: isActive ? 'var(--sage-xlight)' : 'var(--surface)',
+                border: isActive ? '1.5px solid var(--sage-dark)' : '1px solid var(--border)',
+                color: isActive ? 'var(--sage-dark)' : 'var(--muted)',
+                fontSize: '11.5px', fontWeight: isActive ? 600 : 400,
+                cursor: 'pointer', fontFamily: 'inherit',
+                transition: 'all 0.15s',
+              }}
+            >
+              <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: CICLO_STATUS_COR[c.status], flexShrink: 0 }} />
+              {cicloLabel(c, idx)}
+            </button>
+          );
+        })}
+
+        {/* Propor criação de ciclo a partir de consultas realizadas sem ciclo */}
+        {agsSemCiclo.length > 0 && (
+          <button
+            onClick={() => criarCiclo(agsSemCiclo[0])}
+            disabled={criando}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '5px',
+              padding: '5px 12px', borderRadius: '999px',
+              background: 'var(--surface)', border: '1px dashed var(--sage-dark)',
+              color: 'var(--sage-dark)', fontSize: '11.5px', fontWeight: 500,
+              cursor: criando ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
+            }}
+          >
+            {criando ? <Loader2 size={11} className="animate-spin" /> : <Plus size={11} />}
+            Novo ciclo
+            {agsSemCiclo[0]?.data_hora_inicio
+              ? ` · ${format(parseISO(agsSemCiclo[0].data_hora_inicio), 'dd/MM', { locale: ptBR })}`
+              : ''}
+          </button>
+        )}
       </div>
+
+      {/* ── Timeline 8 etapas ── */}
+      {cicloAtual && (
+        <div style={{ padding: '20px 20px 24px' }}>
+          {/* Badge de status do ciclo */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '18px' }}>
+            <span style={{
+              fontSize: '10px', fontWeight: 600, letterSpacing: '0.5px', textTransform: 'uppercase',
+              padding: '3px 8px', borderRadius: '999px',
+              background: cicloAtual.status === 'ativo' ? '#F0FDF4' : cicloAtual.status === 'concluido' ? '#EEF2FF' : '#FEF2F2',
+              color: CICLO_STATUS_COR[cicloAtual.status],
+            }}>
+              {cicloAtual.status === 'ativo' ? 'Em andamento' : cicloAtual.status === 'concluido' ? 'Concluído' : 'Perdido'}
+            </span>
+            {cicloAtual.iniciado_em && (
+              <span style={{ fontSize: '11px', color: 'var(--muted)' }}>
+                Iniciado em {format(parseISO(cicloAtual.iniciado_em), "dd/MM/yyyy", { locale: ptBR })}
+              </span>
+            )}
+          </div>
+
+          {/* Etapas */}
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            {ETAPAS_ORDEM.map((etapa, idx) => (
+              <StageCard
+                key={etapa}
+                etapa={etapa}
+                ev={mergedEv(etapa)}
+                ciclo={cicloAtual}
+                isLast={idx === ETAPAS_ORDEM.length - 1}
+              />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
+// ─── ExperienciaPremiumTab ────────────────────────────────────────────────────
+
 export function ExperienciaPremiumTab({ pacienteId, leadId, nomePaciente }: Props) {
   const [premiumEnabled, setPremiumEnabled] = useState<boolean | null>(null);
-  const [subTab, setSubTab] = useState<SubTab>('pre');
-  const [respostas, setRespostas] = useState<TallyResposta[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [subTab, setSubTab]                 = useState<SubTab>('pre');
+  const [respostas, setRespostas]           = useState<TallyResposta[]>([]);
+  const [loading, setLoading]               = useState(true);
 
   useEffect(() => {
     if (!pacienteId) return;
@@ -304,13 +615,11 @@ export function ExperienciaPremiumTab({ pacienteId, leadId, nomePaciente }: Prop
     setLoading(false);
   };
 
-  if (loading) {
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px' }}>
-        <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--muted)' }} />
-      </div>
-    );
-  }
+  if (loading) return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px' }}>
+      <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--muted)' }} />
+    </div>
+  );
 
   if (!premiumEnabled) return <LockedState />;
 
@@ -319,8 +628,8 @@ export function ExperienciaPremiumTab({ pacienteId, leadId, nomePaciente }: Prop
       {/* Sub-tabs */}
       <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid var(--border)', marginBottom: '20px' }}>
         {([
-          { id: 'pre' as SubTab, label: 'Pré-consulta' },
-          { id: 'pos' as SubTab, label: 'Pós-consulta' },
+          { id: 'pre'     as SubTab, label: 'Pré-consulta' },
+          { id: 'pos'     as SubTab, label: 'Pós-consulta' },
           { id: 'jornada' as SubTab, label: 'Jornada Premium' },
         ]).map(st => (
           <button
@@ -330,10 +639,10 @@ export function ExperienciaPremiumTab({ pacienteId, leadId, nomePaciente }: Prop
               display: 'flex', alignItems: 'center', gap: '5px',
               padding: '8px 16px',
               fontSize: '12.5px',
-              fontWeight: subTab === st.id ? 600 : 400,
-              color: subTab === st.id ? 'var(--sage-dark)' : 'var(--muted)',
-              background: 'none',
-              border: 'none',
+              fontWeight:  subTab === st.id ? 600 : 400,
+              color:       subTab === st.id ? 'var(--sage-dark)' : 'var(--muted)',
+              background:  'none',
+              border:      'none',
               borderBottom: `2px solid ${subTab === st.id ? 'var(--sage-dark)' : 'transparent'}`,
               marginBottom: '-1px',
               cursor: 'pointer',
@@ -378,7 +687,9 @@ export function ExperienciaPremiumTab({ pacienteId, leadId, nomePaciente }: Prop
       )}
 
       {subTab === 'jornada' && (
-        <JornadaPremiumTab pacienteId={pacienteId} leadId={leadId} />
+        <div style={{ margin: '-20px -22px' }}>
+          <JornadaPremiumTab pacienteId={pacienteId} leadId={leadId} />
+        </div>
       )}
     </div>
   );
