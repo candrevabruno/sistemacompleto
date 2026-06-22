@@ -6,10 +6,11 @@ import {
   Loader2, Lock, Star, ChevronDown, ChevronRight,
   ClipboardList, Sparkles, Crown, CalendarCheck, FileText,
   MessageSquare, RotateCcw, MessageCircle, TrendingUp, Plus,
-  MoreHorizontal, Archive, Trash2,
+  MoreHorizontal, Archive, Trash2, Send, X, History,
 } from 'lucide-react';
 import { ResumoConsultaSection } from './ResumoConsultaSection';
 import { useClinic } from '../../contexts/ClinicContext';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface Props {
   pacienteId: string;
@@ -19,14 +20,144 @@ interface Props {
 
 type SubTab = 'pre' | 'pos' | 'jornada';
 
-interface TallyResposta {
+interface AnamneseSubmission {
   id: string;
-  conteudo: object;
+  dados: Record<string, any> | null;
   resumo_ia: string | null;
+  criado_em: string;
   created_at: string;
+  visualizado: boolean;
+  arquivado: boolean;
+  origem: 'tally';
 }
 
+interface QueixaItem {
+  id: string;
+  conteudo: string;
+  created_at: string;
+  origem: 'whatsapp';
+}
+
+type AnamneseItem = AnamneseSubmission | QueixaItem;
+
 const UPGRADE_MSG = encodeURIComponent('Olá! Gostaria de solicitar acesso à Experiência Premium no sistema da clínica.');
+
+// ─── AnamneseCard ─────────────────────────────────────────────────────────────
+
+function AnamneseCard({ item, onArquivar, onIniciarApagar, confirmApagar, onConfirmarApagar, onCancelarApagar, apagando }: {
+  item: AnamneseItem;
+  onArquivar?: (id: string) => void;
+  onIniciarApagar: (id: string) => void;
+  confirmApagar: string | null;
+  onConfirmarApagar: (id: string) => void;
+  onCancelarApagar: () => void;
+  apagando: boolean;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const isTally = item.origem === 'tally';
+  const sub = item as AnamneseSubmission;
+  const queixa = item as QueixaItem;
+  const dataRef = isTally ? (sub.criado_em || sub.created_at) : queixa.created_at;
+
+  return (
+    <div style={{
+      background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-xs)', overflow: 'hidden',
+      opacity: (isTally && sub.arquivado) ? 0.6 : 1,
+    }}>
+      <div style={{ padding: '10px 14px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '3px' }}>
+            <span style={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--ink)' }}>
+              {isTally ? 'Formulário Tally' : 'Resposta WhatsApp'}
+            </span>
+            <span style={{ fontSize: '9.5px', padding: '1px 6px', borderRadius: '20px', fontWeight: 500, background: isTally ? '#F5F3FF' : '#F0FDFF', color: isTally ? '#7C3AED' : '#0891B2' }}>
+              {isTally ? 'Tally' : 'WhatsApp'}
+            </span>
+            {isTally && !sub.visualizado && (
+              <span style={{ fontSize: '9px', padding: '1px 5px', borderRadius: '20px', background: '#FEF3C7', color: '#B45309', fontWeight: 600 }}>Novo</span>
+            )}
+            {isTally && sub.arquivado && (
+              <span style={{ fontSize: '9px', padding: '1px 5px', borderRadius: '20px', background: '#F1F5F9', color: '#64748B', fontWeight: 500 }}>Arquivado</span>
+            )}
+          </div>
+          <span style={{ fontSize: '10.5px', color: 'var(--muted)' }}>
+            {format(parseISO(dataRef), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+          </span>
+        </div>
+        {/* Ações */}
+        <div style={{ display: 'flex', gap: '5px', flexShrink: 0 }}>
+          {isTally && !sub.arquivado && onArquivar && (
+            <button
+              onClick={() => onArquivar(item.id)}
+              title="Arquivar"
+              style={{ width: '26px', height: '26px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', borderRadius: '5px', background: '#F1F5F9', color: '#64748B', cursor: 'pointer' }}
+            >
+              <Archive size={12} />
+            </button>
+          )}
+          {confirmApagar !== item.id ? (
+            <button
+              onClick={() => onIniciarApagar(item.id)}
+              title="Apagar"
+              style={{ width: '26px', height: '26px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', borderRadius: '5px', background: '#FEF2F2', color: '#EF4444', cursor: 'pointer' }}
+            >
+              <Trash2 size={12} />
+            </button>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px', background: '#FEF2F2', borderRadius: '6px', padding: '3px 8px' }}>
+              <span style={{ fontSize: '10.5px', color: '#EF4444', fontWeight: 500 }}>Apagar? Não pode ser desfeito.</span>
+              <button onClick={() => onConfirmarApagar(item.id)} disabled={apagando}
+                style={{ fontSize: '10.5px', fontWeight: 700, color: '#EF4444', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
+                {apagando ? '...' : 'Confirmar'}
+              </button>
+              <button onClick={onCancelarApagar}
+                style={{ fontSize: '10.5px', color: '#64748B', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
+                Cancelar
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Conteúdo */}
+      {isTally ? (
+        <>
+          {sub.resumo_ia && (
+            <div style={{ margin: '0 14px 10px', padding: '9px 12px', background: 'var(--sage-xlight)', borderRadius: 'var(--r-xs)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '9.5px', fontWeight: 600, letterSpacing: '0.6px', textTransform: 'uppercase', color: 'var(--sage-dark)', marginBottom: '5px' }}>
+                <Sparkles size={11} /> Resumo gerado pela IA
+              </div>
+              <p style={{ fontSize: '12px', color: 'var(--ink)', lineHeight: 1.6 }}>{sub.resumo_ia}</p>
+            </div>
+          )}
+          {sub.dados && Object.keys(sub.dados).length > 0 && (
+            <>
+              <button onClick={() => setExpanded(v => !v)}
+                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '5px', padding: '6px 14px 10px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '11px', color: 'var(--muted)', borderTop: '1px solid var(--border)' }}>
+                {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                Respostas brutas
+              </button>
+              {expanded && (
+                <div style={{ margin: '0 14px 12px', border: '1px solid var(--border)', borderRadius: '7px', overflow: 'hidden' }}>
+                  {Object.entries(sub.dados).map(([k, v]) => (
+                    <div key={k} style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '8px', padding: '6px 10px', borderBottom: '1px solid var(--border)', fontSize: '11.5px' }}>
+                      <span style={{ color: 'var(--muted)', fontWeight: 500 }}>{k}</span>
+                      <span style={{ color: 'var(--ink)' }}>{String(v)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </>
+      ) : (
+        <div style={{ margin: '0 14px 12px', padding: '9px 12px', background: '#F0FDFF', borderRadius: 'var(--r-xs)', borderLeft: '3px solid #0891B2' }}>
+          <p style={{ fontSize: '12.5px', color: 'var(--ink)', lineHeight: 1.6 }}>{queixa.conteudo}</p>
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ─── LockedState ──────────────────────────────────────────────────────────────
 
@@ -67,57 +198,6 @@ function LockedState() {
         <Sparkles size={14} />
         Solicitar acesso Premium
       </a>
-    </div>
-  );
-}
-
-// ─── RespostaCard ─────────────────────────────────────────────────────────────
-
-function RespostaCard({ resposta }: { resposta: TallyResposta }) {
-  const [expandido, setExpandido] = useState(false);
-  const campos = Object.entries(resposta.conteudo || {});
-
-  return (
-    <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-xs)', overflow: 'hidden' }}>
-      <button
-        onClick={() => setExpandido(v => !v)}
-        style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}
-      >
-        <span style={{ fontSize: '12px', fontWeight: 500, color: 'var(--ink)' }}>
-          Formulário de pré-consulta
-        </span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontSize: '10px', color: 'var(--muted)' }}>
-            {format(new Date(resposta.created_at), "dd/MM/yyyy '·' HH:mm", { locale: ptBR })}
-          </span>
-          {expandido
-            ? <ChevronDown size={14} style={{ color: 'var(--muted)' }} />
-            : <ChevronRight size={14} style={{ color: 'var(--muted)' }} />}
-        </div>
-      </button>
-
-      {expandido && campos.length > 0 && (
-        <div style={{ padding: '0 14px 12px', borderTop: '1px solid var(--border)' }}>
-          <div style={{ paddingTop: '10px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            {campos.map(([key, val]) => (
-              <div key={key} style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '8px', fontSize: '12px' }}>
-                <span style={{ color: 'var(--muted)', fontWeight: 500 }}>{key}</span>
-                <span style={{ color: 'var(--ink)' }}>{String(val)}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {resposta.resumo_ia && (
-        <div style={{ margin: '0 14px 12px', padding: '9px 12px', background: 'var(--sage-xlight)', borderRadius: 'var(--r-xs)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '9.5px', fontWeight: 600, letterSpacing: '0.6px', textTransform: 'uppercase', color: 'var(--sage-dark)', marginBottom: '5px' }}>
-            <Sparkles size={11} />
-            Resumo gerado pela IA
-          </div>
-          <p style={{ fontSize: '12px', color: 'var(--ink)', lineHeight: 1.6 }}>{resposta.resumo_ia}</p>
-        </div>
-      )}
     </div>
   );
 }
@@ -184,7 +264,7 @@ function cicloLabel(c: Ciclo, idx: number): string {
 function derivarFallback(
   ciclo: Ciclo,
   agendamentos: any[],
-  tallys: any[],
+  formSubs: any[],
   csats: any[],
   npss: any[],
 ): Partial<Record<EtapaType, EvJornada>> {
@@ -200,8 +280,8 @@ function derivarFallback(
   const ag = agendamentos.find(a => a.status === 'compareceu' && inRange(a.data_hora_inicio));
   if (ag) r.consulta = { id: ag.id, etapa: 'consulta', status: 'concluido', concluido_em: ag.data_hora_inicio, dados: { procedimento: ag.procedimento_nome } };
 
-  const tally = tallys.find(t => inRange(t.created_at));
-  if (tally) r.pre_consulta = { id: tally.id, etapa: 'pre_consulta', status: 'concluido', concluido_em: tally.created_at, dados: { preenchido: true, resumo_ia: tally.resumo_ia } };
+  const sub = formSubs.find(s => inRange(s.criado_em || s.created_at));
+  if (sub) r.pre_consulta = { id: sub.id, etapa: 'pre_consulta', status: 'concluido', concluido_em: sub.criado_em || sub.created_at, dados: { preenchido: true, resumo_ia: sub.resumo_ia } };
 
   const csat = csats.find(c => inRange(c.created_at));
   if (csat) r.csat = { id: csat.id, etapa: 'csat', status: 'concluido', concluido_em: csat.created_at, dados: { nota: csat.score } };
@@ -347,11 +427,12 @@ function StageCard({ etapa, ev, ciclo, isLast }: {
 // ─── JornadaPremiumTab ────────────────────────────────────────────────────────
 
 function JornadaPremiumTab({ pacienteId, leadId }: { pacienteId: string; leadId?: string }) {
+  const { config }                      = useClinic();
   const [ciclos, setCiclos]             = useState<Ciclo[]>([]);
   const [cicloId, setCicloId]           = useState<string | null>(null);
   const [eventos, setEventos]           = useState<EvJornada[]>([]);
   const [agendamentos, setAgendamentos] = useState<any[]>([]);
-  const [tallys, setTallys]             = useState<any[]>([]);
+  const [formSubs, setFormSubs]         = useState<any[]>([]);
   const [csats, setCsats]               = useState<any[]>([]);
   const [npss, setNpss]                 = useState<any[]>([]);
   const [agsSemCiclo, setAgsSemCiclo]   = useState<any[]>([]);
@@ -380,22 +461,26 @@ function JornadaPremiumTab({ pacienteId, leadId }: { pacienteId: string; leadId?
       ? supabase.from('nps_respostas').select('id,score,created_at,comentario').eq('lead_id', leadId).order('created_at')
       : supabase.from('nps_respostas').select('id,score,created_at,comentario').eq('paciente_id', pacienteId).order('created_at');
 
-    const [ciclosRes, agRes, tallyRes, csatRes, npsRes] = await Promise.all([
+    const subsQuery = leadId
+      ? supabase.from('form_submissions').select('id,criado_em,created_at,resumo_ia').eq('lead_id', leadId).order('criado_em')
+      : supabase.from('form_submissions').select('id,criado_em,created_at,resumo_ia').eq('lead_id', 'x-no-match').order('criado_em');
+
+    const [ciclosRes, agRes, subsRes, csatRes, npsRes] = await Promise.all([
       supabase.from('ciclos_jornada_paciente').select('*').eq('paciente_id', pacienteId).order('created_at'),
       agQuery,
-      supabase.from('tally_respostas').select('id,created_at,resumo_ia').eq('paciente_id', pacienteId).order('created_at'),
+      subsQuery,
       csatQuery,
       npsQuery,
     ]);
 
     const ags        = (agRes.data    || []) as any[];
-    const tallyData  = (tallyRes.data || []) as any[];
+    const subsData   = (subsRes.data  || []) as any[];
     const csatData   = (csatRes.data  || []) as any[];
     const npsData    = (npsRes.data   || []) as any[];
     const ciclosData = (ciclosRes.data || []) as Ciclo[];
 
     setAgendamentos(ags);
-    setTallys(tallyData);
+    setFormSubs(subsData);
     setCsats(csatData);
     setNpss(npsData);
     setCiclos(ciclosData);
@@ -481,7 +566,7 @@ function JornadaPremiumTab({ pacienteId, leadId }: { pacienteId: string; leadId?
 
   // Merge: eventos_jornada > fallback tabelas-fonte
   const cicloAtual = ciclos.find(c => c.id === cicloId) ?? null;
-  const fallback   = cicloAtual ? derivarFallback(cicloAtual, agendamentos, tallys, csats, npss) : {};
+  const fallback   = cicloAtual ? derivarFallback(cicloAtual, agendamentos, formSubs, csats, npss) : {};
   const evMap: Partial<Record<EtapaType, EvJornada>> = {};
   eventos.forEach(e => { evMap[e.etapa] = e; });
   const mergedEv = (etapa: EtapaType): EvJornada | null => evMap[etapa] ?? fallback[etapa] ?? null;
@@ -756,10 +841,16 @@ function JornadaPremiumTab({ pacienteId, leadId }: { pacienteId: string; leadId?
 // ─── ExperienciaPremiumTab ────────────────────────────────────────────────────
 
 export function ExperienciaPremiumTab({ pacienteId, leadId, nomePaciente }: Props) {
+  const { config: clinicConfig }      = useClinic();
+  const { user }                      = useAuth();
   const [premiumEnabled, setPremiumEnabled] = useState<boolean | null>(null);
-  const [subTab, setSubTab]                 = useState<SubTab>('pre');
-  const [respostas, setRespostas]           = useState<TallyResposta[]>([]);
-  const [loading, setLoading]               = useState(true);
+  const [subTab, setSubTab]           = useState<SubTab>('pre');
+  const [submissions, setSubmissions] = useState<AnamneseSubmission[]>([]);
+  const [queixes, setQueixes]         = useState<QueixaItem[]>([]);
+  const [loading, setLoading]         = useState(true);
+  const [histPopup, setHistPopup]     = useState(false);
+  const [confirmApagar, setConfirmApagar] = useState<string | null>(null);
+  const [apagando, setApagando]       = useState(false);
 
   useEffect(() => {
     if (!pacienteId) return;
@@ -768,17 +859,72 @@ export function ExperienciaPremiumTab({ pacienteId, leadId, nomePaciente }: Prop
 
   const carregarDados = async () => {
     setLoading(true);
-    const [{ data: config }, { data: resp }] = await Promise.all([
+    const subsQuery = leadId
+      ? supabase.from('form_submissions')
+          .select('id, dados, resumo_ia, criado_em, created_at, formulario_id, visualizado, arquivado')
+          .eq('lead_id', leadId)
+          .order('criado_em', { ascending: false })
+      : Promise.resolve({ data: [] as any[] });
+
+    const queixaQuery = leadId
+      ? supabase.from('mensagens')
+          .select('id, conteudo, created_at')
+          .eq('lead_id', leadId)
+          .eq('tipo', 'queixa_principal')
+          .order('created_at', { ascending: false })
+      : Promise.resolve({ data: [] as any[] });
+
+    const [{ data: configData }, subsRes, queixaRes] = await Promise.all([
       supabase.from('clinic_config').select('premium_enabled').single(),
-      supabase
-        .from('tally_respostas')
-        .select('id, conteudo, resumo_ia, created_at')
-        .eq('paciente_id', pacienteId)
-        .order('created_at', { ascending: false }),
+      subsQuery,
+      queixaQuery,
     ]);
-    setPremiumEnabled(config?.premium_enabled ?? false);
-    if (resp) setRespostas(resp);
+
+    setPremiumEnabled(configData?.premium_enabled ?? false);
+    const subs = (subsRes.data || []) as any[];
+    setSubmissions(subs.map((s: any) => ({ ...s, origem: 'tally' as const })));
+    const qs = (queixaRes.data || []) as any[];
+    setQueixes(qs.map((q: any) => ({ ...q, origem: 'whatsapp' as const })));
+
+    // Marcar como visualizado (não-arquivados não visualizados)
+    const naoVistos = subs.filter((s: any) => !s.visualizado && !s.arquivado).map((s: any) => s.id);
+    if (naoVistos.length) {
+      supabase.from('form_submissions').update({ visualizado: true }).in('id', naoVistos);
+    }
+
     setLoading(false);
+  };
+
+  const arquivarSubmission = async (id: string) => {
+    await supabase.from('form_submissions').update({ arquivado: true }).eq('id', id);
+    setSubmissions(prev => prev.map(s => s.id === id ? { ...s, arquivado: true } : s));
+  };
+
+  const apagarItem = async (item: AnamneseItem) => {
+    setApagando(true);
+    if (item.origem === 'tally') {
+      const sub = item as AnamneseSubmission;
+      await supabase.from('form_submissions').delete().eq('id', item.id);
+      await supabase.from('audit_log').insert({
+        acao: 'anamnese_apagada',
+        tabela: 'form_submissions',
+        registro_id: item.id,
+        realizado_por: user?.id ?? null,
+        detalhes: {
+          lead_id: leadId,
+          paciente_id: pacienteId,
+          resumo_ia: sub.resumo_ia,
+          dados_trecho: JSON.stringify(sub.dados || {}).slice(0, 500),
+          apagado_em: new Date().toISOString(),
+        },
+      });
+      setSubmissions(prev => prev.filter(s => s.id !== item.id));
+    } else {
+      await supabase.from('mensagens').delete().eq('id', item.id);
+      setQueixes(prev => prev.filter(q => q.id !== item.id));
+    }
+    setApagando(false);
+    setConfirmApagar(null);
   };
 
   if (loading) return (
@@ -821,28 +967,137 @@ export function ExperienciaPremiumTab({ pacienteId, leadId, nomePaciente }: Prop
         ))}
       </div>
 
-      {subTab === 'pre' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '7px', fontSize: '10px', fontWeight: 600, letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: '4px', paddingBottom: '8px', borderBottom: '1px solid var(--border)' }}>
-            <ClipboardList size={13} style={{ color: 'var(--sage-dark)' }} /> Formulários recebidos via Tally
-          </div>
-          {respostas.length === 0 ? (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '40px 24px', gap: '10px', textAlign: 'center' }}>
-              <div style={{ width: '44px', height: '44px', borderRadius: '50%', background: 'var(--champ-light)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <ClipboardList size={18} style={{ color: 'var(--champ-text)' }} />
+      {subTab === 'pre' && (() => {
+        const ativos = submissions.filter(s => !s.arquivado);
+        const allItems: AnamneseItem[] = [
+          ...ativos,
+          ...queixes,
+        ].sort((a, b) => {
+          const da = (a as AnamneseSubmission).criado_em || a.created_at;
+          const db = (b as AnamneseSubmission).criado_em || b.created_at;
+          return new Date(db).getTime() - new Date(da).getTime();
+        });
+        const historicoItems: AnamneseItem[] = [
+          ...submissions.filter(s => s.arquivado),
+        ];
+        const isEmpty = allItems.length === 0;
+
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '8px', borderBottom: '1px solid var(--border)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '7px', fontSize: '10px', fontWeight: 600, letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--muted)' }}>
+                <ClipboardList size={13} style={{ color: 'var(--sage-dark)' }} /> Pré-consulta
               </div>
-              <p className="font-display" style={{ fontSize: '16px', fontStyle: 'italic', fontWeight: 300, color: 'var(--muted)' }}>
-                Nenhum formulário recebido ainda
-              </p>
-              <p style={{ fontSize: '11.5px', color: 'var(--muted)', opacity: 0.8 }}>
-                Os formulários preenchidos pelo paciente via Tally aparecerão aqui
-              </p>
+              {historicoItems.length > 0 && (
+                <button
+                  onClick={() => setHistPopup(true)}
+                  style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+                >
+                  <History size={12} /> Histórico ({historicoItems.length})
+                </button>
+              )}
             </div>
-          ) : (
-            respostas.map(r => <RespostaCard key={r.id} resposta={r} />)
-          )}
-        </div>
-      )}
+
+            {/* Fonte 1: Tally */}
+            {ativos.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <span style={{ fontSize: '9.5px', fontWeight: 600, letterSpacing: '0.6px', textTransform: 'uppercase', color: '#7C3AED', opacity: 0.8 }}>Formulário Tally</span>
+                {ativos.map(s => (
+                  <AnamneseCard
+                    key={s.id}
+                    item={s}
+                    onArquivar={arquivarSubmission}
+                    onIniciarApagar={setConfirmApagar}
+                    confirmApagar={confirmApagar}
+                    onConfirmarApagar={() => apagarItem(s)}
+                    onCancelarApagar={() => setConfirmApagar(null)}
+                    apagando={apagando}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Fonte 2: WhatsApp queixas */}
+            {queixes.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <span style={{ fontSize: '9.5px', fontWeight: 600, letterSpacing: '0.6px', textTransform: 'uppercase', color: '#0891B2', opacity: 0.8 }}>Via WhatsApp</span>
+                {queixes.map(q => (
+                  <AnamneseCard
+                    key={q.id}
+                    item={q}
+                    onIniciarApagar={setConfirmApagar}
+                    confirmApagar={confirmApagar}
+                    onConfirmarApagar={() => apagarItem(q)}
+                    onCancelarApagar={() => setConfirmApagar(null)}
+                    apagando={apagando}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Empty state */}
+            {isEmpty && (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '40px 24px', gap: '12px', textAlign: 'center' }}>
+                <div style={{ width: '44px', height: '44px', borderRadius: '50%', background: 'var(--champ-light)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <ClipboardList size={18} style={{ color: 'var(--champ-text)' }} />
+                </div>
+                <p className="font-display" style={{ fontSize: '16px', fontStyle: 'italic', fontWeight: 300, color: 'var(--muted)' }}>
+                  Nenhuma pré-consulta recebida ainda
+                </p>
+                <p style={{ fontSize: '11.5px', color: 'var(--muted)', opacity: 0.8 }}>
+                  Formulários Tally e queixas via WhatsApp aparecerão aqui
+                </p>
+                {clinicConfig?.tally_formulario_id && leadId && (
+                  <a
+                    href={`https://tally.so/r/${clinicConfig.tally_formulario_id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '6px',
+                      padding: '8px 16px', background: 'var(--sage-dark)', color: 'white',
+                      border: 'none', borderRadius: 'var(--r-xs)',
+                      fontSize: '12.5px', fontWeight: 600, textDecoration: 'none', fontFamily: 'inherit', cursor: 'pointer',
+                    }}
+                  >
+                    <Send size={13} /> Enviar formulário de anamnese
+                  </a>
+                )}
+              </div>
+            )}
+
+            {/* Popup histórico arquivados */}
+            {histPopup && (
+              <div
+                onClick={() => setHistPopup(false)}
+                style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: '12px', width: '100%', maxWidth: '520px', maxHeight: '80vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', margin: '0 16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', borderBottom: '1px solid var(--border)' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)' }}>Histórico de pré-consulta</span>
+                    <button onClick={() => setHistPopup(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', display: 'flex', alignItems: 'center' }}><X size={16} /></button>
+                  </div>
+                  <div style={{ overflowY: 'auto', padding: '14px 18px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {historicoItems.length === 0 ? (
+                      <p style={{ fontSize: '12px', color: 'var(--muted)', textAlign: 'center', padding: '24px 0' }}>Sem registros arquivados</p>
+                    ) : historicoItems.map(item => (
+                      <AnamneseCard
+                        key={item.id}
+                        item={item}
+                        onIniciarApagar={setConfirmApagar}
+                        confirmApagar={confirmApagar}
+                        onConfirmarApagar={() => apagarItem(item)}
+                        onCancelarApagar={() => setConfirmApagar(null)}
+                        apagando={apagando}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {subTab === 'pos' && (
         <ResumoConsultaSection

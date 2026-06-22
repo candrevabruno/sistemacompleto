@@ -22,7 +22,7 @@ export const ClinicProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       let { data, error } = await supabase
         .from('clinic_config')
-        .select('nome, subtitulo, logo_url, chatwoot_url, whatsapp_provider, meta_phone_number_id, meta_business_account_id, evolution_server_url, evolution_instance_name, nota_webhook_url, premium_enabled, eventos_enabled, lista_espera_enabled, aniversario_webhook_url, upgrade_webhook_url, heroic_leap_whatsapp, admin_config_tabs, aniversario_last_dispatch')
+        .select('nome, subtitulo, logo_url, chatwoot_url, whatsapp_provider, meta_phone_number_id, meta_business_account_id, evolution_server_url, evolution_instance_name, nota_webhook_url, premium_enabled, eventos_enabled, lista_espera_enabled, aniversario_webhook_url, upgrade_webhook_url, heroic_leap_whatsapp, admin_config_tabs, aniversario_last_dispatch, tally_formulario_id, tally_webhook_url')
         .eq('id', 1)
         .single();
 
@@ -52,6 +52,8 @@ export const ClinicProvider = ({ children }: { children: React.ReactNode }) => {
             heroic_leap_whatsapp: null,
             admin_config_tabs: null,
             aniversario_last_dispatch: null,
+            tally_formulario_id: null,
+            tally_webhook_url: null,
           };
           error = null;
         }

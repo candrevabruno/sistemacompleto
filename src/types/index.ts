@@ -36,6 +36,9 @@ export interface ClinicConfig {
   admin_config_tabs?: string[] | null;
   // Status do último disparo de aniversário (atualizado pelo n8n via registrar_disparo)
   aniversario_last_dispatch?: { mes: string; enviado_em: string; total: number | null } | null;
+  // Integração Tally — Formulário de Anamnese
+  tally_formulario_id?: string | null;
+  tally_webhook_url?: string | null;
 }
 
 export interface Conversa {

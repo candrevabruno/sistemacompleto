@@ -7,7 +7,7 @@ import { Input } from '../components/ui/Input';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Modal } from '../components/ui/Modal';
-import { Copy, Plus, Trash2, Pencil, CheckCircle, AlertCircle, Loader2, Key, X, Eye } from 'lucide-react';
+import { Copy, Plus, Trash2, Pencil, CheckCircle, AlertCircle, Loader2, Key, X, Eye, ChevronDown, ChevronRight, ClipboardList } from 'lucide-react';
 
 const ALL_TABS = [
   { id: 'geral', label: 'Geral' },
@@ -1254,6 +1254,8 @@ function AbaWebhooks() {
         </div>
       </Modal>
 
+      <AbaTally />
+
       <ApiTokensSection />
 
       {isSuperAdmin && (
@@ -1274,6 +1276,149 @@ function AbaWebhooks() {
         </Card>
       )}
     </div>
+  );
+}
+
+// ── AbaTally ─────────────────────────────────────────────────────────────────
+
+function AbaTally() {
+  const { config, refreshConfig } = useClinic();
+  const [guiaAberto, setGuiaAberto] = useState(false);
+  const [editando, setEditando] = useState<'formulario_id' | 'webhook_url' | null>(null);
+  const [valor, setValor] = useState('');
+  const [salvando, setSalvando] = useState(false);
+  const [copiado, setCopiado] = useState(false);
+
+  const formularioId  = config?.tally_formulario_id  || '';
+  const webhookUrl    = config?.tally_webhook_url     || '';
+
+  const abrir = (campo: 'formulario_id' | 'webhook_url') => {
+    setValor(campo === 'formulario_id' ? formularioId : webhookUrl);
+    setEditando(campo);
+  };
+
+  const salvar = async () => {
+    if (!editando) return;
+    setSalvando(true);
+    const coluna = editando === 'formulario_id' ? 'tally_formulario_id' : 'tally_webhook_url';
+    const { error } = await supabase.from('clinic_config').update({ [coluna]: valor || null }).eq('id', 1);
+    setSalvando(false);
+    if (error) { alert('Erro ao salvar: ' + error.message); return; }
+    await refreshConfig();
+    setEditando(null);
+  };
+
+  const copiar = (txt: string) => {
+    navigator.clipboard.writeText(txt);
+    setCopiado(true);
+    setTimeout(() => setCopiado(false), 1800);
+  };
+
+  const PASSOS = [
+    { num: 1, titulo: 'Crie seu formulário no Tally', desc: 'Acesse tally.so, crie o formulário de anamnese e copie o ID que aparece na URL (ex: tally.so/r/wM6yAB → ID: wM6yAB).' },
+    { num: 2, titulo: 'Cole o ID do formulário aqui', desc: 'Insira o ID no campo abaixo para que o sistema identifique respostas deste formulário.' },
+    { num: 3, titulo: 'Copie a URL do n8n e cole no Tally', desc: 'No Tally, vá em Integrations → Webhooks e cole a URL do n8n que você configurou no WF05.' },
+  ];
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <ClipboardList className="w-4 h-4" style={{ color: 'var(--muted)' }} />
+            <CardTitle>Formulário de Anamnese (Tally)</CardTitle>
+          </div>
+        </div>
+        <p className="text-sm text-[var(--muted)] mt-1">
+          Configure o formulário de anamnese que os pacientes preenchem antes da consulta. O n8n (WF05) recebe o webhook do Tally e grava em <code className="font-mono text-xs bg-gray-100 px-1 rounded">form_submissions</code>.
+        </p>
+      </CardHeader>
+
+      <CardContent className="space-y-4">
+        {/* Campos */}
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-medium text-[var(--ink)] mb-0.5">ID do formulário Tally</p>
+            <p className="text-xs text-[var(--muted)]">Encontre na URL: tally.so/r/<strong>wM6yAB</strong></p>
+            <div className="mt-1.5">
+              <MaskedRow label="Formulário ID" value={formularioId || undefined} />
+            </div>
+          </div>
+          <button
+            onClick={() => abrir('formulario_id')}
+            className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-[8px] border border-[var(--border-md)] hover:bg-[var(--bg)] transition-colors text-[var(--ink)] flex-shrink-0 self-start"
+          >
+            <Pencil className="w-3.5 h-3.5" /> Editar
+          </button>
+        </div>
+
+        <hr style={{ borderColor: 'var(--border)' }} />
+
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-medium text-[var(--ink)] mb-0.5">URL do n8n para o Tally</p>
+            <p className="text-xs text-[var(--muted)]">Cole esta URL no painel do Tally como destino do webhook</p>
+            {webhookUrl ? (
+              <div className="mt-1.5 flex items-center gap-2 bg-gray-50 border border-[var(--border)] rounded-[8px] px-3 py-2">
+                <span className="font-mono text-[11px] text-gray-600 truncate flex-1">{webhookUrl}</span>
+                <button onClick={() => copiar(webhookUrl)} className="text-gray-400 hover:text-gray-700 transition-colors flex-shrink-0" title="Copiar URL">
+                  {copiado ? <CheckCircle className="w-3.5 h-3.5 text-green-600" /> : <Copy className="w-3.5 h-3.5" />}
+                </button>
+              </div>
+            ) : (
+              <div className="mt-1.5"><MaskedRow label="URL do Webhook" value={undefined} /></div>
+            )}
+          </div>
+          <button
+            onClick={() => abrir('webhook_url')}
+            className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-[8px] border border-[var(--border-md)] hover:bg-[var(--bg)] transition-colors text-[var(--ink)] flex-shrink-0 self-start"
+          >
+            <Pencil className="w-3.5 h-3.5" /> Editar
+          </button>
+        </div>
+
+        {/* Guia colapsável */}
+        <div className="rounded-[10px] border border-[var(--border)] overflow-hidden mt-2">
+          <button
+            onClick={() => setGuiaAberto(v => !v)}
+            className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-[var(--ink)] hover:bg-[var(--bg)] transition-colors"
+          >
+            <span>Guia de configuração (3 passos)</span>
+            {guiaAberto ? <ChevronDown className="w-4 h-4 text-[var(--muted)]" /> : <ChevronRight className="w-4 h-4 text-[var(--muted)]" />}
+          </button>
+          {guiaAberto && (
+            <div className="px-4 pb-4 pt-1 space-y-3 border-t border-[var(--border)] bg-[var(--bg)]">
+              {PASSOS.map(p => (
+                <div key={p.num} className="flex gap-3">
+                  <div className="flex-shrink-0 w-6 h-6 rounded-full bg-[var(--sage-dark)] text-white text-xs font-bold flex items-center justify-center mt-0.5">
+                    {p.num}
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-[var(--ink)]">{p.titulo}</p>
+                    <p className="text-xs text-[var(--muted)] mt-0.5 leading-relaxed">{p.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </CardContent>
+
+      {/* Modal edição */}
+      <Modal isOpen={!!editando} onClose={() => setEditando(null)}
+        title={editando === 'formulario_id' ? 'ID do Formulário Tally' : 'URL do Webhook n8n'}>
+        <div className="space-y-4">
+          <Input
+            label={editando === 'formulario_id' ? 'ID do formulário (ex: wM6yAB)' : 'URL do n8n'}
+            placeholder={editando === 'formulario_id' ? 'wM6yAB' : 'https://n8n.seudominio.com/webhook/tally-anamnese'}
+            value={valor}
+            onChange={e => setValor(e.target.value)}
+            autoFocus
+          />
+          <Button className="w-full" loading={salvando} onClick={salvar}>Salvar</Button>
+        </div>
+      </Modal>
+    </Card>
   );
 }
 

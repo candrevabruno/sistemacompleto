@@ -3,10 +3,11 @@ import { useVisibilityRefresh } from '../hooks/useVisibilityRefresh';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { useClinic } from '../contexts/ClinicContext';
 import { Modal } from '../components/ui/Modal';
 import {
   Search, Download, FileText, Archive,
-  RotateCcw, MessageSquare, History, CalendarCheck,
+  RotateCcw, MessageSquare, History, CalendarCheck, ClipboardList,
 } from 'lucide-react';
 import {
   parseISO, format,
@@ -174,6 +175,7 @@ function ModalReativar({ lead, onConfirm, onClose }: {
 
 export function LeadsClientes({ mode }: { mode?: 'leads' | 'clientes' }) {
   const { user } = useAuth();
+  const { config } = useClinic();
   const navigate = useNavigate();
 
   const [tabLeads, setTabLeads] = useState<TabLeads>('leads');
@@ -269,12 +271,26 @@ export function LeadsClientes({ mode }: { mode?: 'leads' | 'clientes' }) {
     setLoadingAgendados(true);
     const { data } = await supabase
       .from('agendamentos')
-      .select('id, data_hora_inicio, status, lead_id, nome_lead, leads:lead_id(nome_lead, whatsapp_lead, status)')
+      .select('id, data_hora_inicio, status, lead_id, nome_lead, agenda_id, agendas:agenda_id(nome), leads:lead_id(id, nome_lead, whatsapp_lead, status)')
       .gte('data_hora_inicio', startOfToday().toISOString())
       .lte('data_hora_inicio', endOfToday().toISOString())
       .not('status', 'in', '("cancelado","cancelou_agendamento","reagendado")')
       .order('data_hora_inicio', { ascending: true });
-    if (data) setAgendadosHoje(data);
+
+    if (data) {
+      // Enriquecer com status de anamnese quando Tally configurado
+      const tallyId = config?.tally_formulario_id;
+      if (tallyId) {
+        const leadIds = data.map((ag: any) => ag.lead_id).filter(Boolean);
+        const { data: subs } = leadIds.length
+          ? await supabase.from('form_submissions').select('lead_id').in('lead_id', leadIds)
+          : { data: [] };
+        const comAnamnese = new Set((subs || []).map((s: any) => s.lead_id));
+        setAgendadosHoje(data.map((ag: any) => ({ ...ag, anamnese_ok: comAnamnese.has(ag.lead_id) })));
+      } else {
+        setAgendadosHoje(data);
+      }
+    }
     setLoadingAgendados(false);
   };
 
@@ -676,7 +692,7 @@ export function LeadsClientes({ mode }: { mode?: 'leads' | 'clientes' }) {
             <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '600px' }}>
               <thead>
                 <tr>
-                  {['Horário', 'Nome', 'WhatsApp', 'Estágio do lead', 'Status'].map((h, i) => (
+                  {['Horário', 'Nome', 'Profissional', 'Anamnese', 'Status'].map((h, i) => (
                     <th key={h} style={{ fontSize: '9.5px', fontWeight: 600, letterSpacing: '0.8px', textTransform: 'uppercase', color: 'var(--muted)', padding: '10px 14px', textAlign: i === 4 ? 'right' : 'left', borderBottom: '1px solid var(--border)', background: 'var(--bg)', whiteSpace: 'nowrap' }}>{h}</th>
                   ))}
                 </tr>
@@ -696,9 +712,8 @@ export function LeadsClientes({ mode }: { mode?: 'leads' | 'clientes' }) {
                 ) : agendadosHoje.map(ag => {
                   const lead = ag.leads as any;
                   const nome = lead?.nome_lead || ag.nome_lead || 'Sem Nome';
-                  const whatsapp = lead?.whatsapp_lead || '—';
-                  const estagio = lead?.status || '—';
                   const horario = format(parseISO(ag.data_hora_inicio), 'HH:mm', { locale: ptBR });
+                  const profissional = (ag.agendas as any)?.nome || '—';
 
                   const statusBadge: Record<string, { label: string; bg: string; color: string }> = {
                     confirmado:  { label: 'Confirmado',  bg: 'rgba(34,197,94,0.12)',   color: '#15803d' },
@@ -725,11 +740,21 @@ export function LeadsClientes({ mode }: { mode?: 'leads' | 'clientes' }) {
                           <span style={{ fontSize: '12.5px', fontWeight: 500, color: 'var(--ink)' }}>{nome}</span>
                         </div>
                       </td>
-                      <td style={{ padding: '12px 14px', verticalAlign: 'middle', fontSize: '11.5px', color: 'var(--muted)', fontFamily: 'monospace' }}>{whatsapp}</td>
+                      <td style={{ padding: '12px 14px', verticalAlign: 'middle', fontSize: '11.5px', color: 'var(--muted)' }}>{profissional}</td>
                       <td style={{ padding: '12px 14px', verticalAlign: 'middle' }}>
-                        <span style={{ display: 'inline-flex', alignItems: 'center', padding: '3px 9px', borderRadius: '20px', fontSize: '10.5px', fontWeight: 500, background: 'var(--champ-light)', color: 'var(--champ-text)' }}>
-                          {estagio}
-                        </span>
+                        {config?.tally_formulario_id ? (
+                          ag.anamnese_ok ? (
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 9px', borderRadius: '20px', fontSize: '10.5px', fontWeight: 600, background: 'rgba(34,197,94,0.12)', color: '#15803d' }}>
+                              <ClipboardList style={{ width: '11px', height: '11px' }} /> Preenchida
+                            </span>
+                          ) : (
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 9px', borderRadius: '20px', fontSize: '10.5px', fontWeight: 500, background: 'rgba(148,163,184,0.12)', color: '#64748b' }}>
+                              <ClipboardList style={{ width: '11px', height: '11px' }} /> Pendente
+                            </span>
+                          )
+                        ) : (
+                          <span style={{ fontSize: '11px', color: 'var(--muted)', fontStyle: 'italic' }}>—</span>
+                        )}
                       </td>
                       <td style={{ padding: '12px 14px', verticalAlign: 'middle', textAlign: 'right' }}>
                         <span style={{ display: 'inline-flex', alignItems: 'center', padding: '3px 9px', borderRadius: '20px', fontSize: '10.5px', fontWeight: 500, background: badge.bg, color: badge.color }}>

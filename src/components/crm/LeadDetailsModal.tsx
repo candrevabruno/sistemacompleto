@@ -2,13 +2,14 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { useClinic } from '../../contexts/ClinicContext';
 import { Modal } from '../ui/Modal';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
   X, MessageCircle, Archive, UserCheck,
   Clock, Target, Save, ChevronRight, MessageSquare, User,
-  Pencil, Trash2, Check,
+  Pencil, Trash2, Check, ClipboardList, ChevronDown,
 } from 'lucide-react';
 import { calcularTemperatura, getInitials } from '../../lib/lead-utils';
 
@@ -132,6 +133,7 @@ export function LeadDetailsModal({
   onUpdate?: () => void;
 }) {
   const { user, canEdit } = useAuth();
+  const { config } = useClinic();
   const canEditLeads = canEdit('modulo:leads');
   const navigate = useNavigate();
 
@@ -177,6 +179,10 @@ export function LeadDetailsModal({
   const [deletingLead, setDeletingLead] = useState(false);
 
   const [savingStatus, setSavingStatus] = useState(false);
+
+  const [anamneseSubmission, setAnamneseSubmission] = useState<any | null>(null);
+  const [anamneseModal, setAnamneseModal] = useState(false);
+  const [anamneseExpanded, setAnamneseExpanded] = useState(false);
 
   const loadData = useCallback(async () => {
     if (!leadId) return;
@@ -229,6 +235,15 @@ export function LeadDetailsModal({
       ];
       tl.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       setTimeline(tl);
+
+      // Buscar anamnese (form_submissions) mais recente do lead
+      const { data: subs } = await supabase
+        .from('form_submissions')
+        .select('id, dados, resumo_ia, criado_em, created_at, formulario_id, visualizado')
+        .eq('lead_id', leadId)
+        .order('criado_em', { ascending: false })
+        .limit(1);
+      setAnamneseSubmission(subs?.[0] ?? null);
     } finally {
       setLoading(false);
     }
@@ -461,6 +476,7 @@ export function LeadDetailsModal({
   const isArquivado = lead?.status === 'arquivado';
 
   return (
+    <>
     <Modal isOpen={isOpen} onClose={onClose} bare className="max-w-[920px] w-full">
       {loading || !lead ? (
         <div style={{ padding: '80px 24px', textAlign: 'center', color: 'var(--muted)', fontSize: '13px' }}>
@@ -531,6 +547,40 @@ export function LeadDetailsModal({
                   )}
                 </div>
               </div>
+
+              {/* Badge anamnese */}
+              {config?.tally_formulario_id && (
+                <div style={{ marginTop: '8px' }}>
+                  {anamneseSubmission ? (
+                    <button
+                      onClick={async () => {
+                        setAnamneseModal(true);
+                        if (anamneseSubmission && !anamneseSubmission.visualizado) {
+                          await supabase.from('form_submissions').update({ visualizado: true }).eq('id', anamneseSubmission.id);
+                          setAnamneseSubmission((prev: any) => prev ? { ...prev, visualizado: true } : prev);
+                        }
+                      }}
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: '5px',
+                        padding: '3px 10px', borderRadius: '999px', border: 'none',
+                        background: 'rgba(34,197,94,0.12)', color: '#15803d',
+                        fontSize: '11px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+                      }}
+                    >
+                      <ClipboardList size={11} /> Anamnese preenchida
+                    </button>
+                  ) : (
+                    <span style={{
+                      display: 'inline-flex', alignItems: 'center', gap: '5px',
+                      padding: '3px 10px', borderRadius: '999px',
+                      background: 'rgba(148,163,184,0.12)', color: '#64748b',
+                      fontSize: '11px', fontWeight: 500,
+                    }}>
+                      <ClipboardList size={11} /> Anamnese pendente
+                    </span>
+                  )}
+                </div>
+              )}
 
               {/* Placeholder: ação recomendada — ETAPA 4 PARTE 2 */}
               <div id="acao-recomendada-slot" style={{ marginTop: '8px', minHeight: '2px' }} />
@@ -883,5 +933,46 @@ export function LeadDetailsModal({
         </div>
       )}
     </Modal>
+
+    {/* Modal: respostas da anamnese */}
+    {anamneseModal && anamneseSubmission && (
+      <Modal isOpen={anamneseModal} onClose={() => { setAnamneseModal(false); setAnamneseExpanded(false); }} title="Anamnese preenchida">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          {/* Resumo IA */}
+          {anamneseSubmission.resumo_ia && (
+            <div style={{ padding: '10px 13px', background: 'var(--sage-xlight)', borderRadius: '8px', borderLeft: '3px solid var(--sage-dark)' }}>
+              <p style={{ fontSize: '9.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', color: 'var(--sage-dark)', marginBottom: '5px' }}>Resumo da IA</p>
+              <p style={{ fontSize: '12.5px', color: 'var(--ink)', lineHeight: 1.6 }}>{anamneseSubmission.resumo_ia}</p>
+            </div>
+          )}
+
+          {/* Respostas brutas */}
+          <div>
+            <button
+              onClick={() => setAnamneseExpanded(v => !v)}
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0', fontFamily: 'inherit', fontSize: '12px', fontWeight: 500, color: 'var(--muted)' }}
+            >
+              {anamneseExpanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
+              Ver respostas brutas
+            </button>
+            {anamneseExpanded && (
+              <div style={{ marginTop: '8px', border: '1px solid var(--border)', borderRadius: '8px', overflow: 'hidden' }}>
+                {Object.entries(anamneseSubmission.dados || {}).map(([k, v]) => (
+                  <div key={k} style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '8px', padding: '7px 12px', borderBottom: '1px solid var(--border)', fontSize: '12px' }}>
+                    <span style={{ color: 'var(--muted)', fontWeight: 500 }}>{k}</span>
+                    <span style={{ color: 'var(--ink)' }}>{String(v)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <p style={{ fontSize: '10.5px', color: 'var(--muted)' }}>
+            Preenchido em {format(parseISO(anamneseSubmission.criado_em || anamneseSubmission.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+          </p>
+        </div>
+      </Modal>
+    )}
+    </>
   );
 }
