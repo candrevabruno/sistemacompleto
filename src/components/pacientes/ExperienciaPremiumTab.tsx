@@ -126,6 +126,7 @@ interface JItem {
   score?: number;
   scoreMax?: number;
   status?: string; // para consultas
+  dataOnly?: boolean; // não exibe hora (para itens com DATE sem time)
 }
 
 const TIPO_CONFIG: Record<JItem['tipo'], { icon: React.ReactNode; cor: string; badge: string }> = {
@@ -150,7 +151,7 @@ function JornadaPremiumTab({ pacienteId, leadId }: { pacienteId: string; leadId?
     setLoading(true);
     const todas: JItem[] = [];
 
-    const [agRes, tallyRes, resumoRes, csatRes, npsRes, reativRes] = await Promise.all([
+    const [agRes, tallyRes, resumoRes, csatRes, npsRes, reativRes, cicloRes] = await Promise.all([
       leadId
         ? supabase.from('agendamentos').select('id,data_hora_inicio,status,procedimento_nome').eq('lead_id', leadId).order('data_hora_inicio')
         : Promise.resolve({ data: [] }),
@@ -165,6 +166,14 @@ function JornadaPremiumTab({ pacienteId, leadId }: { pacienteId: string; leadId?
       leadId
         ? supabase.from('integration_log').select('id,mensagem,criado_em').eq('servico', 'n8n_intake').ilike('mensagem', `%Reativação%`).ilike('mensagem', `%${leadId}%`).order('criado_em')
         : Promise.resolve({ data: [] }),
+      supabase
+        .from('ciclos_jornada_paciente')
+        .select('retorno_esperado_em')
+        .eq('paciente_id', pacienteId)
+        .not('retorno_esperado_em', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
     ]);
 
     (agRes.data || []).forEach((a: any) => {
@@ -185,10 +194,26 @@ function JornadaPremiumTab({ pacienteId, leadId }: { pacienteId: string; leadId?
       const tipo = r.score >= 9 ? 'promotor' : r.score >= 7 ? 'neutro' : 'detrator';
       todas.push({ tipo: 'nps', data: r.created_at, label: `NPS: ${r.score}/10`, sublabel: tipo === 'promotor' ? '⭐ Promotor' : tipo === 'neutro' ? '😐 Neutro' : '👎 Detrator', score: r.score, scoreMax: 10 });
     });
+    const retornoEm = (cicloRes.data as any)?.retorno_esperado_em as string | null ?? null;
+    const retornoLabel = retornoEm
+      ? `Retorno previsto: ${format(parseISO(retornoEm), 'dd/MM/yyyy', { locale: ptBR })}`
+      : 'Fluxo pós-consulta (60d / 180d)';
+
     (reativRes.data || []).forEach((r: any) => {
       const aceita = r.mensagem?.includes('aceita');
-      todas.push({ tipo: 'reativacao', data: r.criado_em, label: aceita ? 'Reativação aceita' : 'Tentativa de reativação', sublabel: 'Fluxo pós-consulta (60d / 180d)' });
+      todas.push({ tipo: 'reativacao', data: r.criado_em, label: aceita ? 'Reativação aceita' : 'Tentativa de reativação', sublabel: retornoLabel });
     });
+
+    // Item de "Retorno previsto" na timeline quando a data foi definida pelo profissional.
+    if (retornoEm) {
+      todas.push({
+        tipo: 'reativacao',
+        data: retornoEm + 'T12:00:00',
+        label: 'Retorno previsto',
+        sublabel: format(parseISO(retornoEm), "dd/MM/yyyy", { locale: ptBR }),
+        dataOnly: true,
+      });
+    }
 
     todas.sort((a, b) => new Date(a.data).getTime() - new Date(b.data).getTime());
     setItens(todas);
@@ -236,9 +261,11 @@ function JornadaPremiumTab({ pacienteId, leadId }: { pacienteId: string; leadId?
                       <p style={{ fontSize: '10.5px', color: 'var(--muted)' }}>
                         {format(parseISO(item.data), "dd/MM/yyyy", { locale: ptBR })}
                       </p>
-                      <p style={{ fontSize: '10px', color: 'var(--muted)', opacity: 0.7 }}>
-                        {format(parseISO(item.data), "HH:mm", { locale: ptBR })}
-                      </p>
+                      {!item.dataOnly && (
+                        <p style={{ fontSize: '10px', color: 'var(--muted)', opacity: 0.7 }}>
+                          {format(parseISO(item.data), "HH:mm", { locale: ptBR })}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>

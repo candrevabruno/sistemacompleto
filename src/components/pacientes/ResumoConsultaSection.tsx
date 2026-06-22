@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import { Loader2, Check, Send, ClipboardList, History, AlertTriangle } from 'lucide-react';
+import { Loader2, Check, Send, ClipboardList, History, AlertTriangle, CalendarCheck } from 'lucide-react';
 import { Modal } from '../ui/Modal';
 import { HistoricoModal, type HistItem } from './HistoricoModal';
 
@@ -23,6 +23,13 @@ export function ResumoConsultaSection({ pacienteId, leadId, nomePaciente }: Prop
   const [showHist, setShowHist] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
+  // Campo: Data de retorno esperado
+  const [cicloId, setCicloId] = useState<string | null>(null);
+  const [retornoEsperado, setRetornoEsperado] = useState('');
+  const [editandoRetorno, setEditandoRetorno] = useState(false);
+  const [salvandoRetorno, setSalvandoRetorno] = useState(false);
+  const [retornoSalvo, setRetornoSalvo] = useState(false);
+
   useEffect(() => {
     if (!pacienteId) return;
     carregarDados();
@@ -30,7 +37,7 @@ export function ResumoConsultaSection({ pacienteId, leadId, nomePaciente }: Prop
 
   const carregarDados = async () => {
     setLoading(true);
-    const [{ data: anotacoes }, { data: config }] = await Promise.all([
+    const [{ data: anotacoes }, { data: config }, { data: ciclo }] = await Promise.all([
       supabase
         .from('anotacoes_paciente')
         .select('id, conteudo, autor_nome, editado_em, created_at')
@@ -38,9 +45,24 @@ export function ResumoConsultaSection({ pacienteId, leadId, nomePaciente }: Prop
         .eq('tipo', 'resumo_consulta')
         .order('created_at', { ascending: false }),
       supabase.from('clinic_config').select('nota_webhook_url').single(),
+      supabase
+        .from('ciclos_jornada_paciente')
+        .select('id, retorno_esperado_em')
+        .eq('paciente_id', pacienteId)
+        .not('retorno_esperado_em', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
     ]);
     if (anotacoes) setHistorico(anotacoes);
     if (config?.nota_webhook_url) setWebhookUrl(config.nota_webhook_url);
+    if (ciclo) {
+      setCicloId(ciclo.id);
+      setRetornoEsperado(ciclo.retorno_esperado_em || '');
+    } else {
+      setCicloId(null);
+      setRetornoEsperado('');
+    }
     setLoading(false);
   };
 
@@ -75,6 +97,7 @@ export function ResumoConsultaSection({ pacienteId, leadId, nomePaciente }: Prop
             nota: texto.trim(),
             profissional: user.nome || user.email || '',
             data: new Date().toISOString(),
+            retorno_esperado_em: retornoEsperado || null,
           }),
         });
       } catch (_) { /* falha de rede no webhook não bloqueia o salvamento */ }
@@ -83,6 +106,36 @@ export function ResumoConsultaSection({ pacienteId, leadId, nomePaciente }: Prop
     setTexto('');
     setSalvando(false);
     carregarDados();
+  };
+
+  const salvarRetorno = async () => {
+    if (!user) return;
+    setSalvandoRetorno(true);
+    try {
+      let id = cicloId;
+      if (id) {
+        await supabase.from('ciclos_jornada_paciente')
+          .update({ retorno_esperado_em: retornoEsperado || null, updated_at: new Date().toISOString() })
+          .eq('id', id);
+      } else {
+        const { data: novo } = await supabase.from('ciclos_jornada_paciente')
+          .insert({ paciente_id: pacienteId, lead_id: leadId || null, retorno_esperado_em: retornoEsperado || null, criado_por: user.id })
+          .select('id').single();
+        if (novo) { id = novo.id; setCicloId(novo.id); }
+      }
+      if (retornoEsperado) {
+        await supabase.from('agente_eventos').insert({
+          tipo: 'retorno_planejado',
+          lead_id: leadId || null,
+          payload: { paciente_id: pacienteId, retorno_esperado_em: retornoEsperado, ciclo_id: id },
+        });
+      }
+      setEditandoRetorno(false);
+      setRetornoSalvo(true);
+      setTimeout(() => setRetornoSalvo(false), 3000);
+    } finally {
+      setSalvandoRetorno(false);
+    }
   };
 
   const onEditar = async (id: string, conteudo: string) => {
@@ -202,6 +255,67 @@ export function ResumoConsultaSection({ pacienteId, leadId, nomePaciente }: Prop
         onEditar={onEditar}
         onApagar={onApagar}
       />
+
+      {/* Data de retorno esperado */}
+      <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid var(--border)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '10px', fontSize: '10px', fontWeight: 600, letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--muted)' }}>
+          <CalendarCheck size={13} style={{ color: 'var(--sage-dark)' }} />
+          Data de retorno esperado
+          {retornoSalvo && (
+            <span style={{ marginLeft: 'auto', fontSize: '9.5px', fontWeight: 500, letterSpacing: 0, textTransform: 'none', background: 'var(--sage-xlight)', color: 'var(--sage-dark)', padding: '2px 8px', borderRadius: '20px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <Check size={10} /> Data de retorno salva
+            </span>
+          )}
+        </div>
+
+        {!editandoRetorno && retornoEsperado ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ padding: '7px 12px', background: 'var(--champ-light)', borderRadius: '8px', border: '1px solid var(--border-md)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <CalendarCheck size={13} style={{ color: 'var(--champ-text)' }} />
+              <span style={{ fontSize: '12.5px', fontWeight: 500, color: 'var(--ink)' }}>
+                {format(parseISO(retornoEsperado), "dd/MM/yyyy", { locale: ptBR })}
+              </span>
+            </div>
+            <button
+              onClick={() => setEditandoRetorno(true)}
+              style={{ fontSize: '11px', fontWeight: 500, color: 'var(--sage-dark)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', padding: '4px 8px' }}
+            >
+              Editar
+            </button>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <input
+              type="date"
+              value={retornoEsperado}
+              onChange={e => setRetornoEsperado(e.target.value)}
+              style={{ padding: '7px 10px', border: '1px solid var(--border-md)', borderRadius: '8px', fontSize: '12.5px', color: 'var(--ink)', fontFamily: 'inherit', outline: 'none', background: 'var(--white)' }}
+            />
+            <button
+              onClick={salvarRetorno}
+              disabled={salvandoRetorno}
+              style={{ display: 'flex', alignItems: 'center', gap: '5px', background: 'var(--sage-dark)', color: 'white', border: 'none', borderRadius: 'var(--r-xs)', padding: '7px 12px', fontSize: '12px', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit', opacity: salvandoRetorno ? 0.7 : 1 }}
+            >
+              {salvandoRetorno ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
+              Salvar data
+            </button>
+            {editandoRetorno && (
+              <button
+                onClick={() => setEditandoRetorno(false)}
+                style={{ fontSize: '11px', color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+              >
+                Cancelar
+              </button>
+            )}
+          </div>
+        )}
+
+        <p style={{ fontSize: '10.5px', color: 'var(--muted)', marginTop: '7px', lineHeight: 1.5 }}>
+          {retornoEsperado
+            ? 'WF07 disparará 3 dias antes desta data com convite de retorno.'
+            : 'Opcional. Sem data, o agente usa o fluxo padrão de reativação (D+60 / D+180).'}
+        </p>
+      </div>
     </div>
   );
 }
