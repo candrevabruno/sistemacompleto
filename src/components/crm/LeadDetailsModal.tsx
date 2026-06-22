@@ -39,6 +39,7 @@ const AUDIT_LABEL: Record<string, string> = {
   lead_convertido:   'Convertido em paciente',
   lead_arquivado:    'Arquivado',
   lead_reativado:    'Reativado',
+  lead_faltou:       'Não compareceu (falta)',
   tentativa_contato: 'Tentativa de contato',
 };
 
@@ -163,11 +164,17 @@ export function LeadDetailsModal({
   const [showConverter, setShowConverter] = useState(false);
   const [converting, setConverting] = useState(false);
 
+  const [showFaltou, setShowFaltou] = useState(false);
+  const [markingFaltou, setMarkingFaltou] = useState(false);
+
   const [showArchivar, setShowArchivar] = useState(false);
   const [arquivarMotivo, setArquivarMotivo] = useState('');
   const [arquivarObs, setArquivarObs] = useState('');
   const [arquivarLgpd, setArquivarLgpd] = useState(false);
   const [archiving, setArchiving] = useState(false);
+
+  const [showApagarLead, setShowApagarLead] = useState(false);
+  const [deletingLead, setDeletingLead] = useState(false);
 
   const [savingStatus, setSavingStatus] = useState(false);
 
@@ -230,7 +237,9 @@ export function LeadDetailsModal({
   useEffect(() => {
     if (isOpen && leadId) {
       setShowConverter(false);
+      setShowFaltou(false);
       setShowArchivar(false);
+      setShowApagarLead(false);
       setAcaoTipo('');
       setAcaoObs('');
       setAcaoData('');
@@ -399,6 +408,48 @@ export function LeadDetailsModal({
       onClose();
     } finally {
       setArchiving(false);
+    }
+  };
+
+  const handleFaltou = async () => {
+    if (!lead || !user) return;
+    setMarkingFaltou(true);
+    try {
+      const now = new Date().toISOString();
+      // Marca o agendamento ativo mais recente como faltou.
+      const { data: ags } = await supabase
+        .from('agendamentos')
+        .select('id')
+        .eq('lead_id', lead.id)
+        .not('status', 'in', '("cancelado","cancelou_agendamento","faltou","compareceu")')
+        .order('data_hora_inicio', { ascending: false })
+        .limit(1);
+      if (ags && ags.length > 0) {
+        await supabase.from('agendamentos').update({ status: 'faltou' }).eq('id', ags[0].id);
+      }
+      await supabase.from('leads').update({ status: 'faltou' }).eq('id', lead.id);
+      await supabase.from('audit_log').insert({
+        user_id: user.id, action: 'lead_faltou', record_id: lead.id,
+        detalhes: { nome: lead.nome_lead, timestamp: now },
+      });
+      setShowFaltou(false);
+      onUpdate?.();
+      onClose();
+    } finally {
+      setMarkingFaltou(false);
+    }
+  };
+
+  const handleApagarLead = async () => {
+    if (!lead || !user) return;
+    setDeletingLead(true);
+    try {
+      await supabase.rpc('apagar_lead_completo', { p_lead_id: lead.id });
+      setShowApagarLead(false);
+      onUpdate?.();
+      onClose();
+    } finally {
+      setDeletingLead(false);
     }
   };
 
@@ -724,31 +775,62 @@ export function LeadDetailsModal({
             {/* AÇÕES PRINCIPAIS */}
             {!isArquivado && (
               <div style={{ borderTop: '1px solid var(--border)', paddingTop: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {!showConverter && !showArchivar && (
+                {!showConverter && !showFaltou && !showArchivar && !showApagarLead && (
                   <>
-                    <button onClick={() => setShowConverter(true)}
-                      style={{ ...btnPrimary, justifyContent: 'center', width: '100%', padding: '9px' }}>
-                      <UserCheck size={14} /> Converter em Paciente
-                    </button>
+                    {/* Compareceu + Faltou lado a lado */}
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button onClick={() => setShowConverter(true)}
+                        style={{ ...btnPrimary, justifyContent: 'center', flex: 1, padding: '9px' }}>
+                        <UserCheck size={14} /> Compareceu
+                      </button>
+                      <button onClick={() => setShowFaltou(true)}
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: 'rgba(100,116,139,0.08)', color: '#64748b', border: '1px solid rgba(100,116,139,0.2)', borderRadius: 'var(--r-xs)', padding: '9px 14px', fontSize: '12px', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit', flex: 1 }}>
+                        <X size={13} /> Faltou
+                      </button>
+                    </div>
                     <button onClick={() => { setArquivarMotivo(''); setArquivarObs(''); setArquivarLgpd(false); setShowArchivar(true); }}
                       style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: 'rgba(100,116,139,0.08)', color: '#64748b', border: '1px solid rgba(100,116,139,0.2)', borderRadius: 'var(--r-xs)', padding: '8px', fontSize: '12px', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit', width: '100%' }}>
                       <Archive size={13} /> Arquivar Lead
                     </button>
+                    {(user?.role === 'admin' || user?.role === 'super_admin') && (
+                      <button onClick={() => setShowApagarLead(true)}
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: 'rgba(220,38,38,0.06)', color: '#dc2626', border: '1px solid rgba(220,38,38,0.2)', borderRadius: 'var(--r-xs)', padding: '8px', fontSize: '12px', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit', width: '100%' }}>
+                        <Trash2 size={13} /> Apagar Lead
+                      </button>
+                    )}
                   </>
                 )}
 
                 {showConverter && (
                   <div style={{ padding: '12px', background: 'var(--sage-xlight)', borderRadius: '10px', border: '1px solid var(--border-md)' }}>
                     <p style={{ fontSize: '12.5px', color: 'var(--sage-dark)', fontWeight: 500, marginBottom: '6px', lineHeight: 1.4 }}>
-                      Converter <strong>{lead.nome_lead}</strong> em paciente?
+                      Registrar comparecimento de <strong>{lead.nome_lead}</strong>?
                     </p>
                     <p style={{ fontSize: '11px', color: 'var(--muted)', marginBottom: '10px', lineHeight: 1.4 }}>
-                      O lead será movido para Pacientes. O cadastro pode ser completado depois.
+                      O lead será convertido em paciente. O cadastro pode ser completado depois.
                     </p>
                     <div style={{ display: 'flex', gap: '6px' }}>
-                      <button onClick={() => setShowConverter(false)} style={{ ...btnGhost, flex: 1, justifyContent: 'center', padding: '6px', fontSize: '11px' }}>Não</button>
+                      <button onClick={() => setShowConverter(false)} style={{ ...btnGhost, flex: 1, justifyContent: 'center', padding: '6px', fontSize: '11px' }}>Cancelar</button>
                       <button onClick={handleConverter} disabled={converting} style={{ ...btnPrimary, flex: 1, justifyContent: 'center', padding: '6px', fontSize: '11px', opacity: converting ? 0.7 : 1 }}>
                         {converting ? '...' : 'Confirmar'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {showFaltou && (
+                  <div style={{ padding: '12px', background: 'rgba(100,116,139,0.06)', borderRadius: '10px', border: '1px solid rgba(100,116,139,0.2)' }}>
+                    <p style={{ fontSize: '12.5px', color: 'var(--ink)', fontWeight: 500, marginBottom: '6px', lineHeight: 1.4 }}>
+                      Registrar falta de <strong>{lead.nome_lead}</strong>?
+                    </p>
+                    <p style={{ fontSize: '11px', color: 'var(--muted)', marginBottom: '10px', lineHeight: 1.4 }}>
+                      O agendamento ativo será marcado como "Faltou" e o episódio fechado como no-show.
+                    </p>
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      <button onClick={() => setShowFaltou(false)} style={{ ...btnGhost, flex: 1, justifyContent: 'center', padding: '6px', fontSize: '11px' }}>Cancelar</button>
+                      <button onClick={handleFaltou} disabled={markingFaltou}
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', flex: 1, padding: '6px', fontSize: '11px', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit', background: markingFaltou ? 'rgba(100,116,139,0.3)' : '#64748b', color: 'white', border: 'none', borderRadius: 'var(--r-xs)', opacity: markingFaltou ? 0.7 : 1 }}>
+                        {markingFaltou ? '...' : 'Confirmar'}
                       </button>
                     </div>
                   </div>
@@ -772,6 +854,24 @@ export function LeadDetailsModal({
                       <button onClick={handleArchivar} disabled={archiving || !arquivarMotivo}
                         style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, padding: '6px', fontSize: '11px', fontWeight: 500, cursor: arquivarMotivo ? 'pointer' : 'not-allowed', fontFamily: 'inherit', background: arquivarMotivo && !archiving ? '#64748b' : 'rgba(100,116,139,0.3)', color: 'white', border: 'none', borderRadius: 'var(--r-xs)', opacity: archiving ? 0.7 : 1 }}>
                         {archiving ? '...' : 'Arquivar'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {showApagarLead && (
+                  <div style={{ padding: '12px', background: 'rgba(220,38,38,0.05)', borderRadius: '10px', border: '1px solid rgba(220,38,38,0.2)' }}>
+                    <p style={{ fontSize: '12.5px', color: '#dc2626', fontWeight: 500, marginBottom: '6px', lineHeight: 1.4 }}>
+                      Apagar <strong>{lead.nome_lead}</strong> permanentemente?
+                    </p>
+                    <p style={{ fontSize: '11px', color: 'var(--muted)', marginBottom: '10px', lineHeight: 1.4 }}>
+                      Esta ação é irreversível. O lead e todo o histórico de ações serão removidos.
+                    </p>
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      <button onClick={() => setShowApagarLead(false)} style={{ ...btnGhost, flex: 1, justifyContent: 'center', padding: '6px', fontSize: '11px' }}>Cancelar</button>
+                      <button onClick={handleApagarLead} disabled={deletingLead}
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', flex: 1, padding: '6px', fontSize: '11px', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit', background: deletingLead ? 'rgba(220,38,38,0.3)' : '#dc2626', color: 'white', border: 'none', borderRadius: 'var(--r-xs)', opacity: deletingLead ? 0.7 : 1 }}>
+                        {deletingLead ? '...' : 'Apagar definitivo'}
                       </button>
                     </div>
                   </div>

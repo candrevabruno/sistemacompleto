@@ -95,7 +95,13 @@ Deno.serve(async (req: Request) => {
       lead_id = lm?.id ?? null;
     }
     if (!lead_id && phone) {
-      const { data: l } = await db.from('leads').select('id').or(`whatsapp_lead.eq.${phone},whatsapp_lead.ilike.%${phone}%`).limit(1).maybeSingle();
+      // Normaliza para os últimos 11 dígitos (DDD + número BR) para cobrir
+      // divergências de formato: Cal.com envia "5521999999999", banco pode ter "21999999999".
+      const phoneLast11 = phone.length > 11 ? phone.slice(-11) : phone;
+      const orParts = [`whatsapp_lead.eq.${phone}`];
+      if (phoneLast11 !== phone) orParts.push(`whatsapp_lead.eq.${phoneLast11}`);
+      orParts.push(`whatsapp_lead.ilike.%${phoneLast11}%`);
+      const { data: l } = await db.from('leads').select('id').or(orParts.join(',')).limit(1).maybeSingle();
       lead_id = l?.id ?? null;
     }
     if (!lead_id && emailReal) {
@@ -119,8 +125,21 @@ Deno.serve(async (req: Request) => {
     // Como atualizamos a própria linha (não inserimos outra), o slot antigo é liberado
     // automaticamente e o episodio_atendimento é preservado (mesmo episódio).
     if (evt === 'BOOKING_RESCHEDULED') {
+      // Log para diagnóstico: registra quais campos de origUid estão presentes no payload.
+      console.log('[cal] RESCHEDULED body keys:', Object.keys(body).join(','));
+      console.log('[cal] RESCHEDULED payload keys:', Object.keys(p).join(','));
+      console.log('[cal] RESCHEDULED uid candidates:', JSON.stringify({
+        'p.rescheduleUid': p.rescheduleUid,
+        'p.rescheduledFromUid': p.rescheduledFromUid,
+        'p.fromReschedule': p.fromReschedule,
+        'p.originalRescheduledBooking?.uid': p.originalRescheduledBooking?.uid,
+        'body.rescheduleUid': body.rescheduleUid,
+        'body.rescheduledFromUid': body.rescheduledFromUid,
+        'p.previousBooking?.uid': p.previousBooking?.uid,
+      }));
       const origUid = (p.rescheduleUid || p.rescheduledFromUid || p.fromReschedule
-        || p.originalRescheduledBooking?.uid || body.rescheduleUid) ?? null;
+        || p.originalRescheduledBooking?.uid || p.previousBooking?.uid
+        || body.rescheduleUid || body.rescheduledFromUid) ?? null;
 
       let alvoId: string | null = null;
       let episodioId: string | null = null;
