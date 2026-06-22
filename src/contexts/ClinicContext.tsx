@@ -27,31 +27,17 @@ export const ClinicProvider = ({ children }: { children: React.ReactNode }) => {
         .single();
 
       if (error) {
-        // Fallback para bancos que ainda não rodaram o stage1_inbox_schema.sql
+        // Fallback para bancos que ainda não rodaram a migration do Tally.
+        // Busca todas as colunas pré-existentes para não perder feature flags
+        // nem admin_config_tabs que podem estar configurados no banco.
         const fallback = await supabase
           .from('clinic_config')
-          .select('nome, logo_url, chatwoot_url')
+          .select('nome, subtitulo, logo_url, chatwoot_url, whatsapp_provider, meta_phone_number_id, meta_business_account_id, evolution_server_url, evolution_instance_name, nota_webhook_url, premium_enabled, eventos_enabled, lista_espera_enabled, aniversario_webhook_url, upgrade_webhook_url, heroic_leap_whatsapp, admin_config_tabs, aniversario_last_dispatch')
           .eq('id', 1)
           .single();
         if (!fallback.error && fallback.data) {
           data = {
             ...fallback.data,
-            subtitulo: null,
-            chatwoot_url: null,
-            whatsapp_provider: null,
-            meta_phone_number_id: null,
-            meta_business_account_id: null,
-            evolution_server_url: null,
-            evolution_instance_name: null,
-            nota_webhook_url: null,
-            premium_enabled: false,
-            eventos_enabled: false,
-            lista_espera_enabled: false,
-            aniversario_webhook_url: null,
-            upgrade_webhook_url: null,
-            heroic_leap_whatsapp: null,
-            admin_config_tabs: null,
-            aniversario_last_dispatch: null,
             tally_formulario_id: null,
             tally_webhook_url: null,
           };
