@@ -14,8 +14,10 @@ import {
 } from 'recharts';
 import { toPng } from 'html-to-image';
 import { jsPDF } from 'jspdf';
-import { Clock, FileDown, Loader2 } from 'lucide-react';
+import { Clock, FileDown, Loader2, BarChart3 } from 'lucide-react';
+// BarChart3 used in "Gerar Relatório" button below
 import { KpiPainel } from '../components/dashboard/KpiPainel';
+import { GerarRelatorioModal } from '../components/dashboard/GerarRelatorioModal';
 
 type DateFilter = 'ontem' | 'hoje' | '7dias' | '14dias' | 'mes' | 'ano' | 'custom';
 
@@ -100,6 +102,7 @@ export function Dashboard() {
   const [customStart, setCustomStart] = useState(format(startOfToday(), 'yyyy-MM-dd'));
   const [customEnd, setCustomEnd] = useState(format(endOfToday(), 'yyyy-MM-dd'));
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [showRelatorio, setShowRelatorio] = useState(false);
 
   // ── Dashboard data ─────────────────────────────────────────────────────────
   const [loading, setLoading] = useState(true);
@@ -376,6 +379,13 @@ export function Dashboard() {
               Filtrar
             </button>
             <button
+              onClick={() => setShowRelatorio(true)}
+              className="flex items-center gap-1.5 px-4 py-[6px] rounded-[var(--r-xs)] text-[12px] font-semibold transition-opacity hover:opacity-90"
+              style={{ background: 'var(--sage-dark)', color: '#fff' }}
+            >
+              <BarChart3 className="w-3.5 h-3.5" /> Gerar Relatório
+            </button>
+            <button
               onClick={handleDownloadPDF}
               disabled={isGeneratingPDF}
               className="flex items-center gap-1.5 px-4 py-[6px] rounded-[var(--r-xs)] text-[12px] font-semibold transition-opacity hover:opacity-90 disabled:opacity-50"
@@ -535,6 +545,8 @@ export function Dashboard() {
 
       {/* ── KPIs Clínicos ── */}
       <KpiPainel dateRange={dateRange} />
+
+      {showRelatorio && <GerarRelatorioModal onClose={() => setShowRelatorio(false)} />}
     </div>
   );
 }
