@@ -21,6 +21,18 @@ ALTER TABLE public.pacientes
 -- modo_teste é UMA LINHA (chave='modo_teste'): ativo=true ⇒ agente só responde
 -- números presentes em numeros_teste. Para ir a produção: UPDATE ... ativo=false.
 -- profissional_id NULL = flag global (vale para toda a clínica).
+-- Reconciliação: se já existir uma feature_flags no shape antigo (singleton com
+-- coluna modo_teste, sem 'chave'), recria no shape correto. Sem dados reais ainda.
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables
+              WHERE table_schema='public' AND table_name='feature_flags')
+     AND NOT EXISTS (SELECT 1 FROM information_schema.columns
+              WHERE table_schema='public' AND table_name='feature_flags' AND column_name='chave') THEN
+    DROP TABLE public.feature_flags CASCADE;
+  END IF;
+END $$;
+
 CREATE TABLE IF NOT EXISTS public.feature_flags (
   id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   chave          TEXT NOT NULL,
