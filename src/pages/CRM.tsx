@@ -46,6 +46,7 @@ const COLUMNS = [
   { id: 'conversando', title: 'Conversando', colorClass: 'border-[var(--ink)]' },
   { id: 'follow_up', title: 'Follow-Up', colorClass: 'border-blue-500' },
   { id: 'agendado', title: 'Agendado', colorClass: 'border-emerald-500' },
+  { id: 'retorno', title: 'Retorno', colorClass: 'border-[var(--sage-dark)]' },
   { id: 'reagendado', title: 'Reagendado', colorClass: 'border-amber-400' },
   { id: 'faltou', title: 'Faltou', colorClass: 'border-slate-500' },
   { id: 'cancelou_agendamento', title: 'Cancelou Agendamento', colorClass: 'border-rose-400' },

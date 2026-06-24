@@ -80,7 +80,7 @@ function calcularKpis(
 ): Record<string, number | null> {
   const total       = ag.length;
   const compareceu  = ag.filter(a => a.status === 'compareceu').length;
-  const naoComp     = ag.filter(a => a.status === 'nao_compareceu').length;
+  const naoComp     = ag.filter(a => a.status === 'faltou').length;
   const cancelado   = ag.filter(a => a.status === 'cancelado').length;
   const reagendado  = ag.filter(a => a.status === 'reagendado').length;
   const totalFech   = compareceu + naoComp + cancelado;

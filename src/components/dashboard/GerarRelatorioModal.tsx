@@ -465,7 +465,7 @@ async function fetchReportData(startIso: string, endIso: string, periodoLabel: s
       .select('id, nome_lead, genero, data_nascimento, origem'),
     supabase.from('agendamentos')
       .select('id, lead_id, data_hora_inicio')
-      .eq('status', 'nao_compareceu')
+      .eq('status', 'faltou')
       .gte('data_hora_inicio', startIso).lte('data_hora_inicio', endIso),
   ]);
 
@@ -481,7 +481,7 @@ async function fetchReportData(startIso: string, endIso: string, periodoLabel: s
   // ── Seção 1: Operacional ──────────────────────────────────────────────────
   const total      = agArr.length;
   const compareceu = agArr.filter(a => a.status === 'compareceu').length;
-  const naoComp    = agArr.filter(a => a.status === 'nao_compareceu').length;
+  const naoComp    = agArr.filter(a => a.status === 'faltou').length;
   const cancelado  = agArr.filter(a => a.status === 'cancelado').length;
   const reagendado = agArr.filter(a => a.status === 'reagendado').length;
   const totalFech  = compareceu + naoComp + cancelado;
