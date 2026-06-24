@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { format, parseISO, subDays } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
@@ -101,25 +101,9 @@ export function ResumoConsultaSection({ pacienteId, leadId, nomePaciente }: Prop
           }),
         });
       } catch (_) { /* falha de rede no webhook não bloqueia o salvamento */ }
-
-      // CORREÇÃO 2 — Oferta de retorno logo após o resumo.
-      // Resumo enviado ao paciente (webhook ativo) + retorno_esperado_em no ciclo atual
-      // ⇒ enfileira 'oferta_retorno_imediato'. O WF06 oferece o retorno na sequência
-      // da conversa; se a paciente aceitar segue p/ WF02. O D-10 fica como fallback.
-      if (retornoEsperado) {
-        try {
-          await supabase.from('agente_eventos').insert({
-            tipo: 'oferta_retorno_imediato',
-            lead_id: leadId || null,
-            status: 'pendente',
-            payload: {
-              paciente_id: pacienteId,
-              retorno_esperado_em: retornoEsperado,
-              ciclo_id: cicloId,
-            },
-          });
-        } catch (_) { /* não bloqueia o salvamento */ }
-      }
+      // A oferta de retorno (oferta_retorno_imediato) é gravada pelo WF06 DEPOIS de
+      // enviar o resumo à paciente — o sistema apenas sinaliza via webhook acima
+      // (retorno_esperado_em). Fonte única do evento = agente. Ver Decisão v2 (1e).
     }
 
     setTexto('');
@@ -142,31 +126,10 @@ export function ResumoConsultaSection({ pacienteId, leadId, nomePaciente }: Prop
           .select('id').single();
         if (novo) { id = novo.id; setCicloId(novo.id); }
       }
-      if (retornoEsperado) {
-        // CORREÇÃO 1 — Lembrete de retorno é FALLBACK em D-10 (retorno_esperado_em - 10 dias),
-        // não mais D-3. Só dispara se a paciente não agendar pelo fluxo da oferta imediata;
-        // o trigger trg_cancelar_lembrete_retorno cancela este evento quando ela agenda.
-        const disparoEm = format(subDays(parseISO(retornoEsperado), 10), 'yyyy-MM-dd');
-        // Evita lembrete duplicado: cancela qualquer 'lembrete_retorno' pendente deste lead.
-        if (leadId) {
-          await supabase.from('agente_eventos')
-            .update({ status: 'cancelado', processed_at: new Date().toISOString() })
-            .eq('tipo', 'lembrete_retorno')
-            .eq('status', 'pendente')
-            .eq('lead_id', leadId);
-        }
-        await supabase.from('agente_eventos').insert({
-          tipo: 'lembrete_retorno',
-          lead_id: leadId || null,
-          status: 'pendente',
-          payload: {
-            paciente_id: pacienteId,
-            retorno_esperado_em: retornoEsperado,
-            disparo_em: disparoEm,
-            ciclo_id: id,
-          },
-        });
-      }
+      // O lembrete de retorno (lembrete_retorno, fallback D-10) é gravado pelo WF06,
+      // não pelo sistema. Aqui só persistimos retorno_esperado_em no ciclo — fonte da
+      // verdade da data. O agente lê essa data (via webhook do resumo) e enfileira o
+      // D-10. O trigger trg_cancelar_lembrete_retorno cancela o D-10 ao agendar.
       setEditandoRetorno(false);
       setRetornoSalvo(true);
       setTimeout(() => setRetornoSalvo(false), 3000);
