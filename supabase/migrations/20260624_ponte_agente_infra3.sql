@@ -24,7 +24,10 @@ ALTER TABLE public.clinic_config
 
 -- ── 3. profissionais: VIEW expandida com todos os campos lidos pelos WFs ──────
 -- Single-tenant: dados de profissional/clínica vêm de users + clinic_config(id=1).
-CREATE OR REPLACE VIEW public.profissionais
+-- DROP antes de recriar: a VIEW já existe (ponte-1) com outra ordem de colunas e
+-- CREATE OR REPLACE não permite reordenar/renomear colunas existentes.
+DROP VIEW IF EXISTS public.profissionais;
+CREATE VIEW public.profissionais
 WITH (security_invoker = true) AS
 SELECT
   u.id,
