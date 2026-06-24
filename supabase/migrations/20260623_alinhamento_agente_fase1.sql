@@ -16,17 +16,27 @@ ALTER TABLE public.pacientes
   ADD COLUMN IF NOT EXISTS segmento_rfm TEXT;
 
 -- ── 3. Gating de testes no WF00 (Decisão 1h) ─────────────────────────────────
--- modo_teste=true ⇒ agente só responde números em numeros_teste.
--- Para ir a produção: UPDATE feature_flags SET modo_teste=false. Sem mexer nos WFs.
+-- feature_flags no shape que os workflows JÁ esperam: chave/valor/ativo por
+-- profissional (o WF00 consulta `WHERE chave=... AND profissional_id=...`).
+-- modo_teste é UMA LINHA (chave='modo_teste'): ativo=true ⇒ agente só responde
+-- números presentes em numeros_teste. Para ir a produção: UPDATE ... ativo=false.
+-- profissional_id NULL = flag global (vale para toda a clínica).
 CREATE TABLE IF NOT EXISTS public.feature_flags (
-  id          INTEGER PRIMARY KEY DEFAULT 1,
-  modo_teste  BOOLEAN NOT NULL DEFAULT true,
-  atualizado_em TIMESTAMPTZ NOT NULL DEFAULT now(),
-  CONSTRAINT feature_flags_singleton CHECK (id = 1)
+  id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  chave          TEXT NOT NULL,
+  valor_texto    TEXT,
+  ativo          BOOLEAN NOT NULL DEFAULT false,
+  profissional_id UUID,
+  descricao      TEXT,
+  atualizado_em  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-INSERT INTO public.feature_flags (id, modo_teste)
-  VALUES (1, true)
-  ON CONFLICT (id) DO NOTHING;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_feature_flags_chave_prof
+  ON public.feature_flags (chave, COALESCE(profissional_id, '00000000-0000-0000-0000-000000000000'::uuid));
+
+-- Flag global de modo de teste (ativo=true por segurança até liberar produção).
+INSERT INTO public.feature_flags (chave, ativo, descricao)
+  SELECT 'modo_teste', true, 'Modo de teste: agente só responde números em numeros_teste'
+  WHERE NOT EXISTS (SELECT 1 FROM public.feature_flags WHERE chave='modo_teste' AND profissional_id IS NULL);
 
 CREATE TABLE IF NOT EXISTS public.numeros_teste (
   id        UUID PRIMARY KEY DEFAULT gen_random_uuid(),
