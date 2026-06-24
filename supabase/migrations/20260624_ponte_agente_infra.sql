@@ -27,17 +27,19 @@ ALTER TABLE public.clinic_config
 -- Os workflows fazem JOIN profissionais pr ON pr.id = <profissional_id>.
 -- No sistema, profissional = registro em users; dados de clínica vêm do singleton.
 -- security_invoker: a view respeita o RLS das tabelas-base para o frontend.
+-- public.users tem só id/role (nome e email vivem em auth.users). Em single-tenant,
+-- o nome de exibição do profissional é o nome da clínica (clinic_config.nome).
 CREATE OR REPLACE VIEW public.profissionais
 WITH (security_invoker = true) AS
 SELECT
   u.id,
-  u.nome                                                  AS nome_exibicao,
+  COALESCE(cc.nome, 'Profissional')                       AS nome_exibicao,
   COALESCE(cc.whatsapp_alertas, cc.heroic_leap_whatsapp)  AS whatsapp_pessoal,
   COALESCE(cc.fuso_horario, 'America/Sao_Paulo')          AS fuso_horario,
   true                                                    AS ativo
 FROM public.users u
 LEFT JOIN LATERAL (
-  SELECT whatsapp_alertas, heroic_leap_whatsapp, fuso_horario
+  SELECT nome, whatsapp_alertas, heroic_leap_whatsapp, fuso_horario
   FROM public.clinic_config WHERE id = 1
 ) cc ON true;
 
