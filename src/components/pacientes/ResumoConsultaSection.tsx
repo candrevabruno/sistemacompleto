@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
@@ -101,6 +101,25 @@ export function ResumoConsultaSection({ pacienteId, leadId, nomePaciente }: Prop
           }),
         });
       } catch (_) { /* falha de rede no webhook não bloqueia o salvamento */ }
+
+      // CORREÇÃO 2 — Oferta de retorno logo após o resumo.
+      // Resumo enviado ao paciente (webhook ativo) + retorno_esperado_em no ciclo atual
+      // ⇒ enfileira 'oferta_retorno_imediato'. O WF06 oferece o retorno na sequência
+      // da conversa; se a paciente aceitar segue p/ WF02. O D-10 fica como fallback.
+      if (retornoEsperado) {
+        try {
+          await supabase.from('agente_eventos').insert({
+            tipo: 'oferta_retorno_imediato',
+            lead_id: leadId || null,
+            status: 'pendente',
+            payload: {
+              paciente_id: pacienteId,
+              retorno_esperado_em: retornoEsperado,
+              ciclo_id: cicloId,
+            },
+          });
+        } catch (_) { /* não bloqueia o salvamento */ }
+      }
     }
 
     setTexto('');
@@ -124,10 +143,28 @@ export function ResumoConsultaSection({ pacienteId, leadId, nomePaciente }: Prop
         if (novo) { id = novo.id; setCicloId(novo.id); }
       }
       if (retornoEsperado) {
+        // CORREÇÃO 1 — Lembrete de retorno é FALLBACK em D-10 (retorno_esperado_em - 10 dias),
+        // não mais D-3. Só dispara se a paciente não agendar pelo fluxo da oferta imediata;
+        // o trigger trg_cancelar_lembrete_retorno cancela este evento quando ela agenda.
+        const disparoEm = format(subDays(parseISO(retornoEsperado), 10), 'yyyy-MM-dd');
+        // Evita lembrete duplicado: cancela qualquer 'lembrete_retorno' pendente deste lead.
+        if (leadId) {
+          await supabase.from('agente_eventos')
+            .update({ status: 'cancelado', processed_at: new Date().toISOString() })
+            .eq('tipo', 'lembrete_retorno')
+            .eq('status', 'pendente')
+            .eq('lead_id', leadId);
+        }
         await supabase.from('agente_eventos').insert({
-          tipo: 'retorno_planejado',
+          tipo: 'lembrete_retorno',
           lead_id: leadId || null,
-          payload: { paciente_id: pacienteId, retorno_esperado_em: retornoEsperado, ciclo_id: id },
+          status: 'pendente',
+          payload: {
+            paciente_id: pacienteId,
+            retorno_esperado_em: retornoEsperado,
+            disparo_em: disparoEm,
+            ciclo_id: id,
+          },
         });
       }
       setEditandoRetorno(false);
@@ -312,7 +349,7 @@ export function ResumoConsultaSection({ pacienteId, leadId, nomePaciente }: Prop
 
         <p style={{ fontSize: '10.5px', color: 'var(--muted)', marginTop: '7px', lineHeight: 1.5 }}>
           {retornoEsperado
-            ? 'WF07 disparará 3 dias antes desta data com convite de retorno.'
+            ? 'O agente oferece o retorno logo após o resumo. Como fallback, um lembrete dispara 10 dias antes desta data caso a paciente ainda não tenha agendado.'
             : 'Opcional. Sem data, o agente usa o fluxo padrão de reativação (D+60 / D+180).'}
         </p>
       </div>
