@@ -4,7 +4,7 @@ import { useRealtime } from '../hooks/useRealtime';
 import { useClinic } from '../contexts/ClinicContext';
 import { useAuth } from '../contexts/AuthContext';
 import {
-  Gift, Cake, Megaphone, Archive, Plus, Loader2, Lock, Sparkles, X, RotateCcw, Calendar, Pencil, Trash2, AlertTriangle, CheckCircle2, RefreshCw,
+  Gift, Cake, Megaphone, Archive, Plus, Loader2, Lock, Sparkles, X, RotateCcw, Calendar, Pencil, Trash2, AlertTriangle, CheckCircle2, RefreshCw, Clock,
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -94,18 +94,20 @@ function Aniversariantes() {
 
   const agora = new Date();
   const mesAtual = agora.getMonth(); // 0-11
-  const mesChave = `${agora.getFullYear()}-${String(mesAtual + 1).padStart(2, '0')}`;
 
   // Status do último disparo (salvo pelo n8n via registrar_disparo)
-  const dispatch: { mes?: string; enviado_em?: string; total?: number } | null =
+  const dispatch: { mes?: string; data?: string; enviado_em?: string; total?: number } | null =
     (config as any)?.aniversario_last_dispatch ?? null;
-  const disparadoEsteMes = dispatch?.mes === mesChave;
+  // Sinalização POR PESSOA: o WF13 grava leads.aniversario_enviado_em ao enviar (1×/ano).
+  const enviadoEsteAno = (l: any) =>
+    !!l?.aniversario_enviado_em && new Date(l.aniversario_enviado_em).getFullYear() === agora.getFullYear();
+  const enviadosCount = itens.filter(enviadoEsteAno).length;
 
   const load = async () => {
     setLoading(true);
     const { data } = await supabase
       .from('pacientes')
-      .select('id, leads:lead_id(id, nome_lead, whatsapp_lead, data_nascimento, arquivado)');
+      .select('id, leads:lead_id(id, nome_lead, whatsapp_lead, data_nascimento, arquivado, aniversario_enviado_em)');
     const lista = (data || [])
       .map((p: any) => p.leads)
       .filter((l: any) => l && l.data_nascimento && !l.arquivado)
@@ -131,20 +133,20 @@ function Aniversariantes() {
   return (
     <div style={{ maxWidth: '640px' }}>
       {/* Status do disparo */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px', background: disparadoEsteMes ? 'var(--sage-xlight)' : 'var(--white)', border: `1px solid ${disparadoEsteMes ? 'var(--sage-light)' : 'var(--border)'}`, borderRadius: '10px', padding: '12px 14px' }}>
-        {disparadoEsteMes
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px', background: enviadosCount > 0 ? 'var(--sage-xlight)' : 'var(--white)', border: `1px solid ${enviadosCount > 0 ? 'var(--sage-light)' : 'var(--border)'}`, borderRadius: '10px', padding: '12px 14px' }}>
+        {enviadosCount > 0
           ? <CheckCircle2 size={16} style={{ color: 'var(--sage-dark)', flexShrink: 0 }} />
           : <Cake size={16} style={{ color: 'var(--muted)', flexShrink: 0 }} />
         }
         <div style={{ flex: 1, minWidth: 0 }}>
-          {disparadoEsteMes ? (
-            <span style={{ fontSize: '12.5px', color: 'var(--sage-dark)', fontWeight: 600 }}>
-              Disparado em {format(new Date(dispatch!.enviado_em!), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-              {dispatch!.total != null ? ` — ${dispatch!.total} paciente${dispatch!.total !== 1 ? 's' : ''}` : ''}
+          {itens.length > 0 ? (
+            <span style={{ fontSize: '12.5px', color: enviadosCount > 0 ? 'var(--sage-dark)' : 'var(--muted)', fontWeight: enviadosCount > 0 ? 600 : 400 }}>
+              <strong>{enviadosCount}</strong> de <strong>{itens.length}</strong> aniversariante{itens.length !== 1 ? 's' : ''} de <strong>{MESES[mesAtual]}</strong> já recebe{enviadosCount === 1 ? 'u' : 'ram'} a mensagem
+              {dispatch?.enviado_em ? ` · último envio ${format(new Date(dispatch.enviado_em), "dd/MM 'às' HH:mm", { locale: ptBR })}` : ''}
             </span>
           ) : (
             <span style={{ fontSize: '12.5px', color: 'var(--muted)' }}>
-              Nenhum disparo registrado em <strong>{MESES[mesAtual]}</strong> — o n8n dispara automaticamente no dia configurado.
+              Nenhum aniversariante em <strong>{MESES[mesAtual]}</strong> — o WF13 envia 1 a 1 no dia exato.
             </span>
           )}
         </div>
@@ -184,8 +186,16 @@ function Aniversariantes() {
                   <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)' }}>{l.nome_lead || 'Paciente'}</div>
                   <div style={{ fontSize: '11.5px', color: 'var(--muted)' }}>{l.whatsapp_lead || 'sem WhatsApp'}</div>
                 </div>
-                {disparadoEsteMes && (
-                  <span title="Mensagem enviada este mês" style={{ display: 'flex', flexShrink: 0 }}><CheckCircle2 size={15} style={{ color: 'var(--sage-dark)', opacity: 0.6 }} /></span>
+                {enviadoEsteAno(l) ? (
+                  <span title={l.aniversario_enviado_em ? `Mensagem enviada em ${format(new Date(l.aniversario_enviado_em), "dd/MM 'às' HH:mm", { locale: ptBR })}` : 'Mensagem enviada'}
+                    style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0, color: 'var(--sage-dark)', fontSize: '11px', fontWeight: 600 }}>
+                    <CheckCircle2 size={14} /> Enviada
+                  </span>
+                ) : (
+                  <span title="Mensagem ainda não enviada — o WF13 envia no dia do aniversário"
+                    style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0, color: 'var(--muted)', fontSize: '11px' }}>
+                    <Clock size={13} /> Pendente
+                  </span>
                 )}
               </div>
             ))}
