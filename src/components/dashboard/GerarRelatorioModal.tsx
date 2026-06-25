@@ -462,7 +462,7 @@ async function fetchReportData(startIso: string, endIso: string, periodoLabel: s
       .select('valor, lead_id')
       .gte('created_at', startIso).lte('created_at', endIso),
     supabase.from('leads')
-      .select('id, nome_lead, genero, data_nascimento, origem'),
+      .select('id, nome_lead, genero, data_nascimento, origem, segmento_rfm'),
     supabase.from('agendamentos')
       .select('id, lead_id, data_hora_inicio')
       .eq('status', 'faltou')
@@ -563,13 +563,12 @@ async function fetchReportData(startIso: string, endIso: string, periodoLabel: s
     compPorLead[a.lead_id] = compPorLead[a.lead_id] || 0;
     if (a.status === 'compareceu') compPorLead[a.lead_id]++;
   });
+  // 4c — RFM vem do banco (leads.segmento_rfm, calculado por F+R+M no Supabase).
+  // O dashboard NÃO recalcula: apenas agrega o segmento já persistido.
   const rfmMap: Record<string, number> = { Diamante: 0, Fiel: 0, Potencial: 0, 'Em Risco': 0, Perdida: 0 };
-  Object.values(compPorLead).forEach(c => {
-    if (c >= 5) rfmMap['Diamante']++;
-    else if (c >= 3) rfmMap['Fiel']++;
-    else if (c >= 2) rfmMap['Potencial']++;
-    else if (c >= 1) rfmMap['Em Risco']++;
-    else rfmMap['Perdida']++;
+  pacLeads.forEach((l: any) => {
+    const seg = l.segmento_rfm;
+    if (seg && seg in rfmMap) rfmMap[seg]++;
   });
   const rfmSegmentos = Object.entries(rfmMap).filter(([, v]) => v > 0).map(([name, value]) => ({ name, value }));
 
