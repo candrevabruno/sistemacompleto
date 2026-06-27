@@ -1,28 +1,22 @@
 -- Migration: RAG — Base de Conhecimento (pgvector)
 -- Usada pelo WF01 para busca semântica antes de gerar respostas com GPT
 
--- Habilita extensão pgvector (necessária para colunas VECTOR)
-CREATE EXTENSION IF NOT EXISTS vector;
+-- 1. Habilitar pgvector
+CREATE EXTENSION IF NOT EXISTS vector WITH SCHEMA extensions;
 
--- Tabela de documentos indexados
+-- 2. Tabela de embeddings da base de conhecimento
 CREATE TABLE IF NOT EXISTS public.base_conhecimento (
   id        BIGSERIAL PRIMARY KEY,
-  content   TEXT NOT NULL,
-  metadata  JSONB DEFAULT '{}',
-  embedding VECTOR(1536)
+  content   TEXT,
+  metadata  JSONB,
+  embedding extensions.vector(1536)
 );
 
--- Índice para acelerar buscas por similaridade (IVFFlat)
-CREATE INDEX IF NOT EXISTS base_conhecimento_embedding_idx
-  ON public.base_conhecimento
-  USING ivfflat (embedding vector_cosine_ops)
-  WITH (lists = 100);
-
--- Função de busca semântica chamada pelo WF01
+-- 3. Função de busca vetorial (chamada pelo WF01 via RPC)
 CREATE OR REPLACE FUNCTION public.match_base_conhecimento(
-  query_embedding VECTOR(1536),
-  match_count     INT     DEFAULT 5,
-  filter          JSONB   DEFAULT '{}'
+  query_embedding extensions.vector(1536),
+  match_count     INT   DEFAULT 5,
+  filter          JSONB DEFAULT '{}'
 )
 RETURNS TABLE (
   id         BIGINT,
@@ -32,17 +26,36 @@ RETURNS TABLE (
 )
 LANGUAGE plpgsql
 AS $$
+#variable_conflict use_column
 BEGIN
   RETURN QUERY
   SELECT
-    b.id,
-    b.content,
-    b.metadata,
-    1 - (b.embedding <=> query_embedding) AS similarity
-  FROM public.base_conhecimento b
-  WHERE b.embedding IS NOT NULL
-    AND (filter = '{}' OR b.metadata @> filter)
-  ORDER BY b.embedding <=> query_embedding
+    id,
+    content,
+    metadata,
+    1 - (base_conhecimento.embedding <=> query_embedding) AS similarity
+  FROM public.base_conhecimento
+  WHERE metadata @> filter
+  ORDER BY base_conhecimento.embedding <=> query_embedding
   LIMIT match_count;
 END;
 $$;
+
+-- 4. Tabela auxiliar para rastrear documentos carregados (usada pelo workflow de ingestão RAG)
+CREATE TABLE IF NOT EXISTS public.documentos_base (
+  id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  file_id        TEXT NOT NULL UNIQUE,
+  nome_arquivo   TEXT,
+  processado_em  TIMESTAMPTZ DEFAULT now(),
+  status         TEXT DEFAULT 'concluido'
+);
+
+-- 5. RLS — somente service_role pode ler/escrever
+ALTER TABLE public.base_conhecimento ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.documentos_base   ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY IF NOT EXISTS "service_role_base_conhecimento"
+  ON public.base_conhecimento FOR ALL TO service_role USING (true);
+
+CREATE POLICY IF NOT EXISTS "service_role_documentos_base"
+  ON public.documentos_base FOR ALL TO service_role USING (true);
