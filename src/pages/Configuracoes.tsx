@@ -624,6 +624,23 @@ function AbaWhatsApp() {
   const [webhookGerada, setWebhookGerada] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  // Número do grupo do WhatsApp para notificações de agendamento
+  const [grupoWhatsapp, setGrupoWhatsapp] = useState(config?.grupo_whatsapp_numero || '');
+  const [grupoSalvo, setGrupoSalvo] = useState(false);
+  const [grupoSalvando, setGrupoSalvando] = useState(false);
+
+  const salvarGrupo = async () => {
+    setGrupoSalvando(true);
+    const numero = grupoWhatsapp.replace(/\D/g, '');
+    const { error } = await supabase.from('clinic_config').update({ grupo_whatsapp_numero: numero || null }).eq('id', 1);
+    setGrupoSalvando(false);
+    if (error) { alert('Erro ao salvar: ' + error.message); return; }
+    await refreshConfig();
+    setGrupoWhatsapp(numero);
+    setGrupoSalvo(true);
+    setTimeout(() => setGrupoSalvo(false), 2000);
+  };
+
   // Desconexão intencional
   const [disconnectModalOpen, setDisconnectModalOpen] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
@@ -1045,6 +1062,41 @@ function AbaWhatsApp() {
           </div>
         )}
       </Modal>
+
+      {/* Número do grupo do WhatsApp para notificações de agendamento */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Grupo de notificações (agendamentos)</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-xs text-[var(--muted)] leading-relaxed">
+            Quando um agendamento for criado, reagendado ou cancelado pelo Cal.com, o sistema enviará uma notificação neste grupo do WhatsApp.
+          </p>
+          <div>
+            <label className="block text-[9.5px] font-semibold uppercase tracking-[0.8px] text-[var(--muted)] mb-1.5">
+              Número do grupo do WhatsApp
+            </label>
+            <input
+              type="text"
+              value={grupoWhatsapp}
+              onChange={e => setGrupoWhatsapp(e.target.value.replace(/\D/g, ''))}
+              placeholder="Ex: 120363425735191359"
+              className="w-full px-3 py-2 text-sm border border-[var(--border-md)] rounded-[var(--r-xs)] bg-[var(--white)] text-[var(--ink)] font-mono outline-none"
+            />
+            <p className="text-[10.5px] text-[var(--muted)] mt-1.5">
+              Formato: ID do grupo sem @g.us (ex: <span className="font-mono">120363425735191359</span>). Para grupos de WhatsApp, o ID aparece na URL do WhatsApp Web ou via Evolution API.
+            </p>
+          </div>
+          <button
+            onClick={salvarGrupo}
+            disabled={grupoSalvando}
+            className="flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-[var(--r-xs)] border-none cursor-pointer font-[inherit]"
+            style={{ background: grupoSalvo ? 'rgba(16,185,129,0.85)' : 'var(--sage-dark)', color: 'white', opacity: grupoSalvando ? 0.6 : 1 }}
+          >
+            {grupoSalvo ? '✓ Salvo!' : grupoSalvando ? 'Salvando…' : 'Salvar número do grupo'}
+          </button>
+        </CardContent>
+      </Card>
 
     </div>
   );

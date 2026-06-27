@@ -6,9 +6,20 @@
 
 import { corsHeaders } from '../_shared/cors.ts';
 import { createAdminClient } from '../_shared/supabase-client.ts';
+import { WhatsAppService } from '../_shared/whatsapp.ts';
 
 function digits(s: string | null | undefined): string {
   return (s || '').replace(/\D/g, '');
+}
+
+function fmtData(iso: string | null | undefined, tz: string): string {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: tz });
+}
+
+function fmtHora(iso: string | null | undefined, tz: string): string {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: tz });
 }
 
 async function assinaturaValida(secret: string | null | undefined, rawBody: string, header: string | null): Promise<boolean> {
@@ -23,6 +34,34 @@ async function assinaturaValida(secret: string | null | undefined, rawBody: stri
   return hex === header.toLowerCase();
 }
 
+async function notificarGrupo(
+  cfg: Record<string, any>,
+  texto: string,
+  db: ReturnType<typeof createAdminClient>,
+): Promise<void> {
+  const grupoNum = cfg.grupo_whatsapp_numero as string | null;
+  if (!grupoNum) return;
+  const jid = grupoNum.includes('@') ? grupoNum : `${grupoNum}@g.us`;
+  try {
+    const ws = new WhatsAppService({
+      whatsapp_provider: (cfg.whatsapp_provider as 'evolution' | 'meta') || 'evolution',
+      evolution_server_url: cfg.evolution_server_url as string | null,
+      evolution_api_key: cfg.evolution_api_key as string | null,
+      evolution_instance_name: cfg.evolution_instance_name as string | null,
+      meta_phone_number_id: cfg.meta_phone_number_id as string | null,
+      meta_access_token: cfg.meta_access_token as string | null,
+    });
+    await ws.sendText(jid, texto);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    // Falha na notificação de grupo nunca quebra o fluxo — apenas loga.
+    await db.from('erros_log').insert({
+      workflow: 'cal-webhook', severity: 'warning',
+      mensagem: `Notificação de grupo falhou: ${msg}`,
+    }).catch(() => undefined);
+  }
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
   const ok = () => new Response(JSON.stringify({ received: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
@@ -31,7 +70,12 @@ Deno.serve(async (req: Request) => {
     const raw = await req.text();
     const db = createAdminClient();
 
-    const { data: cfg } = await db.from('clinic_config').select('calcom_webhook_secret').eq('id', 1).single();
+    const { data: cfg } = await db.from('clinic_config').select(
+      'calcom_webhook_secret, grupo_whatsapp_numero, fuso_horario, ' +
+      'whatsapp_provider, evolution_server_url, evolution_api_key, evolution_instance_name, ' +
+      'meta_phone_number_id, meta_access_token',
+    ).eq('id', 1).single();
+
     const sig = req.headers.get('x-cal-signature-256');
     if (!(await assinaturaValida(cfg?.calcom_webhook_secret, raw, sig))) {
       return new Response(JSON.stringify({ error: 'invalid signature' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
@@ -41,32 +85,56 @@ Deno.serve(async (req: Request) => {
     const evt = body.triggerEvent as string;
     const p = (body.payload ?? {}) as Record<string, any>;
     const uid = p.uid as string | undefined;
+    const tz = (cfg as any)?.fuso_horario || 'America/Sao_Paulo';
     console.log(`[cal] event=${evt} uid=${uid}`);
     if (!uid) return ok();
 
     // ── Mapeia profissional (agenda) pelo event-type ──
     let agenda_id: string | null = null;
+    let agenda_nome: string | null = null;
     const etid = p.eventTypeId != null ? String(p.eventTypeId) : null;
     if (etid) {
-      const { data: ag } = await db.from('agendas').select('id').eq('calcom_event_type_id', etid).limit(1).maybeSingle();
+      const { data: ag } = await db.from('agendas').select('id, nome').eq('calcom_event_type_id', etid).limit(1).maybeSingle();
       agenda_id = ag?.id ?? null;
+      agenda_nome = ag?.nome ?? null;
     }
     if (!agenda_id) {
       // Sem mapeamento: se houver só uma agenda ativa, usa ela.
-      const { data: ags } = await db.from('agendas').select('id').eq('ativo', true);
-      if (ags && ags.length === 1) agenda_id = ags[0].id;
+      const { data: ags } = await db.from('agendas').select('id, nome').eq('ativo', true);
+      if (ags && ags.length === 1) { agenda_id = ags[0].id; agenda_nome = ags[0].nome; }
     }
 
     // ── CANCELAMENTO: libera o slot + aciona lista de espera ──
     if (evt === 'BOOKING_CANCELLED') {
       const { data: upd } = await db.from('agendamentos')
-        .update({ status: 'cancelado' }).eq('calcom_uid', uid).neq('status', 'cancelado').select('id, agenda_id, data_hora_inicio, lead_id, procedimento_nome');
+        .update({ status: 'cancelado' })
+        .eq('calcom_uid', uid).neq('status', 'cancelado')
+        .select('id, agenda_id, data_hora_inicio, lead_id, procedimento_nome, nome_lead');
+
       if (upd && upd.length > 0) {
         const a = upd[0];
         await db.from('agente_eventos').insert({
           tipo: 'slot_liberado', agendamento_id: a.id, lead_id: a.lead_id, agenda_id: a.agenda_id,
           payload: { motivo: 'cancelado_calcom', quando: a.data_hora_inicio, procedimento: a.procedimento_nome },
         });
+
+        // Notificação de grupo — non-blocking
+        if ((cfg as any)?.grupo_whatsapp_numero) {
+          let profNome = agenda_nome;
+          if (!profNome && a.agenda_id) {
+            const { data: agRow } = await db.from('agendas').select('nome').eq('id', a.agenda_id).maybeSingle();
+            profNome = agRow?.nome ?? null;
+          }
+          const motivo = (p.cancellationReason as string) || (p.reason as string) || '';
+          const linhas = [
+            '❌ Consulta cancelada',
+            `Paciente: ${a.nome_lead || 'Paciente'}`,
+            `Data cancelada: ${fmtData(a.data_hora_inicio, tz)} às ${fmtHora(a.data_hora_inicio, tz)}`,
+            profNome ? `Profissional: ${profNome}` : null,
+            motivo ? `Motivo: ${motivo}` : null,
+          ].filter(Boolean).join('\n');
+          await notificarGrupo(cfg as any, linhas, db);
+        }
       }
       return ok();
     }
@@ -78,8 +146,13 @@ Deno.serve(async (req: Request) => {
     const nome = (att.name as string) || (p.responses?.name?.value as string) || 'Paciente';
     const inicio = p.startTime ? new Date(p.startTime).toISOString() : null;
     const link = (p.videoCallData?.url as string) || (p.metadata?.videoCallUrl as string) || null;
-    const online = !!link || /cal video|google meet|zoom|video|integrations:/i.test(String(p.location || ''));
-    const modalidade = online ? 'online' : 'presencial';
+    const locStr = String(p.location || '');
+    const isOnline = !!link
+      || /meet\.google\.com/i.test(locStr)
+      || /integrations:google:meet/i.test(locStr)
+      || /cal video|zoom|video|integrations:/i.test(locStr);
+    const modalidade = isOnline ? 'online' : 'presencial';
+    const tipo_consulta = modalidade; // alias para nova coluna
 
     // ── Encontra/cria o lead ──
     // Prioridade 1: lead_id explícito no metadata do booking (enviado pelo agente).
@@ -143,21 +216,22 @@ Deno.serve(async (req: Request) => {
 
       let alvoId: string | null = null;
       let episodioId: string | null = null;
+      let dataHoraAnterior: string | null = null;
       for (const u of [uid, origUid].filter(Boolean) as string[]) {
         const { data: row } = await db.from('agendamentos')
-          .select('id, episodio_id').eq('calcom_uid', u).limit(1).maybeSingle();
-        if (row) { alvoId = row.id; episodioId = row.episodio_id; break; }
+          .select('id, episodio_id, data_hora_inicio').eq('calcom_uid', u).limit(1).maybeSingle();
+        if (row) { alvoId = row.id; episodioId = row.episodio_id; dataHoraAnterior = row.data_hora_inicio; break; }
       }
       if (!alvoId && lead_id) {
         const { data: ativos } = await db.from('agendamentos')
-          .select('id, episodio_id').eq('lead_id', lead_id)
+          .select('id, episodio_id, data_hora_inicio').eq('lead_id', lead_id)
           .not('status', 'in', '("cancelado","cancelou_agendamento","faltou","compareceu")');
-        if (ativos && ativos.length === 1) { alvoId = ativos[0].id; episodioId = ativos[0].episodio_id; }
+        if (ativos && ativos.length === 1) { alvoId = ativos[0].id; episodioId = ativos[0].episodio_id; dataHoraAnterior = ativos[0].data_hora_inicio; }
       }
 
       if (alvoId) {
         await db.from('agendamentos').update({
-          data_hora_inicio: inicio, link_reuniao: link, modalidade,
+          data_hora_inicio: inicio, link_reuniao: link, modalidade, tipo_consulta,
           status: 'reagendado', calcom_uid: uid,
         }).eq('id', alvoId);
 
@@ -174,6 +248,23 @@ Deno.serve(async (req: Request) => {
 
         if (lead_id) {
           await db.from('leads').update({ status: 'reagendado', data_agendamento: inicio }).eq('id', lead_id);
+        }
+
+        // Notificação de grupo
+        if ((cfg as any)?.grupo_whatsapp_numero) {
+          const linhas = [
+            '📅 Consulta reagendada',
+            `Paciente: ${nome}`,
+            dataHoraAnterior
+              ? `De: ${fmtData(dataHoraAnterior, tz)} às ${fmtHora(dataHoraAnterior, tz)}`
+              : null,
+            `Para: ${fmtData(inicio, tz)} às ${fmtHora(inicio, tz)}`,
+            agenda_nome ? `Profissional: ${agenda_nome}` : null,
+            tipo_consulta === 'online'
+              ? `Tipo: Online (Google Meet)${link ? `\nLink: ${link}` : ''}`
+              : 'Tipo: Presencial',
+          ].filter(Boolean).join('\n');
+          await notificarGrupo(cfg as any, linhas, db);
         }
 
         // Notifica o agente (n8n) para agir se precisar.
@@ -193,22 +284,37 @@ Deno.serve(async (req: Request) => {
       // Dedupe extra: se já há agendamento ativo no mesmo profissional/horário
       // (ex.: reagendamento iniciado no painel que gerou este webhook), vincula o uid em vez de duplicar.
       if (agenda_id && inicio) {
-        const { data: mesmo } = await db.from('agendamentos').select('id')
+        const { data: mesmo } = await db.from('agendamentos').select('id, notificacao_grupo_enviada')
           .eq('agenda_id', agenda_id).eq('data_hora_inicio', inicio)
           .not('status', 'in', '("cancelado","cancelou_agendamento","faltou")').limit(1).maybeSingle();
         if (mesmo) {
-          await db.from('agendamentos').update({ calcom_uid: uid, link_reuniao: link, modalidade }).eq('id', mesmo.id);
+          await db.from('agendamentos').update({ calcom_uid: uid, link_reuniao: link, modalidade, tipo_consulta }).eq('id', mesmo.id);
+
+          // Envia notificação de grupo se ainda não enviada
+          if ((cfg as any)?.grupo_whatsapp_numero && !mesmo.notificacao_grupo_enviada) {
+            await enviarNotificacaoCriacao(cfg as any, nome, inicio, tz, agenda_nome, tipo_consulta, link, db);
+            await db.from('agendamentos').update({ notificacao_grupo_enviada: true }).eq('id', mesmo.id);
+          }
           return ok();
         }
       }
-      await db.from('agendamentos').insert({
+
+      const { data: novoAg } = await db.from('agendamentos').insert({
         agenda_id, lead_id, nome_lead: nome, whatsapp_lead: phone || null,
         procedimento_nome: (p.title as string) || (p.metadata?.procedimento_nome as string) || null,
         data_hora_inicio: inicio, status: 'agendado',
-        modalidade, link_reuniao: link, calcom_uid: uid,
-      });
+        modalidade, tipo_consulta, link_reuniao: link, calcom_uid: uid,
+        notificacao_grupo_enviada: false,
+      }).select('id').single();
+
       if (lead_id) {
         await db.from('leads').update({ data_agendamento: inicio, status: 'agendado' }).eq('id', lead_id);
+      }
+
+      // Notificação de grupo para BOOKING_CREATED
+      if ((cfg as any)?.grupo_whatsapp_numero && novoAg?.id) {
+        await enviarNotificacaoCriacao(cfg as any, nome, inicio, tz, agenda_nome, tipo_consulta, link, db);
+        await db.from('agendamentos').update({ notificacao_grupo_enviada: true }).eq('id', novoAg.id);
       }
     }
 
@@ -220,3 +326,26 @@ Deno.serve(async (req: Request) => {
     return new Response(JSON.stringify({ received: true, error: msg }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 });
+
+async function enviarNotificacaoCriacao(
+  cfg: Record<string, any>,
+  nomePaciente: string,
+  inicio: string | null,
+  tz: string,
+  agendaNome: string | null,
+  tipoConsulta: string,
+  link: string | null,
+  db: ReturnType<typeof createAdminClient>,
+): Promise<void> {
+  const linhas = [
+    '📅 Nova consulta agendada',
+    `Paciente: ${nomePaciente}`,
+    `Data: ${fmtData(inicio, tz)}`,
+    `Horário: ${fmtHora(inicio, tz)}`,
+    agendaNome ? `Profissional: ${agendaNome}` : null,
+    tipoConsulta === 'online'
+      ? `Tipo: Online (Google Meet)${link ? `\nLink: ${link}` : ''}`
+      : 'Tipo: Presencial',
+  ].filter(Boolean).join('\n');
+  await notificarGrupo(cfg, linhas, db);
+}

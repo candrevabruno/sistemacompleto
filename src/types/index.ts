@@ -39,6 +39,8 @@ export interface ClinicConfig {
   // Integração Tally — Formulário de Anamnese
   tally_formulario_id?: string | null;
   tally_webhook_url?: string | null;
+  // Grupo de WhatsApp para notificações de agendamento (via cal-webhook)
+  grupo_whatsapp_numero?: string | null;
 }
 
 export interface Conversa {

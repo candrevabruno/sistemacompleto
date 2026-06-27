@@ -1435,17 +1435,27 @@ function AgendamentoModal({ ag, agendas, podeEditar, onClose, onUpdated, onVerPa
               {ag.procedimento_nome || ag.leads?.procedimento_interesse || '—'}{ag.agendas?.nome ? ` · ${ag.agendas.nome}` : ''}
             </div>
           </div>
-          <span style={{ fontSize: '10px', fontWeight: 600, padding: '3px 8px', borderRadius: '20px', background: isCancelado(ag) ? 'var(--rose-light)' : 'var(--sage-xlight)', color: isCancelado(ag) ? 'var(--rose-text)' : 'var(--sage-dark)' }}>
-            {STATUS_LABEL[ag.status] || ag.status}
-          </span>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+            <span style={{ fontSize: '10px', fontWeight: 600, padding: '3px 8px', borderRadius: '20px', background: isCancelado(ag) ? 'var(--rose-light)' : 'var(--sage-xlight)', color: isCancelado(ag) ? 'var(--rose-text)' : 'var(--sage-dark)' }}>
+              {STATUS_LABEL[ag.status] || ag.status}
+            </span>
+            {(ag.tipo_consulta || ag.modalidade) && (
+              <span style={{ fontSize: '10px', fontWeight: 600, padding: '3px 8px', borderRadius: '20px', background: (ag.tipo_consulta || ag.modalidade) === 'online' ? 'var(--sage-xlight)' : 'var(--champ-light)', color: (ag.tipo_consulta || ag.modalidade) === 'online' ? 'var(--sage-dark)' : 'var(--champ-text)' }}>
+                {(ag.tipo_consulta || ag.modalidade) === 'online' ? 'Online' : 'Presencial'}
+              </span>
+            )}
+          </div>
         </div>
 
-        {/* Reunião online */}
-        {ag.modalidade === 'online' && (
+        {/* Reunião online — botão Abrir reunião com ícone Google Meet */}
+        {(ag.tipo_consulta === 'online' || ag.modalidade === 'online') && (
           ag.link_reuniao ? (
             <a href={ag.link_reuniao} target="_blank" rel="noopener noreferrer"
                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '10px', marginBottom: '16px', borderRadius: 'var(--r-xs)', background: 'var(--sage-dark)', color: 'white', fontSize: '12.5px', fontWeight: 600, textDecoration: 'none', fontFamily: 'inherit' }}>
-              <Video size={15} /> Entrar na reunião
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" style={{ flexShrink: 0 }}>
+                <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/>
+              </svg>
+              Abrir reunião (Google Meet)
             </a>
           ) : (
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', marginBottom: '16px', borderRadius: 'var(--r-xs)', background: 'var(--champ-light)', color: 'var(--champ-text)', fontSize: '11.5px' }}>
