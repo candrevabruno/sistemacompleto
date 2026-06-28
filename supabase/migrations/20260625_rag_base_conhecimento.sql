@@ -54,8 +54,11 @@ CREATE TABLE IF NOT EXISTS public.documentos_base (
 ALTER TABLE public.base_conhecimento ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.documentos_base   ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY IF NOT EXISTS "service_role_base_conhecimento"
+-- Postgres não aceita "CREATE POLICY IF NOT EXISTS" → DROP IF EXISTS + CREATE (idempotente)
+DROP POLICY IF EXISTS "service_role_base_conhecimento" ON public.base_conhecimento;
+CREATE POLICY "service_role_base_conhecimento"
   ON public.base_conhecimento FOR ALL TO service_role USING (true);
 
-CREATE POLICY IF NOT EXISTS "service_role_documentos_base"
+DROP POLICY IF EXISTS "service_role_documentos_base" ON public.documentos_base;
+CREATE POLICY "service_role_documentos_base"
   ON public.documentos_base FOR ALL TO service_role USING (true);
