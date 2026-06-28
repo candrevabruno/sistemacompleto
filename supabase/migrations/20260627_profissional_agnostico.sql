@@ -16,11 +16,13 @@
 ALTER TABLE public.clinic_config
   ADD COLUMN IF NOT EXISTS titulo              TEXT,   -- ex.: 'Dra.', 'Dr.', 'Nutri', 'Dr(a).'
   ADD COLUMN IF NOT EXISTS tipo_profissional   TEXT,   -- ex.: 'médica', 'nutricionista', 'dentista'
-  ADD COLUMN IF NOT EXISTS whatsapp_emergencia TEXT;   -- contato de urgência (opcional)
+  ADD COLUMN IF NOT EXISTS whatsapp_emergencia TEXT,   -- contato de urgência (opcional)
+  ADD COLUMN IF NOT EXISTS nome_assistente     TEXT;   -- nome do agente de IA ({{NOME_ASSISTENTE}})
 
 COMMENT ON COLUMN public.clinic_config.titulo              IS 'Título exibido antes do nome ({{TITULO_PROFISSIONAL}}). Ex.: Dra., Dr., Nutri.';
 COMMENT ON COLUMN public.clinic_config.tipo_profissional   IS 'Tipo de profissional ({{TIPO_PROFISSIONAL}}). Ex.: médica, nutricionista, dentista.';
 COMMENT ON COLUMN public.clinic_config.whatsapp_emergencia IS 'Contato de urgência opcional ({{CONTATO_URGENCIA}}). Só usado se preenchido.';
+COMMENT ON COLUMN public.clinic_config.nome_assistente     IS 'Nome do agente de IA ({{NOME_ASSISTENTE}}). Ex.: Lu, Sofia, Bia.';
 
 -- 2. VIEW profissionais — recriada expondo os novos campos ────────────────────
 -- Mantém todas as colunas da ponte-3 e acrescenta nome, titulo, tipo_profissional
@@ -34,6 +36,7 @@ SELECT
   COALESCE(cc.nome, 'Profissional')                       AS nome,
   cc.titulo,
   cc.tipo_profissional,
+  cc.nome_assistente,
   COALESCE(cc.whatsapp_alertas, cc.heroic_leap_whatsapp)  AS whatsapp_pessoal,
   cc.whatsapp_emergencia,
   COALESCE(cc.fuso_horario, 'America/Sao_Paulo')          AS fuso_horario,
@@ -50,7 +53,7 @@ SELECT
   true                                                    AS ativo
 FROM public.users u
 LEFT JOIN LATERAL (
-  SELECT nome, titulo, tipo_profissional, whatsapp_emergencia,
+  SELECT nome, titulo, tipo_profissional, whatsapp_emergencia, nome_assistente,
          whatsapp_alertas, heroic_leap_whatsapp, fuso_horario,
          evolution_instance_name, calcom_event_type_id, calcom_api_key,
          horario_inicio, horario_fim, dias_atendimento, offset_confirmacao_minutos,
