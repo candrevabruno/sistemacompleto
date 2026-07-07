@@ -151,7 +151,13 @@ Deno.serve(async (req: Request) => {
       || /meet\.google\.com/i.test(locStr)
       || /integrations:google:meet/i.test(locStr)
       || /cal video|zoom|video|integrations:/i.test(locStr);
-    const modalidade = isOnline ? 'online' : 'presencial';
+    // A escolha explícita da paciente (enviada pelo agente no metadata do booking)
+    // tem prioridade sobre a auto-detecção por link/location — necessário quando a
+    // clínica usa UMA única agenda/event-type para presencial e online.
+    const metaModalidade = String(p.metadata?.modalidade || '').toLowerCase();
+    const modalidade = (metaModalidade === 'online' || metaModalidade === 'presencial')
+      ? metaModalidade
+      : (isOnline ? 'online' : 'presencial');
     const tipo_consulta = modalidade; // alias para nova coluna
 
     // ── Encontra/cria o lead ──
