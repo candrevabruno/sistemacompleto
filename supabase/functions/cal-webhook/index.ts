@@ -118,6 +118,24 @@ Deno.serve(async (req: Request) => {
           payload: { motivo: 'cancelado_calcom', quando: a.data_hora_inicio, procedimento: a.procedimento_nome },
         });
 
+        // Reflete o cancelamento no CRM: move o lead para "Cancelou Agendamento"
+        // (só se este agendamento ainda é o vigente do lead — evita rebaixar
+        // um lead que já remarcou outra consulta).
+        if (a.lead_id) {
+          const { data: leadUpd } = await db.from('leads')
+            .update({ status: 'cancelou_agendamento', data_agendamento: null })
+            .eq('id', a.lead_id).eq('id_agendamento', a.id)
+            .select('id');
+          if (!leadUpd || leadUpd.length === 0) {
+            // Lead sem id_agendamento vinculado (agendamento criado fora do CRM):
+            // atualiza pelo status atual, sem sobrescrever estágios finais.
+            await db.from('leads')
+              .update({ status: 'cancelou_agendamento', data_agendamento: null })
+              .eq('id', a.lead_id)
+              .in('status', ['agendado', 'reagendado', 'retorno']);
+          }
+        }
+
         // Notificação de grupo — non-blocking
         if ((cfg as any)?.grupo_whatsapp_numero) {
           let profNome = agenda_nome;

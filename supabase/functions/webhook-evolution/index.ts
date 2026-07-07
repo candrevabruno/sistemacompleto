@@ -118,13 +118,16 @@ Deno.serve(async (req: Request) => {
       return ok();
     }
 
-    // Apenas processa mensagens recebidas/enviadas
-    if (event !== 'messages.upsert') return ok();
+    // Apenas processa mensagens recebidas/enviadas.
+    // messages.upsert = recebidas (e enviadas pelo celular);
+    // send.message = enviadas pela API (agente/n8n) — precisa do evento
+    // SEND_MESSAGE habilitado no webhook da instância Evolution.
+    if (event !== 'messages.upsert' && event !== 'send.message') return ok();
 
     const data = payload.data as Record<string, unknown>;
     const key = (data.key ?? {}) as Record<string, unknown>;
     const remoteJid = key.remoteJid as string;
-    const fromMe = key.fromMe as boolean;
+    const fromMe = event === 'send.message' ? true : (key.fromMe as boolean);
     const evolutionMsgId = key.id as string;
     const pushName = (data.pushName as string) || null;
 
@@ -323,8 +326,11 @@ Deno.serve(async (req: Request) => {
     }
 
     // ── Inserir mensagem ─────────────────────────────────────────
-    const timestamp = data.messageTimestamp
-      ? new Date((data.messageTimestamp as number) * 1000).toISOString()
+    // messageTimestamp normalmente vem em segundos; em alguns eventos
+    // (ex.: send.message) pode vir em milissegundos — normaliza os dois.
+    const rawTs = Number(data.messageTimestamp) || 0;
+    const timestamp = rawTs > 0
+      ? new Date(rawTs > 1e12 ? rawTs : rawTs * 1000).toISOString()
       : new Date().toISOString();
 
     await db.from('mensagens').insert({

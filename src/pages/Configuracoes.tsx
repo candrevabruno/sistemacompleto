@@ -586,24 +586,33 @@ function MaskedRow({ label, value }: { label: string; value?: string | null }) {
   );
 }
 
+type WhatsProvider = 'meta' | 'evolution' | 'uazapi';
+
+const PROVIDER_LABEL: Record<WhatsProvider, string> = {
+  meta: 'Meta Cloud API',
+  evolution: 'Evolution API',
+  uazapi: 'uazapi',
+};
+
 function AbaWhatsApp() {
   const { config, refreshConfig } = useClinic();
   const { user } = useAuth();
   const isAdminOrAbove = user?.role === 'admin' || user?.role === 'super_admin';
-  const [provider, setProvider] = useState<'meta' | 'evolution'>(
-    (config?.whatsapp_provider as 'meta' | 'evolution') || 'meta'
+  const [provider, setProvider] = useState<WhatsProvider>(
+    (config?.whatsapp_provider as WhatsProvider) || 'meta'
   );
 
   const [sensitiveConfig, setSensitiveConfig] = useState<{
     meta_access_token: string;
     meta_webhook_verify_token: string;
     evolution_api_key: string;
+    uazapi_token: string;
   } | null>(null);
 
   const fetchSensitiveConfig = async () => {
     const { data } = await supabase
       .from('clinic_config')
-      .select('meta_access_token, meta_webhook_verify_token, evolution_api_key')
+      .select('meta_access_token, meta_webhook_verify_token, evolution_api_key, uazapi_token')
       .single();
     if (data) setSensitiveConfig(data);
   };
@@ -618,6 +627,11 @@ function AbaWhatsApp() {
   const [evoServerUrl, setEvoServerUrl] = useState(config?.evolution_server_url || '');
   const [evoApiKey, setEvoApiKey] = useState('');
   const [evoInstance, setEvoInstance] = useState(config?.evolution_instance_name || '');
+
+  // uazapi (https://docs.uazapi.com/) — auth via header `token` da instância
+  const [uazServerUrl, setUazServerUrl] = useState(config?.uazapi_server_url || '');
+  const [uazToken, setUazToken] = useState('');
+  const [uazInstance, setUazInstance] = useState(config?.uazapi_instance_name || '');
 
   // Modal de credenciais + URL gerada
   const [credModalOpen, setCredModalOpen] = useState(false);
@@ -655,24 +669,42 @@ function AbaWhatsApp() {
   // URLs de webhook geradas (Edge Functions deste projeto).
   const metaWebhookUrl = `${SUPABASE_URL}/functions/v1/webhook-meta`;
   const evoWebhookUrl = `${SUPABASE_URL}/functions/v1/webhook-evolution`;
-  const providerWebhookUrl = provider === 'meta' ? metaWebhookUrl : evoWebhookUrl;
+  const uazWebhookUrl = `${SUPABASE_URL}/functions/v1/webhook-uazapi`;
+  const providerWebhookUrl = provider === 'meta' ? metaWebhookUrl : provider === 'uazapi' ? uazWebhookUrl : evoWebhookUrl;
 
   const metaConfigured = !!(config?.meta_phone_number_id && sensitiveConfig?.meta_access_token);
   const evoConfigured = !!(config?.evolution_server_url && sensitiveConfig?.evolution_api_key && config?.evolution_instance_name);
-  const activeConfigured = provider === 'meta' ? metaConfigured : evoConfigured;
+  const uazConfigured = !!(config?.uazapi_server_url && sensitiveConfig?.uazapi_token);
+  const activeConfigured = provider === 'meta' ? metaConfigured : provider === 'uazapi' ? uazConfigured : evoConfigured;
+
+  // Provedores com conexão por QR code (proxy autenticado por edge function)
+  const qrProvider = provider === 'evolution' || provider === 'uazapi';
+  const qrConfigured = provider === 'evolution' ? evoConfigured : provider === 'uazapi' ? uazConfigured : false;
+  const proxyFn = provider === 'uazapi' ? 'uazapi-proxy' : 'evolution-proxy';
+
+  async function chamarProxy(action: string) {
+    const { data: { session } } = await supabase.auth.getSession();
+    return fetch(`${SUPABASE_URL}/functions/v1/${proxyFn}`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${session?.access_token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action }),
+    });
+  }
 
   async function verificarStatus() {
     setCheckingStatus(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const resp = await fetch(`${SUPABASE_URL}/functions/v1/evolution-proxy`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${session?.access_token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'connectionState' }),
-      });
+      const resp = await chamarProxy(provider === 'uazapi' ? 'status' : 'connectionState');
       const data = await resp.json();
-      const state = data?.instance?.state ?? data?.state ?? 'close';
-      setConnectionState(state === 'open' ? 'open' : state === 'connecting' ? 'connecting' : 'close');
+      if (provider === 'uazapi') {
+        // uazapi: { instance: { status: disconnected|connecting|connected|hibernated }, status: { connected, loggedIn } }
+        const connected = data?.status?.connected === true || data?.instance?.status === 'connected';
+        const connecting = data?.instance?.status === 'connecting';
+        setConnectionState(connected ? 'open' : connecting ? 'connecting' : 'close');
+      } else {
+        const state = data?.instance?.state ?? data?.state ?? 'close';
+        setConnectionState(state === 'open' ? 'open' : state === 'connecting' ? 'connecting' : 'close');
+      }
     } catch {
       setConnectionState('close');
     } finally {
@@ -684,17 +716,17 @@ function AbaWhatsApp() {
     setGeneratingQr(true);
     setQrCode(null);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const resp = await fetch(`${SUPABASE_URL}/functions/v1/evolution-proxy`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${session?.access_token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'connect' }),
-      });
+      const resp = await chamarProxy('connect');
       const data = await resp.json();
-      const base64 = data?.base64 ?? data?.qrcode?.base64 ?? null;
+      let base64 = provider === 'uazapi'
+        ? (data?.instance?.qrcode ?? data?.qrcode ?? null)
+        : (data?.base64 ?? data?.qrcode?.base64 ?? null);
+      // Normaliza para data URI (a uazapi pode devolver o base64 puro)
+      if (base64 && !String(base64).startsWith('data:')) base64 = `data:image/png;base64,${base64}`;
       setQrCode(base64);
+      if (!base64) alert('O provedor não retornou um QR Code. Tente novamente em alguns segundos.');
     } catch {
-      alert('Erro ao gerar QR Code. Verifique a URL e a API Key.');
+      alert('Erro ao gerar QR Code. Verifique a URL e as credenciais.');
     } finally {
       setGeneratingQr(false);
     }
@@ -704,28 +736,37 @@ function AbaWhatsApp() {
     setDisconnecting(true);
     setDisconnectError(null);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const resp = await fetch(`${SUPABASE_URL}/functions/v1/evolution-proxy`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${session?.access_token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'logout' }),
-      });
+      const resp = await chamarProxy(provider === 'uazapi' ? 'disconnect' : 'logout');
       const resData = await resp.json().catch(() => ({}));
       // 404 = instância já desconectada — trata como sucesso
       if (!resp.ok && resp.status !== 404) {
         throw new Error(resData?.error || resData?.message || `HTTP ${resp.status}`);
       }
       // Limpar credenciais do banco
-      await supabase.from('clinic_config').update({
-        evolution_server_url: null,
-        evolution_api_key: null,
-        evolution_instance_name: null,
-      }).eq('id', 1);
+      if (provider === 'uazapi') {
+        await supabase.from('clinic_config').update({
+          uazapi_server_url: null,
+          uazapi_token: null,
+          uazapi_instance_name: null,
+        }).eq('id', 1);
+      } else {
+        await supabase.from('clinic_config').update({
+          evolution_server_url: null,
+          evolution_api_key: null,
+          evolution_instance_name: null,
+        }).eq('id', 1);
+      }
       await refreshConfig();
       setSensitiveConfig(null);
-      setEvoServerUrl('');
-      setEvoApiKey('');
-      setEvoInstance('');
+      if (provider === 'uazapi') {
+        setUazServerUrl('');
+        setUazToken('');
+        setUazInstance('');
+      } else {
+        setEvoServerUrl('');
+        setEvoApiKey('');
+        setEvoInstance('');
+      }
       setConnectionState(null);
       setQrCode(null);
       setDisconnectModalOpen(false);
@@ -740,11 +781,13 @@ function AbaWhatsApp() {
 
   useEffect(() => {
     if (config) {
-      setProvider((config.whatsapp_provider as 'meta' | 'evolution') || 'meta');
+      setProvider((config.whatsapp_provider as WhatsProvider) || 'meta');
       setMetaPhoneId(config.meta_phone_number_id || '');
       setMetaBusinessId(config.meta_business_account_id || '');
       setEvoServerUrl(config.evolution_server_url || '');
       setEvoInstance(config.evolution_instance_name || '');
+      setUazServerUrl(config.uazapi_server_url || '');
+      setUazInstance(config.uazapi_instance_name || '');
     }
   }, [config]);
 
@@ -753,32 +796,33 @@ function AbaWhatsApp() {
       setMetaToken(sensitiveConfig.meta_access_token || '');
       setMetaVerifyToken(sensitiveConfig.meta_webhook_verify_token || '');
       setEvoApiKey(sensitiveConfig.evolution_api_key || '');
+      setUazToken(sensitiveConfig.uazapi_token || '');
     }
   }, [sensitiveConfig]);
 
   // Polling do status (item 2): a cada 6s enquanto não estiver conectado.
   useEffect(() => {
-    if (provider !== 'evolution' || !evoConfigured) return;
+    if (!qrProvider || !qrConfigured) return;
     verificarStatus();
     if (connectionState === 'open') return;
     const id = setInterval(verificarStatus, 6000);
     return () => clearInterval(id);
-  }, [provider, evoConfigured, connectionState]);
+  }, [provider, qrConfigured, connectionState]);
 
   // Ao conectar, o QR some e o status fica verde (item 2).
   useEffect(() => {
     if (connectionState === 'open') setQrCode(null);
   }, [connectionState]);
 
-  function abrirModalCredenciais(p: 'meta' | 'evolution') {
+  function abrirModalCredenciais(p: WhatsProvider) {
     setProvider(p);
     setWebhookGerada(false);
     setCredModalOpen(true);
   }
 
-  function selecionarProvedor(p: 'meta' | 'evolution') {
+  function selecionarProvedor(p: WhatsProvider) {
     setProvider(p);
-    const configured = p === 'meta' ? metaConfigured : evoConfigured;
+    const configured = p === 'meta' ? metaConfigured : p === 'uazapi' ? uazConfigured : evoConfigured;
     if (!configured) abrirModalCredenciais(p);
   }
 
@@ -793,6 +837,9 @@ function AbaWhatsApp() {
       evolution_server_url: evoServerUrl || null,
       evolution_api_key: evoApiKey || null,
       evolution_instance_name: evoInstance || null,
+      uazapi_server_url: uazServerUrl || null,
+      uazapi_token: uazToken || null,
+      uazapi_instance_name: uazInstance || null,
     }).eq('id', 1);
     setLoading(false);
     if (error) { alert('Erro ao salvar: ' + error.message); return; }
@@ -814,7 +861,7 @@ function AbaWhatsApp() {
           </p>
           <p className={`text-xs mt-0.5 ${activeConfigured ? 'text-green-700' : 'text-amber-700'}`}>
             {activeConfigured
-              ? `Provedor ativo: ${provider === 'meta' ? 'Meta Cloud API (oficial)' : 'Evolution API'}`
+              ? `Provedor ativo: ${provider === 'meta' ? 'Meta Cloud API (oficial)' : PROVIDER_LABEL[provider]}`
               : 'Selecione um provedor e informe as credenciais para ativar o Inbox.'}
           </p>
         </div>
@@ -824,18 +871,18 @@ function AbaWhatsApp() {
       <Card>
         <CardHeader><CardTitle>Provedor de WhatsApp</CardTitle></CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {(['meta', 'evolution'] as const).map(p => (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {(['meta', 'evolution', 'uazapi'] as const).map(p => (
               <button
                 key={p}
                 onClick={() => selecionarProvedor(p)}
                 className={`flex flex-col items-start gap-1 p-4 rounded-[12px] border-2 text-left transition-colors ${provider === p ? 'border-[var(--sage-dark)] bg-[var(--sage-dark)]/5' : 'border-[var(--border)] hover:border-[var(--sage-dark)]/40'}`}
               >
                 <span className="font-semibold text-sm text-[var(--ink)]">
-                  {p === 'meta' ? 'Meta Cloud API' : 'Evolution API'}
+                  {PROVIDER_LABEL[p]}
                 </span>
                 <span className="text-xs text-[var(--muted)]">
-                  {p === 'meta' ? 'API oficial do WhatsApp Business (Meta)' : 'API self-hosted (Evolution)'}
+                  {p === 'meta' ? 'API oficial do WhatsApp Business (Meta)' : p === 'evolution' ? 'API self-hosted (Evolution)' : 'API gerenciada (uazapi.com)'}
                 </span>
                 {provider === p && (
                   <span className="mt-1 text-[10px] font-bold uppercase tracking-wide text-[var(--sage-dark)]">Ativo</span>
@@ -850,7 +897,7 @@ function AbaWhatsApp() {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>{provider === 'meta' ? 'Meta Cloud API — Credenciais' : 'Evolution API — Credenciais'}</CardTitle>
+            <CardTitle>{PROVIDER_LABEL[provider]} — Credenciais</CardTitle>
             <button
               onClick={() => abrirModalCredenciais(provider)}
               className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-[8px] border border-[var(--border-md)] hover:bg-[var(--bg)] transition-colors text-[var(--ink)]"
@@ -868,6 +915,12 @@ function AbaWhatsApp() {
                   <MaskedRow label="Access Token" value={sensitiveConfig?.meta_access_token} />
                   <MaskedRow label="Webhook Verify Token" value={sensitiveConfig?.meta_webhook_verify_token} />
                   <MaskedRow label="Business Account ID" value={config?.meta_business_account_id} />
+                </>
+              ) : provider === 'uazapi' ? (
+                <>
+                  <MaskedRow label="URL do Servidor" value={config?.uazapi_server_url} />
+                  <MaskedRow label="Token da Instância" value={sensitiveConfig?.uazapi_token} />
+                  <MaskedRow label="Instância" value={config?.uazapi_instance_name} />
                 </>
               ) : (
                 <>
@@ -890,9 +943,29 @@ function AbaWhatsApp() {
                     </p>
                     <ul className="space-y-1">
                       <li className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-[var(--sage-dark)] flex-shrink-0" /><code className="font-mono">MESSAGES_UPSERT</code> — receber mensagens</li>
+                      <li className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-[var(--sage-dark)] flex-shrink-0" /><code className="font-mono">SEND_MESSAGE</code> — mensagens enviadas pela IA aparecem no Inbox</li>
                       <li className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-[var(--sage-dark)] flex-shrink-0" /><code className="font-mono">MESSAGES_UPDATE</code> — paciente apaga (apagar p/ todos)</li>
                       <li className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-[var(--sage-dark)] flex-shrink-0" /><code className="font-mono">MESSAGES_DELETE</code> — apagamento de mensagens</li>
                     </ul>
+                  </div>
+                </div>
+              )}
+              {provider === 'uazapi' && (
+                <div className="pt-3">
+                  <div className="rounded-[8px] border border-[var(--border)] bg-[var(--bg)] p-3 text-xs text-[var(--muted)] leading-relaxed">
+                    <p className="font-semibold text-[var(--ink)] mb-1.5">Eventos a habilitar na uazapi</p>
+                    <p className="mb-2">
+                      No painel da uazapi (ou via <span className="font-mono">POST /webhook</span>), cole a URL acima e
+                      ligue os eventos abaixo:
+                    </p>
+                    <ul className="space-y-1">
+                      <li className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-[var(--sage-dark)] flex-shrink-0" /><code className="font-mono">messages</code> — receber mensagens</li>
+                      <li className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-[var(--sage-dark)] flex-shrink-0" /><code className="font-mono">messages_update</code> — edições e apagamentos</li>
+                      <li className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-[var(--sage-dark)] flex-shrink-0" /><code className="font-mono">connection</code> — status da conexão</li>
+                    </ul>
+                    <p className="mt-2 text-[10.5px] italic">
+                      O recebimento pelo Inbox/agente via uazapi será habilitado na próxima etapa (workflows).
+                    </p>
                   </div>
                 </div>
               )}
@@ -908,8 +981,8 @@ function AbaWhatsApp() {
         </CardContent>
       </Card>
 
-      {/* Status da conexão Evolution API (polling automático) */}
-      {provider === 'evolution' && evoConfigured && (
+      {/* Status da conexão via QR (Evolution / uazapi — polling automático) */}
+      {qrProvider && qrConfigured && (
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -1021,7 +1094,7 @@ function AbaWhatsApp() {
       <Modal
         isOpen={credModalOpen}
         onClose={() => setCredModalOpen(false)}
-        title={provider === 'meta' ? 'Credenciais — Meta Cloud API' : 'Credenciais — Evolution API'}
+        title={`Credenciais — ${PROVIDER_LABEL[provider]}`}
       >
         {!webhookGerada ? (
           <div className="space-y-4">
@@ -1031,6 +1104,15 @@ function AbaWhatsApp() {
                 <Input label="Access Token (permanente)" placeholder="EAABsb..." type="password" value={metaToken} onChange={e => setMetaToken(e.target.value)} />
                 <Input label="Webhook Verify Token" placeholder="Token de verificação do webhook" type="password" value={metaVerifyToken} onChange={e => setMetaVerifyToken(e.target.value)} />
                 <Input label="Business Account ID (WABA ID)" placeholder="Ex: 987654321098765" value={metaBusinessId} onChange={e => setMetaBusinessId(e.target.value)} />
+              </>
+            ) : provider === 'uazapi' ? (
+              <>
+                <Input label="URL do Servidor" placeholder="Ex: https://sua-instancia.uazapi.com" value={uazServerUrl} onChange={e => setUazServerUrl(e.target.value)} />
+                <Input label="Token da Instância" placeholder="Token gerado ao criar a instância na uazapi" type="password" value={uazToken} onChange={e => setUazToken(e.target.value)} />
+                <Input label="Nome da Instância (opcional)" placeholder="Ex: clinica-principal" value={uazInstance} onChange={e => setUazInstance(e.target.value)} />
+                <p className="text-[10.5px] text-[var(--muted)] leading-relaxed -mt-2">
+                  Na uazapi cada instância tem um token próprio (header <span className="font-mono">token</span>). Documentação: <span className="font-mono">docs.uazapi.com</span>
+                </p>
               </>
             ) : (
               <>
@@ -1052,7 +1134,7 @@ function AbaWhatsApp() {
             <div>
               <p className="text-sm text-[var(--muted)] mb-2">
                 Configure esta <strong className="text-[var(--ink)]">URL de webhook</strong> no
-                {provider === 'meta' ? ' painel do Meta' : ' painel da Evolution'}:
+                {provider === 'meta' ? ' painel do Meta' : provider === 'uazapi' ? ' painel da uazapi' : ' painel da Evolution'}:
               </p>
               <CopyableUrl url={providerWebhookUrl} />
             </div>

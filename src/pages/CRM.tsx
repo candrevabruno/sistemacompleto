@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import type { DropResult } from '@hello-pangea/dnd';
@@ -52,6 +52,7 @@ const COLUMNS = [
   { id: 'cancelou_agendamento', title: 'Cancelou Agendamento', colorClass: 'border-rose-400' },
   { id: 'converteu', title: 'Converteu (Venda)', colorClass: 'border-green-600 font-bold' },
   { id: 'nao_converteu', title: 'Não Converteu', colorClass: 'border-rose-600' },
+  { id: 'perdido', title: 'Perdido', colorClass: 'border-rose-700' },
   { id: 'abandonou_conversa', title: 'Abandonou', colorClass: 'border-gray-400' }
 ];
 
@@ -70,6 +71,7 @@ const COLUMN_STRIPE: Record<string, string> = {
   cancelou_agendamento: '#F87171',
   converteu: 'var(--sage-dark)',
   nao_converteu: '#F87171',
+  perdido: '#BE123C',
   abandonou_conversa: '#CBD5E1',
 };
 
@@ -83,6 +85,7 @@ const COLUMN_BADGE: Record<string, { bg: string; color: string }> = {
   cancelou_agendamento: { bg: 'var(--rose-light)', color: 'var(--rose-text)' },
   converteu: { bg: 'var(--sage-xlight)', color: 'var(--sage-dark)' },
   nao_converteu: { bg: 'var(--rose-light)', color: 'var(--rose-text)' },
+  perdido: { bg: '#FFF1F2', color: '#BE123C' },
   abandonou_conversa: { bg: '#F1F5F9', color: '#64748B' },
 };
 
@@ -120,10 +123,16 @@ export function CRM() {
   const [selectedLead, setSelectedLead] = useState<any>(null);
   const [openLeadDetails, setOpenLeadDetails] = useState(false);
 
+  // Drag: refetch no meio do arrasto desmonta o board (setLoading) e mata o drag.
+  // Enquanto arrasta, adia qualquer fetchLeads para depois do drop.
+  const draggingRef = useRef(false);
+  const pendingRefetchRef = useRef(false);
+  const initialLoadDoneRef = useRef(false);
 
   const fetchLeads = async () => {
+    if (draggingRef.current) { pendingRefetchRef.current = true; return; }
     try {
-      setLoading(true);
+      if (!initialLoadDoneRef.current) setLoading(true);
       const { data, error } = await supabase.from('leads').select('*').order('ultima_mensagem', { ascending: false });
       if (error) {
         console.error('Erro ao buscar leads:', error);
@@ -138,7 +147,15 @@ export function CRM() {
     } catch (err) {
       console.error('Falha de rede ao buscar leads:', err);
     } finally {
+      initialLoadDoneRef.current = true;
       setLoading(false);
+    }
+  };
+
+  const flushPendingRefetch = () => {
+    if (pendingRefetchRef.current) {
+      pendingRefetchRef.current = false;
+      fetchLeads();
     }
   };
 
@@ -191,17 +208,22 @@ export function CRM() {
     };
   }, []);
 
+  const handleDragStart = () => {
+    draggingRef.current = true;
+  };
+
   const handleDragEnd = async (result: DropResult) => {
+    draggingRef.current = false;
     const { destination, source, draggableId } = result;
-    if (!destination) return;
-    if (destination.droppableId === source.droppableId && destination.index === source.index) return;
+    if (!destination) { flushPendingRefetch(); return; }
+    if (destination.droppableId === source.droppableId && destination.index === source.index) { flushPendingRefetch(); return; }
 
     const leadId = draggableId;
     const oldStatus = source.droppableId;
     const newStatus = destination.droppableId;
 
     const lead = leads.find(l => l.id === leadId);
-    if (!lead) return;
+    if (!lead) { flushPendingRefetch(); return; }
 
     if (newStatus === 'agendado' && oldStatus !== 'agendado') {
       setAgendadoForm({
@@ -273,6 +295,7 @@ export function CRM() {
        setLeads(prev => prev.map(l => l.id === leadId ? updatedRow : l));
        setSelectedLead((prev: any) => prev?.id === leadId ? updatedRow : prev);
     }
+    flushPendingRefetch();
   };
 
   const updateLeadState = (id: string, newStatus: string) => {
@@ -528,7 +551,7 @@ export function CRM() {
         {loading ? (
           <div className="flex items-center justify-center h-full" style={{ color: 'var(--muted)' }}>Carregando...</div>
         ) : (
-          <DragDropContext onDragEnd={handleDragEnd}>
+          <DragDropContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
             <div style={{ display: 'flex', height: '100%', gap: '12px', alignItems: 'flex-start', width: 'fit-content', padding: '0 22px 16px' }}>
               {COLUMNS.map(col => {
                 const colCards = cardsByCol[col.id] || [];
@@ -562,7 +585,7 @@ export function CRM() {
                                 <div ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps}
                                   className="group"
                                   onClick={() => { setSelectedLead(card); setOpenLeadDetails(true); }}
-                                  style={{ ...provided.draggableProps.style, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: '10px', padding: '12px', cursor: 'pointer', position: 'relative', overflow: 'hidden', boxShadow: snapshot.isDragging ? '0 8px 24px rgba(30,41,59,0.12)' : 'none', transition: 'box-shadow 0.12s' }}>
+                                  style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: '10px', padding: '12px', cursor: 'pointer', position: 'relative', overflow: 'hidden', boxShadow: snapshot.isDragging ? '0 8px 24px rgba(30,41,59,0.12)' : 'none', ...provided.draggableProps.style }}>
 
                                   {/* Left stripe */}
                                   <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '3px', background: COLUMN_STRIPE[col.id] || 'var(--sage)' }} />

@@ -18,11 +18,13 @@ export interface ClinicConfig {
   subtitulo: string | null;
   logo_url: string | null;
   chatwoot_url?: string | null;
-  whatsapp_provider?: 'meta' | 'evolution' | null;
+  whatsapp_provider?: 'meta' | 'evolution' | 'uazapi' | null;
   meta_phone_number_id?: string | null;
   meta_business_account_id?: string | null;
   evolution_server_url?: string | null;
   evolution_instance_name?: string | null;
+  uazapi_server_url?: string | null;
+  uazapi_instance_name?: string | null;
   nota_webhook_url?: string | null;
   // ETAPA 5 — feature flags liberadas pela Heroic Leap (super_admin)
   premium_enabled?: boolean;

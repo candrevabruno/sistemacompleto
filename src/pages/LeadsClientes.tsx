@@ -8,6 +8,7 @@ import { Modal } from '../components/ui/Modal';
 import {
   Search, Download, FileText, Archive,
   RotateCcw, MessageSquare, History, CalendarCheck, ClipboardList,
+  Trash2, CheckCircle2,
 } from 'lucide-react';
 import {
   parseISO, format,
@@ -25,7 +26,7 @@ import { calcularTemperatura, getInitials } from '../lib/lead-utils';
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
 type DateFilter = 'ontem' | 'hoje' | '7dias' | '14dias' | 'mes' | 'ano' | 'custom';
-type TabLeads = 'leads' | 'agendados_hoje' | 'arquivados';
+type TabLeads = 'leads' | 'agendados_hoje' | 'confirmados' | 'arquivados';
 type FiltroStatus = 'todos' | 'cancelou' | 'no-show' | 'abandonou' | 'reativacao' | 'sem-resposta' | 'reagendado';
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
@@ -192,11 +193,17 @@ export function LeadsClientes({ mode }: { mode?: 'leads' | 'clientes' }) {
   const [arquivados, setArquivados] = useState<any[]>([]);
   const [agendadosHoje, setAgendadosHoje] = useState<any[]>([]);
   const [loadingAgendados, setLoadingAgendados] = useState(false);
+  const [confirmados, setConfirmados] = useState<any[]>([]);
+  const [loadingConfirmados, setLoadingConfirmados] = useState(false);
   const [clientes, setClientes] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
   const [leadArquivar, setLeadArquivar] = useState<any | null>(null);
   const [leadReativar, setLeadReativar] = useState<any | null>(null);
+  const [leadApagar, setLeadApagar] = useState<any | null>(null);
+  const [confirmTextApagar, setConfirmTextApagar] = useState('');
+  const [apagando, setApagando] = useState(false);
+  const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
   const [selectedLead, setSelectedLead] = useState<any | null>(null);
   const [openLeadDetails, setOpenLeadDetails] = useState(false);
 
@@ -225,6 +232,7 @@ export function LeadsClientes({ mode }: { mode?: 'leads' | 'clientes' }) {
       fetchLeads();
       fetchArquivados();
       fetchAgendadosHoje();
+      fetchConfirmados();
     }
   }, [tabLeads]);
 
@@ -234,7 +242,7 @@ export function LeadsClientes({ mode }: { mode?: 'leads' | 'clientes' }) {
   }, [dateRange]);
 
   useVisibilityRefresh(() => {
-    if (mode === 'leads' || !mode) { fetchLeads(); fetchArquivados(); fetchAgendadosHoje(); }
+    if (mode === 'leads' || !mode) { fetchLeads(); fetchArquivados(); fetchAgendadosHoje(); fetchConfirmados(); }
     else fetchClientes();
   });
 
@@ -294,6 +302,20 @@ export function LeadsClientes({ mode }: { mode?: 'leads' | 'clientes' }) {
     setLoadingAgendados(false);
   };
 
+  // Consultas futuras confirmadas pela paciente na confirmação de 48h (WF03
+  // grava agendamentos.status='confirmado' quando ela responde SIM).
+  const fetchConfirmados = async () => {
+    setLoadingConfirmados(true);
+    const { data } = await supabase
+      .from('agendamentos')
+      .select('id, data_hora_inicio, status, lead_id, nome_lead, agenda_id, modalidade, agendas:agenda_id(nome), leads:lead_id(id, nome_lead, whatsapp_lead, status)')
+      .eq('status', 'confirmado')
+      .gte('data_hora_inicio', startOfToday().toISOString())
+      .order('data_hora_inicio', { ascending: true });
+    if (data) setConfirmados(data);
+    setLoadingConfirmados(false);
+  };
+
   const fetchClientes = async () => {
     setLoading(true);
     const { data } = await supabase
@@ -351,6 +373,27 @@ export function LeadsClientes({ mode }: { mode?: 'leads' | 'clientes' }) {
     setLeadReativar(null);
     fetchArquivados();
     fetchLeads();
+  };
+
+  // Apagar lead definitivamente (mesma RPC usada em Pacientes — remove lead,
+  // conversas, agendamentos e demais registros vinculados). Restrito a admin.
+  const confirmarApagarLead = async () => {
+    if (!leadApagar || !user || apagando) return;
+    setApagando(true);
+    // Auditoria ANTES de apagar (o record_id deixa de existir depois).
+    await supabase.from('audit_log').insert({
+      user_id: user.id,
+      action: 'lead_apagado',
+      record_id: leadApagar.id,
+      detalhes: { nome: leadApagar.nome_lead, whatsapp: leadApagar.whatsapp_lead },
+    });
+    const { error } = await supabase.rpc('apagar_paciente_completo', { p_lead_id: leadApagar.id });
+    setApagando(false);
+    if (error) { alert('Erro ao apagar: ' + error.message); return; }
+    setLeadApagar(null);
+    setConfirmTextApagar('');
+    fetchLeads();
+    fetchArquivados();
   };
 
   const atualizarMotivo = async (lead: any, novoMotivo: string) => {
@@ -516,6 +559,7 @@ export function LeadsClientes({ mode }: { mode?: 'leads' | 'clientes' }) {
   const tabs: { key: TabLeads; label: string }[] = [
     { key: 'leads',           label: `Leads (${sortedFilteredLeads.length})` },
     { key: 'agendados_hoje',  label: `Agendados hoje (${agendadosHoje.length})` },
+    { key: 'confirmados',     label: `Confirmados (${confirmados.length})` },
     { key: 'arquivados',      label: `Arquivados (${arquivados.length})` },
   ];
 
@@ -674,6 +718,12 @@ export function LeadsClientes({ mode }: { mode?: 'leads' | 'clientes' }) {
                             style={{ width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px', border: 'none', cursor: 'pointer', background: 'rgba(100,116,139,0.08)', color: '#64748b', flexShrink: 0 }}>
                             <Archive style={{ width: '13px', height: '13px' }} />
                           </button>
+                          {isAdmin && (
+                            <button onClick={() => { setConfirmTextApagar(''); setLeadApagar(lead); }} title="Apagar lead definitivamente"
+                              style={{ width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px', border: 'none', cursor: 'pointer', background: 'var(--rose-light)', color: 'var(--rose-text)', flexShrink: 0 }}>
+                              <Trash2 style={{ width: '13px', height: '13px' }} />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -770,6 +820,78 @@ export function LeadsClientes({ mode }: { mode?: 'leads' | 'clientes' }) {
         </div>
       )}
 
+      {/* ── Tabela: confirmados (48h) ── */}
+      {tabLeads === 'confirmados' && (
+        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: '10px', overflow: 'hidden' }}>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '600px' }}>
+              <thead>
+                <tr>
+                  {['Data', 'Horário', 'Nome', 'Profissional', 'Modalidade', 'Status'].map((h, i) => (
+                    <th key={h} style={{ fontSize: '9.5px', fontWeight: 600, letterSpacing: '0.8px', textTransform: 'uppercase', color: 'var(--muted)', padding: '10px 14px', textAlign: i === 5 ? 'right' : 'left', borderBottom: '1px solid var(--border)', background: 'var(--bg)', whiteSpace: 'nowrap' }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {loadingConfirmados ? (
+                  <tr><td colSpan={6} style={{ padding: '64px', textAlign: 'center', fontSize: '13px', color: 'var(--muted)' }}>Carregando...</td></tr>
+                ) : confirmados.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} style={{ padding: '64px', textAlign: 'center' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
+                        <CheckCircle2 style={{ width: '28px', height: '28px', color: 'var(--border-md)' }} />
+                        <span style={{ fontSize: '13px', color: 'var(--muted)' }}>Nenhuma consulta confirmada pela paciente ainda.</span>
+                      </div>
+                    </td>
+                  </tr>
+                ) : confirmados.map(ag => {
+                  const lead = ag.leads as any;
+                  const nome = lead?.nome_lead || ag.nome_lead || 'Sem Nome';
+                  const dataConsulta = format(parseISO(ag.data_hora_inicio), 'dd/MM/yyyy', { locale: ptBR });
+                  const horario = format(parseISO(ag.data_hora_inicio), 'HH:mm', { locale: ptBR });
+                  const profissional = (ag.agendas as any)?.nome || '—';
+
+                  return (
+                    <tr key={ag.id}
+                      onClick={() => { if (ag.lead_id) { setSelectedLead({ id: ag.lead_id }); setOpenLeadDetails(true); } }}
+                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--sage-xlight)')}
+                      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                      style={{ borderBottom: '1px solid var(--border)', cursor: ag.lead_id ? 'pointer' : 'default' }}>
+                      <td style={{ padding: '12px 14px', verticalAlign: 'middle', whiteSpace: 'nowrap', fontSize: '11.5px', color: 'var(--muted)' }}>
+                        {dataConsulta}
+                      </td>
+                      <td style={{ padding: '12px 14px', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
+                        <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--sage-dark)', fontVariantNumeric: 'tabular-nums' }}>{horario}</span>
+                      </td>
+                      <td style={{ padding: '12px 14px', verticalAlign: 'middle' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <div style={{ width: '30px', height: '30px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 700, flexShrink: 0, background: 'rgba(34,197,94,0.12)', color: '#15803d' }}>
+                            {getInitials(nome)}
+                          </div>
+                          <div>
+                            <div style={{ fontSize: '12.5px', fontWeight: 500, color: 'var(--ink)' }}>{nome}</div>
+                            {lead?.whatsapp_lead && <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '1px' }}>{lead.whatsapp_lead}</div>}
+                          </div>
+                        </div>
+                      </td>
+                      <td style={{ padding: '12px 14px', verticalAlign: 'middle', fontSize: '11.5px', color: 'var(--muted)' }}>{profissional}</td>
+                      <td style={{ padding: '12px 14px', verticalAlign: 'middle', fontSize: '11.5px', color: 'var(--muted)', textTransform: 'capitalize' }}>
+                        {ag.modalidade || '—'}
+                      </td>
+                      <td style={{ padding: '12px 14px', verticalAlign: 'middle', textAlign: 'right' }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 9px', borderRadius: '20px', fontSize: '10.5px', fontWeight: 600, background: 'rgba(34,197,94,0.12)', color: '#15803d' }}>
+                          <CheckCircle2 style={{ width: '11px', height: '11px' }} /> Confirmada
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       {/* ── Tabela de arquivados ── */}
       {tabLeads === 'arquivados' && (
         <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: '10px', overflow: 'hidden' }}>
@@ -843,6 +965,40 @@ export function LeadsClientes({ mode }: { mode?: 'leads' | 'clientes' }) {
       />
       <ModalArquivar lead={leadArquivar} onConfirm={confirmarArquivamento} onClose={() => setLeadArquivar(null)} />
       <ModalReativar lead={leadReativar} onConfirm={confirmarReativacao} onClose={() => setLeadReativar(null)} />
+
+      {/* ── Modal: apagar lead definitivamente ── */}
+      <Modal isOpen={!!leadApagar} onClose={() => { setLeadApagar(null); setConfirmTextApagar(''); }} title="Apagar lead definitivamente?">
+        {leadApagar && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+              <div style={{ flexShrink: 0, padding: '8px', borderRadius: '50%', background: 'var(--rose-light)', color: 'var(--rose-text)' }}>
+                <Trash2 size={18} />
+              </div>
+              <p style={{ fontSize: '13px', color: 'var(--muted)', lineHeight: 1.5 }}>
+                Isso remove <strong style={{ color: 'var(--ink)' }}>{leadApagar.nome_lead || 'este lead'}</strong> e
+                todos os registros vinculados (conversas, agendamentos, formulários). A ação não pode ser desfeita.
+              </p>
+            </div>
+            <div>
+              <label style={{ fontSize: '9.5px', fontWeight: 600, letterSpacing: '0.8px', textTransform: 'uppercase', color: 'var(--muted)', display: 'block', marginBottom: '5px' }}>
+                Digite <strong>APAGAR</strong> para confirmar
+              </label>
+              <input value={confirmTextApagar} onChange={e => setConfirmTextApagar(e.target.value)} placeholder="APAGAR"
+                style={{ width: '100%', padding: '9px 12px', border: '1px solid var(--border-md)', borderRadius: 'var(--r-xs)', fontSize: '13px', color: 'var(--ink)', fontFamily: 'inherit', background: 'var(--white)', outline: 'none' }} />
+            </div>
+            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+              <button onClick={() => { setLeadApagar(null); setConfirmTextApagar(''); }}
+                style={{ background: 'transparent', color: 'var(--muted)', border: '1px solid var(--border-md)', borderRadius: 'var(--r-xs)', padding: '8px 16px', fontSize: '12.5px', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}>
+                Cancelar
+              </button>
+              <button onClick={confirmarApagarLead} disabled={confirmTextApagar.trim().toUpperCase() !== 'APAGAR' || apagando}
+                style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#dc2626', color: 'white', border: 'none', borderRadius: 'var(--r-xs)', padding: '8px 16px', fontSize: '12.5px', fontWeight: 500, fontFamily: 'inherit', cursor: confirmTextApagar.trim().toUpperCase() === 'APAGAR' && !apagando ? 'pointer' : 'not-allowed', opacity: confirmTextApagar.trim().toUpperCase() === 'APAGAR' && !apagando ? 1 : 0.5 }}>
+                <Trash2 style={{ width: '13px', height: '13px' }} /> {apagando ? 'Apagando...' : 'Apagar definitivamente'}
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }
