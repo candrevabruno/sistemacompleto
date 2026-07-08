@@ -38,6 +38,8 @@ export const ClinicProvider = ({ children }: { children: React.ReactNode }) => {
         if (!fallback.error && fallback.data) {
           data = {
             ...fallback.data,
+            uazapi_server_url: null,
+            uazapi_instance_name: null,
             tally_formulario_id: null,
             tally_webhook_url: null,
           };
