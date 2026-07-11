@@ -303,8 +303,24 @@ Deno.serve(async (req: Request) => {
 
     // ── CRIAÇÃO (ou reschedule sem registro prévio) ──
     if (evt === 'BOOKING_CREATED' || evt === 'BOOKING_RESCHEDULED') {
-      const { data: existe } = await db.from('agendamentos').select('id').eq('calcom_uid', uid).limit(1).maybeSingle();
-      if (existe) return ok(); // dedupe por uid
+      const { data: existe } = await db.from('agendamentos').select('id, notificacao_grupo_enviada').eq('calcom_uid', uid).limit(1).maybeSingle();
+      if (existe) {
+        // Linha pré-gravada pelo WF02B (gravação síncrona) — complementa com o que
+        // só o webhook tem (agenda, link da reunião) em vez de simplesmente ignorar.
+        const compl: Record<string, unknown> = { link_reuniao: link, modalidade, tipo_consulta };
+        if (agenda_id) compl.agenda_id = agenda_id;
+        if (nome) compl.nome_lead = nome;
+        if (phone) compl.whatsapp_lead = phone;
+        await db.from('agendamentos').update(compl).eq('id', existe.id);
+        if (lead_id) {
+          await db.from('leads').update({ data_agendamento: inicio, status: 'agendado' }).eq('id', lead_id);
+        }
+        if ((cfg as any)?.grupo_whatsapp_numero && !existe.notificacao_grupo_enviada) {
+          await enviarNotificacaoCriacao(cfg as any, nome, inicio, tz, agenda_nome, tipo_consulta, link, db);
+          await db.from('agendamentos').update({ notificacao_grupo_enviada: true }).eq('id', existe.id);
+        }
+        return ok();
+      }
       // Dedupe extra: se já há agendamento ativo no mesmo profissional/horário
       // (ex.: reagendamento iniciado no painel que gerou este webhook), vincula o uid em vez de duplicar.
       if (agenda_id && inicio) {
