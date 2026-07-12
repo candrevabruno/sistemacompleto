@@ -118,10 +118,22 @@ Deno.serve(async (req: Request) => {
           payload: { motivo: 'cancelado_calcom', quando: a.data_hora_inicio, procedimento: a.procedimento_nome },
         });
 
-        // Reflete o cancelamento no CRM: move o lead para "Cancelou Agendamento"
-        // (só se este agendamento ainda é o vigente do lead — evita rebaixar
-        // um lead que já remarcou outra consulta).
+        // Reflete o cancelamento no CRM. Se o lead ainda tem OUTRA consulta
+        // futura ativa, ele continua "agendado" apontando para ela — só vai
+        // para "Cancelou Agendamento" quando não sobra nenhuma.
         if (a.lead_id) {
+          const { data: proxima } = await db.from('agendamentos')
+            .select('data_hora_inicio')
+            .eq('lead_id', a.lead_id)
+            .gt('data_hora_inicio', new Date().toISOString())
+            .in('status', ['agendado', 'confirmado', 'reagendado', 'retorno'])
+            .order('data_hora_inicio', { ascending: true })
+            .limit(1).maybeSingle();
+          if (proxima) {
+            await db.from('leads')
+              .update({ data_agendamento: proxima.data_hora_inicio })
+              .eq('id', a.lead_id);
+          } else {
           const { data: leadUpd } = await db.from('leads')
             .update({ status: 'cancelou_agendamento', data_agendamento: null })
             .eq('id', a.lead_id).eq('id_agendamento', a.id)
@@ -133,6 +145,7 @@ Deno.serve(async (req: Request) => {
               .update({ status: 'cancelou_agendamento', data_agendamento: null })
               .eq('id', a.lead_id)
               .in('status', ['agendado', 'reagendado', 'retorno']);
+          }
           }
         }
 
